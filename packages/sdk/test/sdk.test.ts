@@ -7,6 +7,7 @@ import {
   verifyHeader,
   RpcClient,
   SEPOLIA_USDC,
+  fetchBal,
   balanceSlot,
   findHits,
   hashBal,
@@ -146,5 +147,28 @@ describe("watchWindow", () => {
     await expect(
       watchWindow({ rpc, addresses: [], from: BigInt(header.number), blocks: 1 }),
     ).rejects.toThrow(BalHashMismatch);
+  });
+});
+
+describe("fetchBal", () => {
+  test("retries under a fresh isolation key when a backend lacks the method", async () => {
+    const keys: (string | undefined)[] = [];
+    let calls = 0;
+    const rpc = new RpcClient("http://x", async (_u, init) => {
+      keys.push(init.anonOptions?.isolationKey);
+      const body = ++calls < 3
+        ? { jsonrpc: "2.0", id: 1, error: { code: -32601, message: "method not available" } }
+        : { jsonrpc: "2.0", id: 1, result: bal };
+      return new Response(JSON.stringify(body));
+    }, "sale-1");
+    expect((await fetchBal(rpc, 1n))!.length).toBe(bal.length);
+    expect(keys[0]).toBe("sale-1");
+    expect(new Set(keys).size).toBe(3); // each retry used a new key
+  });
+
+  test("gives up after the attempt budget", async () => {
+    const rpc = new RpcClient("http://x", async () =>
+      new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: -32601, message: "nope" } })));
+    await expect(fetchBal(rpc, 1n, 2)).rejects.toThrow("nope");
   });
 });

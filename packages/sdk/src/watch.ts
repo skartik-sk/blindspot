@@ -11,7 +11,7 @@ import type { Address, Hex } from "viem";
 import { verifyBal } from "./bal";
 import { findHits, SEPOLIA_USDC, type Erc20Slot, type Hit } from "./extract";
 import { HeaderInvalid, verifyHeader } from "./header";
-import type { RpcClient } from "./rpc";
+import { fetchBal, type RpcClient } from "./rpc";
 
 export interface WatchOptions {
   rpc: RpcClient;
@@ -53,7 +53,7 @@ export async function watchWindow(o: WatchOptions): Promise<Hit[]> {
       throw new HeaderInvalid(`block ${n} does not extend block ${n - 1n}`);
     prevHash = hash;
 
-    const bal = await rpc.bal(n);
+    const bal = await fetchBal(rpc, n);
     if (!bal) throw new Error(`no access list for block ${n}`);
     const balHash = verifyBal(bal, header); // throws if the server lied
     const hits = findHits(bal, addresses, tokens);

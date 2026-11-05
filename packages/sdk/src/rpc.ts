@@ -45,3 +45,20 @@ export class RpcClient {
 }
 
 export const toHex = (n: bigint) => `0x${n.toString(16)}` as Hex;
+
+/**
+ * Fetch a block's access list, retrying under a fresh isolation key on failure. Through a mixnet or Tor each
+ * new key is a new route, and public providers load-balance by region: some backends don't serve
+ * eth_getBlockAccessList yet. Returns null only if the block doesn't exist yet.
+ */
+export async function fetchBal(rpc: RpcClient, n: bigint, attempts = 4): Promise<BalJson | null> {
+  let err: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await (i === 0 ? rpc : rpc.isolated(crypto.randomUUID())).bal(n);
+    } catch (e) {
+      err = e;
+    }
+  }
+  throw err;
+}
