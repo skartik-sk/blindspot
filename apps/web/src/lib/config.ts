@@ -4,7 +4,7 @@ const env = import.meta.env;
 export type NetworkName = "tor" | "sphinx" | "passthrough";
 
 export const config = {
-  network: (env.VITE_ANON_NETWORK ?? "tor") as NetworkName,
+  network: (env.VITE_ANON_NETWORK ?? "sphinx") as NetworkName,
   /** Our BAL relay (must be public https for Tor/mixnet exits to reach it). */
   relayUrl: env.VITE_RELAY_URL ?? "http://localhost:8787/",
   /** Independent provider used to anchor hit blocks; also the upstream for sending. */

@@ -19,7 +19,10 @@ export const NETWORKS: Record<NetworkName, Network> = {
     label: "Tor",
     address: "0x700dA3193D35fA54Cd3fBf29B66f2a2A0385659e",
     chain: "mainnet",
-    config: { gateways: ["152.236.3.22:12298:uEiCH0VdbhryzJcMtCfB0vLA4sOvHdQ4hq5w7CopcwU59bQ"] },
+    config: {
+      gateways: (import.meta.env.VITE_TOR_GATEWAYS ?? "152.236.3.22:12298:uEiCH0VdbhryzJcMtCfB0vLA4sOvHdQ4hq5w7CopcwU59bQ").split(","),
+      logLevel: import.meta.env.VITE_TOR_LOG ?? "info",
+    },
     anonymous: true,
   },
   sphinx: {
