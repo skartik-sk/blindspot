@@ -64,8 +64,21 @@ export interface AppOptions {
   trustProxy?: boolean;
 }
 
-// IPv6 clients get a /64 each, so one host can't rotate addresses to dodge the limit.
-const bucket = (ip: string) => (ip.includes(":") && !ip.startsWith("::ffff:") ? ip.split(":").slice(0, 4).join(":") : ip);
+// Rate-limit key: IPv4 as-is; IPv6 normalised to its /64, so one host can't rotate addresses to dodge the limit.
+export function bucket(ip: string): string {
+  ip = ip.split("%")[0].toLowerCase(); // drop zone id
+  const v4 = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (v4) return v4[1];
+  if (!ip.includes(":")) return ip;
+  const [head, tail = ""] = ip.split("::");
+  const h = head ? head.split(":") : [];
+  const t = ip.includes("::") && tail ? tail.split(":") : [];
+  if (!ip.includes("::") && h.length !== 8) return ip;
+  const groups = [...h, ...Array(8 - h.length - t.length).fill("0"), ...t];
+  return groups.slice(0, 4).map((g) => parseInt(g || "0", 16).toString(16)).join(":") + "::/64";
+}
+
+const MAX_TRACKED = 10_000;
 
 export function createApp(opts: AppOptions) {
   const { cache, spy, upstream, chainId, spyToken, enableNaive = false, rateLimit = 600, trustProxy = false } = opts;
@@ -80,17 +93,17 @@ export function createApp(opts: AppOptions) {
   const tag = (ip: string) =>
     new Bun.CryptoHasher("sha256").update(salt + ip).digest("hex").slice(0, 8);
 
-  // Fixed-window per-IP rate limit.
+  // Fixed-window per-client rate limit with a hard size cap. Map keeps insertion order, so the first key
+  // is the oldest window: evicting it is O(1) and the map can never exceed MAX_TRACKED.
   const hits = new Map<string, { n: number; reset: number }>();
-  const limited = (ip: string) => {
+  const limited = (key: string) => {
     const now = Date.now();
-    const h = hits.get(ip);
-    if (!h || now > h.reset) {
-      if (hits.size > 10_000) for (const [k, v] of hits) if (now > v.reset) hits.delete(k);
-      hits.set(ip, { n: 1, reset: now + 60_000 });
-      return false;
-    }
-    return ++h.n > rateLimit;
+    const h = hits.get(key);
+    if (h && now <= h.reset) return ++h.n > rateLimit;
+    hits.delete(key); // re-insert at the end so order tracks window start
+    while (hits.size >= MAX_TRACKED) hits.delete(hits.keys().next().value!);
+    hits.set(key, { n: 1, reset: now + 60_000 });
+    return false;
   };
 
   const spyAllowed = (req: Request) => !!spyToken && new URL(req.url).searchParams.get("token") === spyToken;

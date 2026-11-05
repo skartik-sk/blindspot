@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { RpcClient } from "@bina/sdk";
 import fx from "../../../packages/sdk/test/fixtures/block.json";
-import { createApp, type AppOptions } from "../src/app";
+import { bucket, createApp, type AppOptions } from "../src/app";
 import { BlockCache } from "../src/relay";
 import { SpyLog } from "../src/spy";
 
@@ -99,5 +99,14 @@ describe("relay", () => {
     const { rpc } = setup({ rateLimit: 3 });
     for (let i = 0; i < 3; i++) expect((await rpc("eth_blockNumber")).error).toBeUndefined();
     expect((await rpc("eth_blockNumber")).error.code).toBe(-32005);
+  });
+
+  test("IPv6 spellings of the same /64 share one bucket", () => {
+    const a = bucket("2001:db8:0:1::1");
+    expect(bucket("2001:0db8:0000:0001:ffff::9")).toBe(a);
+    expect(bucket("2001:db8::1:0:0:0:2")).toBe(a);
+    expect(bucket("2001:DB8:0:1::5%eth0")).toBe(a);
+    expect(bucket("2001:db8:0:2::1")).not.toBe(a);
+    expect(bucket("::ffff:203.0.113.9")).toBe("203.0.113.9");
   });
 });
