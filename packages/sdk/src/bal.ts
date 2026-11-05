@@ -43,8 +43,14 @@ export function hashBal(bal: BalJson): Hex {
 }
 
 export class BalHashMismatch extends Error {
-  constructor(public block: bigint, public expected: Hex, public got: Hex) {
+  block: bigint;
+  expected: Hex;
+  got: Hex;
+  constructor(block: bigint, expected: Hex, got: Hex) {
     super(`BAL hash mismatch at block ${block}: header ${expected}, list ${got}`);
+    this.block = block;
+    this.expected = expected;
+    this.got = got;
   }
 }
 

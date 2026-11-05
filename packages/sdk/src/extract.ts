@@ -1,5 +1,5 @@
 // Find watched addresses inside a (verified) BAL, locally. Nothing about the address leaves the device.
-import { encodeAbiParameters, keccak256, type Address, type Hex } from "viem";
+import { encodeAbiParameters, keccak256, type Address } from "viem";
 import type { BalJson } from "./bal";
 
 export interface Erc20Slot {

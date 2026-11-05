@@ -13,11 +13,14 @@ export type Header = FullHeader;
 
 export class RpcClient {
   private id = 0;
-  constructor(
-    private url: string,
-    private fetchFn: AnonFetch = (u, i) => fetch(u, i),
-    private isolationKey?: string,
-  ) {}
+  private url: string;
+  private fetchFn: AnonFetch;
+  private isolationKey?: string;
+  constructor(url: string, fetchFn: AnonFetch = (u, i) => fetch(u, i), isolationKey?: string) {
+    this.url = url;
+    this.fetchFn = fetchFn;
+    this.isolationKey = isolationKey;
+  }
 
   /** Same transport, different isolation key: calls under different keys must not be linkable. */
   isolated(isolationKey: string) {
