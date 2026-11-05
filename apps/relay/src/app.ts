@@ -11,7 +11,8 @@ const BINA_METHODS = new Set(["eth_blockNumber", "eth_chainId", "eth_getBlockByN
 const NAIVE_METHODS = new Set([
   "eth_blockNumber", "eth_chainId", "eth_getBalance", "eth_call", "eth_getTransactionCount", "eth_getLogs",
 ]);
-const MAX_BODY = 16 * 1024;
+export const MAX_BODY = 16 * 1024;
+const MAX_LOG_RANGE = 10n;
 const BLOCK_RE = /^0x[0-9a-f]{1,16}$/i;
 
 const cors = {
@@ -48,15 +49,57 @@ async function readBody(req: Request): Promise<any> {
   return JSON.parse(text);
 }
 
-export function createApp(opts: { cache: BlockCache; spy: SpyLog; upstream: RpcClient; chainId: string }) {
-  const { cache, spy, upstream, chainId } = opts;
-  const ipOf = (req: Request, server: any) =>
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? server?.requestIP?.(req)?.address ?? "?";
+export interface AppOptions {
+  cache: BlockCache;
+  spy: SpyLog;
+  upstream: RpcClient;
+  chainId: string;
+  /** Required to read /spy. If unset, /spy is only served to localhost. */
+  spyToken?: string;
+  /** Serve the /naive demo lane. Off by default in production. */
+  enableNaive?: boolean;
+  /** Requests per IP per minute across both lanes. */
+  rateLimit?: number;
+  /** Trust x-forwarded-for (only behind a proxy you control). */
+  trustProxy?: boolean;
+}
 
-  async function bina(body: any, ip: string) {
+const LOCAL = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+
+export function createApp(opts: AppOptions) {
+  const { cache, spy, upstream, chainId, spyToken, enableNaive = false, rateLimit = 600, trustProxy = false } = opts;
+  const ipOf = (req: Request, server: any): string =>
+    (trustProxy && req.headers.get("x-forwarded-for")?.split(",")[0].trim()) ||
+    server?.requestIP?.(req)?.address ||
+    "?";
+
+  // Raw IPs never enter the spy log: a salted short tag still shows "same client" vs "different client".
+  const salt = crypto.getRandomValues(new Uint8Array(16)).join(",");
+  const tag = (ip: string) =>
+    new Bun.CryptoHasher("sha256").update(salt + ip).digest("hex").slice(0, 8);
+
+  // Fixed-window per-IP rate limit.
+  const hits = new Map<string, { n: number; reset: number }>();
+  const limited = (ip: string) => {
+    const now = Date.now();
+    const h = hits.get(ip);
+    if (!h || now > h.reset) {
+      if (hits.size > 10_000) hits.clear();
+      hits.set(ip, { n: 1, reset: now + 60_000 });
+      return false;
+    }
+    return ++h.n > rateLimit;
+  };
+
+  const spyAllowed = (req: Request, ip: string) => {
+    if (spyToken) return new URL(req.url).searchParams.get("token") === spyToken;
+    return LOCAL.has(ip);
+  };
+
+  async function bina(body: any, client: string) {
     const { id, method, params = [] } = body ?? {};
     if (!BINA_METHODS.has(method)) return rpcErr(id, -32601, `method not served by relay: ${method}`);
-    spy.add({ t: Date.now(), lane: "bina", ip, method, params });
+    spy.add({ t: Date.now(), lane: "bina", client, method, params });
     if (method === "eth_chainId") return json({ jsonrpc: "2.0", id, result: chainId });
     if (method === "eth_blockNumber") return json({ jsonrpc: "2.0", id, result: toHex(cache.head) });
     const tag = params[0];
@@ -73,10 +116,16 @@ export function createApp(opts: { cache: BlockCache; spy: SpyLog; upstream: RpcC
     return json({ jsonrpc: "2.0", id, result });
   }
 
-  async function naive(body: any, ip: string) {
+  async function naive(body: any, client: string) {
     const { id, method, params = [] } = body ?? {};
     if (!NAIVE_METHODS.has(method) || !Array.isArray(params)) return rpcErr(id, -32601, `not allowed: ${method}`);
-    spy.add({ t: Date.now(), lane: "naive", ip, method, params });
+    if (method === "eth_getLogs") {
+      const f = params[0] ?? {};
+      const ok = [f.fromBlock, f.toBlock].every((b) => typeof b === "string" && BLOCK_RE.test(b));
+      if (!ok || BigInt(f.toBlock) - BigInt(f.fromBlock) > MAX_LOG_RANGE)
+        return rpcErr(id, -32602, `eth_getLogs needs hex fromBlock/toBlock within ${MAX_LOG_RANGE} blocks`);
+    }
+    spy.add({ t: Date.now(), lane: "naive", client, method, params });
     try {
       return json({ jsonrpc: "2.0", id, result: await upstream.call(method, params) });
     } catch (e) {
@@ -92,10 +141,15 @@ export function createApp(opts: { cache: BlockCache; spy: SpyLog; upstream: RpcC
     if (req.method === "GET" && url.pathname === "/health") return json({ ok: true, head: toHex(cache.head) });
     if (req.method === "GET" && url.pathname === "/stream")
       return sse((send) => cache.onBlock((b) => send({ number: b.number, header: b.header, bal: b.bal })));
-    if (req.method === "GET" && url.pathname === "/spy") return sse((send) => spy.subscribe(send), spy.recent());
-    if (req.method === "POST" && url.pathname === "/spy/clear") return spy.clear(), json({ ok: true });
+    if (url.pathname.startsWith("/spy")) {
+      if (!spyAllowed(req, ip)) return new Response("forbidden", { status: 403 });
+      if (req.method === "GET" && url.pathname === "/spy") return sse((send) => spy.subscribe(send), spy.recent());
+      if (req.method === "POST" && url.pathname === "/spy/clear") return spy.clear(), json({ ok: true });
+    }
 
     if (req.method === "POST" && (url.pathname === "/" || url.pathname === "/naive")) {
+      if (url.pathname === "/naive" && !enableNaive) return new Response("not found", { status: 404, headers: cors });
+      if (limited(ip)) return rpcErr(null, -32005, "rate limited");
       let body: any;
       try {
         body = await readBody(req);
@@ -103,7 +157,7 @@ export function createApp(opts: { cache: BlockCache; spy: SpyLog; upstream: RpcC
         return rpcErr(null, -32700, (e as Error).message);
       }
       if (Array.isArray(body)) return rpcErr(null, -32600, "batch requests not supported");
-      return url.pathname === "/" ? bina(body, ip) : naive(body, ip);
+      return url.pathname === "/" ? bina(body, tag(ip)) : naive(body, tag(ip));
     }
     return new Response("not found", { status: 404, headers: cors });
   };

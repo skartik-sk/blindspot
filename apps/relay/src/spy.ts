@@ -2,7 +2,8 @@
 export interface SpyEntry {
   t: number;
   lane: "naive" | "bina";
-  ip: string;
+  /** Salted hash of the requester IP: shows "same client" without storing the IP. */
+  client: string;
   method: string;
   params: unknown;
 }

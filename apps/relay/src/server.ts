@@ -1,5 +1,5 @@
 import { RpcClient } from "@bina/sdk";
-import { createApp } from "./app";
+import { MAX_BODY, createApp } from "./app";
 import { BlockCache } from "./relay";
 import { SpyLog } from "./spy";
 
@@ -12,9 +12,17 @@ const cache = new BlockCache(upstream);
 const spy = new SpyLog();
 const chainId = await upstream.call<string>("eth_chainId");
 
-const app = createApp({ cache, spy, upstream, chainId });
-// idleTimeout 0: keep SSE streams open.
-const server = Bun.serve({ port: PORT, idleTimeout: 0, fetch: (req, srv) => app(req, srv) });
+const app = createApp({
+  cache, spy, upstream, chainId,
+  spyToken: process.env.SPY_TOKEN || undefined,
+  enableNaive: process.env.ENABLE_NAIVE === "1",
+  rateLimit: Number(process.env.RATE_LIMIT ?? 600),
+  trustProxy: process.env.TRUST_PROXY === "1",
+});
+// idleTimeout 0: keep SSE streams open. maxRequestBodySize: hard cap before the body is buffered.
+const server = Bun.serve({
+  port: PORT, idleTimeout: 0, maxRequestBodySize: MAX_BODY, fetch: (req, srv) => app(req, srv),
+});
 
 async function loop() {
   try {
