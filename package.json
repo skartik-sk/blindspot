@@ -1,0 +1,14 @@
+{
+  "name": "bina-pooche",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc -b",
+    "relay": "bun run --cwd apps/relay start"
+  },
+  "devDependencies": {
+    "bun-types": "^1.4.4",
+    "typescript": "^7.0.2"
+  }
+}
