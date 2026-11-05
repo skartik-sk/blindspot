@@ -15,6 +15,7 @@ Track: Ethereum Foundation, Best Use of Anon-RPC (ETHGlobal Mumbai 2026).
 | --- | --- |
 | `packages/sdk` | Verifier SDK: BAL RLP + hash check, header hash check, local USDC/ETH detection, watch window |
 | `apps/relay` | BAL Relay: fetches each block once, verifies, serves the identical stream to everyone; spy log |
+| `apps/web` | PWA: `#/merchant` (charge), `#/customer` (pay), `#/diag` (Anon-RPC + verification check) |
 | `docs/BRIEF.md` | Project brief |
 
 ## Run
@@ -23,7 +24,17 @@ Track: Ethereum Foundation, Best Use of Anon-RPC (ETHGlobal Mumbai 2026).
 bun install
 bun test            # SDK + relay tests (uses a real Sepolia block fixture)
 bun run relay       # relay on :8787, upstream = publicnode Sepolia
+cd apps/web && cp .env.example .env && bunx vite   # app on :5173
 ```
+
+Open `#/diag` first: it boots the Anon-RPC worker and verifies a live block through it.
+
+### Anon-RPC network
+
+Default is the **Sphinx mixnet** (specifier on Sepolia). Tor works too (`VITE_ANON_NETWORK=tor`) but needs a
+reachable tor-js gateway (`VITE_TOR_GATEWAYS`); the public demo gateway was unreachable on Nov 6.
+Mixnet/Tor exits only reach `https://` hosts on port 443, so the relay must be deployed publicly before
+`VITE_RELAY_URL` can point at it. Until then lists come straight from publicnode, which is equally address-free.
 
 Relay env: `UPSTREAM_RPC`, `PORT`, `POLL_MS`, `SPY_TOKEN`, `ENABLE_NAIVE=1` (demo lane), `RATE_LIMIT`, `TRUST_PROXY=1`.
 
@@ -44,6 +55,12 @@ verified list, so no `balanceOf` call is ever made.
 - **Header trust.** Without a light client, a hit is trusted if the relay and an independent
   anchor provider agree on the block hash. Faking a payment needs both to collude. A light client
   (e.g. Helios) would remove this.
+- **Customer balance.** The customer screen reads its own balance with `balanceOf`, through the mixnet under
+  a fresh isolation key. That names the customer's address (never the merchant's) to the provider.
+- **Keys on device.** Seed and burner key live in `localStorage`; the app loads no third-party scripts.
+  Production would wrap them with a passkey.
+- **Provider regions.** Some publicnode regions don't serve `eth_getBlockAccessList`; the SDK retries under a
+  fresh isolation key (new route). Running our own relay removes this.
 - **Sending is public.** Sender, receiver and amount are on-chain. We protect reads only.
 - **Old balances** of arbitrary wallets are out of scope (that's PIR's job).
 - **Testnet only** until Glamsterdam reaches mainnet.
