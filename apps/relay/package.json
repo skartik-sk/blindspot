@@ -1,0 +1,13 @@
+{
+  "name": "@bina/relay",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun src/server.ts",
+    "dev": "bun --watch src/server.ts"
+  },
+  "dependencies": {
+    "@bina/sdk": "workspace:*"
+  }
+}
