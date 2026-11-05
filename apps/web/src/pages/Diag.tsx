@@ -1,6 +1,6 @@
 // Browser gate: can we reach the anchor and relay through Anon-RPC, and do the lists verify?
 import { useEffect, useRef, useState } from "react";
-import { RpcClient, verifyBal, verifyHeader } from "@bina/sdk";
+import { RpcClient, fetchBal, verifyBal, verifyHeader } from "@bina/sdk";
 import { anonFetch, getWorker, network } from "../lib/anon";
 import { config } from "../lib/config";
 
@@ -38,11 +38,21 @@ export default function Diag() {
       }
     };
 
+    const headerVia = (label: string, url: string) =>
+      run(`anchor header via ${label}`, async () => {
+        const rpc = new RpcClient(url, anonFetch, crypto.randomUUID());
+        const n = (await rpc.blockNumber()) - 1n;
+        const h = await rpc.header(n);
+        if (!h) throw new Error(`block ${n} missing`);
+        verifyHeader(h, n);
+        return `block ${n}: header hash OK (${h.hash.slice(0, 10)}…)`;
+      });
+
     const verifyVia = (label: string, url: string) =>
       run(`verify latest block via ${label}`, async () => {
         const rpc = new RpcClient(url, anonFetch, crypto.randomUUID());
         const n = (await rpc.blockNumber()) - 1n;
-        const [h, bal] = await Promise.all([rpc.header(n), rpc.bal(n)]);
+        const [h, bal] = await Promise.all([rpc.header(n), fetchBal(rpc, n)]);
         if (!h || !bal) throw new Error(`block ${n} missing`);
         verifyHeader(h, n);
         verifyBal(bal, h);
@@ -51,8 +61,8 @@ export default function Diag() {
 
     (async () => {
       if (!(await run(`start ${network().label} worker`, async () => (await w.ready, "ready")))) return;
-      await verifyVia("anchor (publicnode)", config.anchorUrl);
-      await verifyVia("relay", config.relayUrl);
+      await verifyVia(`lists (${new URL(config.relayUrl).host})`, config.relayUrl);
+      await headerVia(`anchor (${new URL(config.anchorUrl).host})`, config.anchorUrl);
     })();
     return () => ac.abort();
   }, []);
