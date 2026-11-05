@@ -1,6 +1,7 @@
 // Minimal JSON-RPC client over an injectable fetch, so Anon-RPC's worker.fetch drops in unchanged.
 import type { Hex } from "viem";
 import type { BalJson } from "./bal";
+import type { FullHeader } from "./header";
 
 /** Matches AnonRpcWorker.fetch: a standard fetch plus optional anonOptions. */
 export type AnonFetch = (
@@ -8,13 +9,7 @@ export type AnonFetch = (
   init: RequestInit & { anonOptions?: { isolationKey?: string } },
 ) => Promise<Response>;
 
-export interface Header {
-  number: Hex;
-  hash: Hex;
-  parentHash: Hex;
-  blockAccessListHash: Hex;
-  timestamp: Hex;
-}
+export type Header = FullHeader;
 
 export class RpcClient {
   private id = 0;

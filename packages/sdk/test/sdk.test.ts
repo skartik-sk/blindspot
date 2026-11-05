@@ -3,6 +3,8 @@ import type { Address } from "viem";
 import {
   BalHashMismatch,
   EMPTY_BAL_HASH,
+  HeaderInvalid,
+  verifyHeader,
   RpcClient,
   SEPOLIA_USDC,
   balanceSlot,
@@ -38,6 +40,21 @@ describe("BAL hash", () => {
 
   test("a dropped account is rejected", () => {
     expect(() => verifyBal(bal.slice(1), header)).toThrow(BalHashMismatch);
+  });
+});
+
+describe("header", () => {
+  test("real Sepolia header hashes to its own hash", () => {
+    expect(verifyHeader(header, BigInt(header.number))).toBe(header.hash);
+  });
+
+  test("swapping in a different access-list hash breaks the header hash", () => {
+    const bad = { ...header, blockAccessListHash: hashBal([]) };
+    expect(() => verifyHeader(bad)).toThrow(HeaderInvalid);
+  });
+
+  test("a header for the wrong block number is rejected", () => {
+    expect(() => verifyHeader(header, BigInt(header.number) + 1n)).toThrow(HeaderInvalid);
   });
 });
 
@@ -102,6 +119,26 @@ describe("watchWindow", () => {
     const hits = await watchWindow({ rpc, addresses: [target], from: BigInt(header.number), blocks: 1 });
     expect(hits.length).toBe(1);
     expect(seen.join("\n").toLowerCase()).not.toContain(target.toLowerCase().slice(2));
+  });
+
+  test("hit is confirmed by an independent anchor", async () => {
+    const target = bal.find((x) => x.balanceChanges.length)!.address;
+    const anchored: boolean[] = [];
+    await watchWindow({
+      rpc: fakeRpc().rpc, anchor: fakeRpc().rpc, addresses: [target], from: BigInt(header.number), blocks: 1,
+      onBlock: (b) => anchored.push(b.anchored),
+    });
+    expect(anchored).toEqual([true]);
+  });
+
+  test("a forged chain the anchor disagrees with is rejected", async () => {
+    const target = bal.find((x) => x.balanceChanges.length)!.address;
+    const other = { ...header, hash: hashBal([]) }; // anchor reports a different hash for this number
+    const anchor = new RpcClient("http://anchor", async () =>
+      new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: other })));
+    await expect(
+      watchWindow({ rpc: fakeRpc().rpc, anchor, addresses: [target], from: BigInt(header.number), blocks: 1 }),
+    ).rejects.toThrow(HeaderInvalid);
   });
 
   test("refuses a list the header does not commit to", async () => {

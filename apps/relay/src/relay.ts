@@ -1,6 +1,6 @@
 // BAL Relay: fetch each block's header + access list once from upstream, verify, cache, serve to everyone.
 // Untrusted by design: clients re-verify every list against the header hash.
-import { RpcClient, verifyBal, type BalJson, type Header } from "@bina/sdk";
+import { RpcClient, verifyBal, verifyHeader, type BalJson, type Header } from "@bina/sdk";
 
 export interface CachedBlock {
   number: bigint;
@@ -30,7 +30,8 @@ export class BlockCache {
     if (hit) return hit;
     const [header, bal] = await Promise.all([this.upstream.header(n), this.upstream.bal(n)]);
     if (!header || !bal) return undefined;
-    verifyBal(bal, header); // don't cache or relay garbage
+    verifyHeader(header, n); // don't cache or relay garbage
+    verifyBal(bal, header);
     const b = { number: n, header, bal };
     this.blocks.set(n, b);
     if (n > this.head) this.head = n;
