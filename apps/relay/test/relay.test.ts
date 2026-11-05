@@ -66,10 +66,19 @@ describe("relay", () => {
     expect(JSON.stringify(e)).not.toContain("203.0.113.9");
   });
 
-  test("/spy is forbidden to remote clients without a token", async () => {
+  test("/spy is disabled without a configured token, even from localhost", async () => {
     const { app, remote, local } = setup();
     expect((await app(new Request("http://r/spy"), remote)).status).toBe(403);
-    expect((await app(new Request("http://r/spy"), local)).status).toBe(200);
+    expect((await app(new Request("http://r/spy"), local)).status).toBe(403);
+  });
+
+  test("a spoofed x-forwarded-for can't dodge the rate limit behind a proxy", async () => {
+    const { app } = setup({ rateLimit: 2, trustProxy: true });
+    const call = (spoof: string) =>
+      app(new Request("http://r/", { method: "POST", headers: { "x-forwarded-for": `${spoof}, 198.51.100.1` },
+        body: JSON.stringify({ id: 1, method: "eth_blockNumber" }) }), {}).then((r) => r.json() as any);
+    await call("1.1.1.1"); await call("2.2.2.2");
+    expect((await call("3.3.3.3")).error?.code).toBe(-32005);
   });
 
   test("/spy accepts the configured token", async () => {

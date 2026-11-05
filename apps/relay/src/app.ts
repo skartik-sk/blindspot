@@ -54,7 +54,7 @@ export interface AppOptions {
   spy: SpyLog;
   upstream: RpcClient;
   chainId: string;
-  /** Required to read /spy. If unset, /spy is only served to localhost. */
+  /** Required to read /spy (?token=). If unset, /spy is disabled. */
   spyToken?: string;
   /** Serve the /naive demo lane. Off by default in production. */
   enableNaive?: boolean;
@@ -64,12 +64,14 @@ export interface AppOptions {
   trustProxy?: boolean;
 }
 
-const LOCAL = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+// IPv6 clients get a /64 each, so one host can't rotate addresses to dodge the limit.
+const bucket = (ip: string) => (ip.includes(":") && !ip.startsWith("::ffff:") ? ip.split(":").slice(0, 4).join(":") : ip);
 
 export function createApp(opts: AppOptions) {
   const { cache, spy, upstream, chainId, spyToken, enableNaive = false, rateLimit = 600, trustProxy = false } = opts;
+  // Behind a trusted proxy, the right-most XFF entry is the one that proxy appended; the rest are client-controlled.
   const ipOf = (req: Request, server: any): string =>
-    (trustProxy && req.headers.get("x-forwarded-for")?.split(",")[0].trim()) ||
+    (trustProxy && req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim()) ||
     server?.requestIP?.(req)?.address ||
     "?";
 
@@ -84,17 +86,14 @@ export function createApp(opts: AppOptions) {
     const now = Date.now();
     const h = hits.get(ip);
     if (!h || now > h.reset) {
-      if (hits.size > 10_000) hits.clear();
+      if (hits.size > 10_000) for (const [k, v] of hits) if (now > v.reset) hits.delete(k);
       hits.set(ip, { n: 1, reset: now + 60_000 });
       return false;
     }
     return ++h.n > rateLimit;
   };
 
-  const spyAllowed = (req: Request, ip: string) => {
-    if (spyToken) return new URL(req.url).searchParams.get("token") === spyToken;
-    return LOCAL.has(ip);
-  };
+  const spyAllowed = (req: Request) => !!spyToken && new URL(req.url).searchParams.get("token") === spyToken;
 
   async function bina(body: any, client: string) {
     const { id, method, params = [] } = body ?? {};
@@ -142,14 +141,14 @@ export function createApp(opts: AppOptions) {
     if (req.method === "GET" && url.pathname === "/stream")
       return sse((send) => cache.onBlock((b) => send({ number: b.number, header: b.header, bal: b.bal })));
     if (url.pathname.startsWith("/spy")) {
-      if (!spyAllowed(req, ip)) return new Response("forbidden", { status: 403 });
+      if (!spyAllowed(req)) return new Response("forbidden", { status: 403 });
       if (req.method === "GET" && url.pathname === "/spy") return sse((send) => spy.subscribe(send), spy.recent());
       if (req.method === "POST" && url.pathname === "/spy/clear") return spy.clear(), json({ ok: true });
     }
 
     if (req.method === "POST" && (url.pathname === "/" || url.pathname === "/naive")) {
       if (url.pathname === "/naive" && !enableNaive) return new Response("not found", { status: 404, headers: cors });
-      if (limited(ip)) return rpcErr(null, -32005, "rate limited");
+      if (limited(bucket(ip))) return rpcErr(null, -32005, "rate limited");
       let body: any;
       try {
         body = await readBody(req);
