@@ -6,7 +6,7 @@ import { anonFetch, network } from "../lib/anon";
 import { config } from "../lib/config";
 import { fmtInr, fmtUsdc, inrToUsdcUnits } from "../lib/money";
 import { encodePayReq } from "../lib/payreq";
-import { nextIndex, sales as loadSales, seed, upsertSale, type Sale } from "../lib/vault";
+import { claimIndex, sales as loadSales, seed, upsertSale, type Sale } from "../lib/vault";
 
 const WINDOW = 15; // blocks (~3 min)
 const PRESETS = [20, 50, 100, 250];
@@ -33,10 +33,15 @@ export default function Merchant() {
   async function charge() {
     abort.current?.abort();
     const ac = (abort.current = new AbortController());
-    const index = nextIndex();
+    const index = claimIndex(); // synchronous: a double tap can't get the same address
     const account = saleAccount(seed(), index);
     const amount = inrToUsdcUnits(inr);
     const isolationKey = newIsolationKey();
+    let s: Sale = {
+      index, address: account.address, amount: amount.toString(), inr, isolationKey,
+      fromBlock: "0", createdAt: Date.now(), status: "watching",
+    };
+    save(s);
     // One isolation key per sale: two sales' traffic can't be linked. The anchor gets its own key too.
     const rpc = new RpcClient(config.relayUrl, anonFetch, isolationKey);
     const anchor = new RpcClient(config.anchorUrl, anonFetch, newIsolationKey());
@@ -45,22 +50,20 @@ export default function Merchant() {
     setQr(await QRCode.toDataURL(req, { margin: 1, width: 280 }));
     setTicks([]);
     setNfc(undefined);
-
-    let s: Sale = {
-      index, address: account.address, amount: amount.toString(), inr, isolationKey,
-      fromBlock: "0", createdAt: Date.now(), status: "watching",
-    };
-    save(s);
     try {
       const from = await rpc.blockNumber();
       save((s = { ...s, fromBlock: from.toString() }));
       let found: Hit | undefined;
+      // Count only what arrives inside the window. The address is fresh (claimIndex), so it starts at 0.
+      let seen = 0n;
       await watchWindow({
         rpc, anchor, addresses: [account.address], from, blocks: WINDOW, signal: ac.signal, pollMs: 3000,
         onBlock: (b) => {
           setTicks((t) => [...t, { n: b.number.toString(), accounts: b.accounts, ok: true, hit: b.hits.length > 0 }]);
           const h = b.hits[0];
-          const got = h?.tokens[SEPOLIA_USDC.token] ?? 0n;
+          const post = h?.tokens[SEPOLIA_USDC.token];
+          const got = post !== undefined && post > seen ? post - seen : 0n;
+          if (post !== undefined) seen = post;
           if (h && got > 0n) {
             found = h;
             save((s = {

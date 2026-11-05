@@ -6,6 +6,7 @@ import { newMnemonic } from "@bina/sdk";
 
 const SEED = "bina.seed";
 const SALES = "bina.sales";
+const COUNTER = "bina.nextIndex";
 
 export interface Sale {
   index: number;
@@ -35,4 +36,14 @@ export function upsertSale(s: Sale) {
   const all = sales().filter((x) => x.index !== s.index);
   saveSales([s, ...all].sort((a, b) => b.index - a.index));
 }
-export const nextIndex = () => sales().reduce((m, s) => Math.max(m, s.index + 1), 0);
+/**
+ * Claim the next HD index, synchronously, before any await. The counter only ever goes up and is stored
+ * apart from the sales log, so clearing sales can't make an address be reused: every sale address is born
+ * fresh, with a zero balance, without us ever having to ask a provider about it.
+ */
+export function claimIndex(): number {
+  const fromLog = sales().reduce((m, s) => Math.max(m, s.index + 1), 0);
+  const i = Math.max(Number(localStorage.getItem(COUNTER) ?? 0), fromLog);
+  localStorage.setItem(COUNTER, String(i + 1));
+  return i;
+}
