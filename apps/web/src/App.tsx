@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import Diag from "./pages/Diag";
+import Merchant from "./pages/Merchant";
 
 const routes: Record<string, () => React.ReactNode> = {
   "#/diag": () => <Diag />,
+  "#/merchant": () => <Merchant />,
 };
 
 function Home() {
