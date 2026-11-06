@@ -146,7 +146,7 @@ export default function Landing() {
             <Reveal className="L-head">
               <span className="L-kicker">The route</span>
               <h2 className="L-h2"><span className="w">Five hops between</span><span className="g">you and the node.</span></h2>
-              <p className="L-sub">Anon-RPC wraps each request in layers of encryption and sends it through a Sphinx mixnet. No single hop knows both who you are and what you asked.</p>
+              <p className="L-sub">Anon-RPC wraps each request in layers of encryption and sends it through Nox, a Sphinx mixnet. No single hop knows both who you are and what you asked.</p>
             </Reveal>
             <Reveal delay={0.05}><MixnetRoute /></Reveal>
           </div>

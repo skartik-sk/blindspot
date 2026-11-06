@@ -27,7 +27,7 @@ export const NETWORKS: Record<NetworkName, Network> = {
     anonymous: true,
   },
   sphinx: {
-    label: "Sphinx mixnet (Sepolia)",
+    label: "Nox (Sphinx mixnet, Sepolia)",
     address: "0x35133267A8F7EC35046a83DCA0f4Ca8A6e1b7A9A",
     chain: "sepolia",
     anonymous: true,
