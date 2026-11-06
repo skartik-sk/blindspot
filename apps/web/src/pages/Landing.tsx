@@ -179,6 +179,7 @@ function Hero() {
               <span className="S-label">Through Anon-RPC</span>
               <strong className={`S-big ${ready ? "" : "wait"}`}>{ready ? `${share.pct.toFixed(1)}%` : "Measuring…"}</strong>
               <span className="S-bar"><i style={{ width: `${ready ? share.pct : 0}%` }} /></span>
+              <span className="S-note">{share.mixnet} of {share.total} requests so far</span>
             </motion.div>
           </div>
         </motion.div>
