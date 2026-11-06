@@ -6,7 +6,8 @@ RPC provider never learns what you hold, who you follow or what you're about to 
 **Watch, don't ask.** A normal wallet asks its provider about your addresses on every block, so the provider
 knows your portfolio, your copy-trade list and your IP. Bina Pooche never asks about an address. It downloads
 each block, the same bytes everyone gets, proves the block is real, and filters it on your device. Every
-request goes through [Anon-RPC](https://github.com/ethereum/anon-rpc) (Sphinx mixnet).
+request goes through [Anon-RPC](https://github.com/ethereum/anon-rpc) on its Nox network (the Sphinx mixnet,
+specifier `0x35133267A8F7EC35046a83DCA0f4Ca8A6e1b7A9A` on Sepolia).
 
 Track: Ethereum Foundation, Best Use of Anon-RPC (ETHGlobal Mumbai 2026).
 
@@ -23,7 +24,8 @@ Track: Ethereum Foundation, Best Use of Anon-RPC (ETHGlobal Mumbai 2026).
 | Watch | Alerts the moment a watched wallet swaps, with what it sold and bought | Nothing: block numbers only |
 | Lookup | Any address's ETH/USDC/WETH balance via PIR | An encrypted query; not which address |
 | Trade / Send | Uniswap swap or transfer, signed on device, sent through the mixnet | The tx, from a mixnet exit (not your IP). On mainnet a private builder (Flashbots Protect) keeps it out of the public mempool |
-| Spy panel | Side by side: a typical wallet's requests vs. this app's actual requests | — |
+| Spy panel | Side by side: a typical wallet's requests vs. this app's actual requests, plus our relay's own log | — |
+| Network | Traffic share: % of requests sent through Anon-RPC, live | — |
 
 It's a PWA: one codebase for phone and desktop, installable from the browser.
 
@@ -32,14 +34,14 @@ It's a PWA: one codebase for phone and desktop, installable from the browser.
 | Path | What |
 | --- | --- |
 | `packages/sdk` | The private core, usable by any wallet: header, access-list and receipts verification; event feed; per-wallet activity; chain follower; PIR client and server |
-| `apps/relay` | Fetches each block once, verifies it, serves the same bytes to everyone; PIR balance table; spy log |
+| `apps/relay` | Fetches each block once, verifies it, serves the same bytes to everyone; PIR balance table; spy log; public `GET /log` (block numbers only) |
 | `apps/web` | The app (React + Vite) |
 
 ## Run
 
 ```bash
 bun install
-bun test                      # 47 tests, real Sepolia block fixtures
+bun test                      # 51 tests, real Sepolia block fixtures
 bun run relay                 # relay on :8787
 cd apps/web && VITE_RELAY_URL=http://localhost:8787 bunx vite    # app on :5173
 ```
@@ -90,9 +92,18 @@ records: ~1.2 s end to end. The table is built from accounts active in verified 
 ## Traffic through Anon-RPC, and the disclosed exceptions
 
 Everything the browser sends goes through `anonFetch` (Anon-RPC worker), including blocks, anchor checks, PIR,
-quotes, token names and sends. The Spy panel lists every request as the server received it. Exceptions:
+quotes, token names and sends. The Spy panel lists every request as the server received it, and shows our
+relay's own server-side log (`GET /log`) next to it.
 
-- **Bootstrap:** the Anon-RPC worker reads its specifier contract once from publicnode, directly.
+**Traffic share** (Network screen) = requests sent through Anon-RPC ÷ every request the app made since load,
+counting the worker's bootstrap reads and any direct relay calls in the denominator. Measured against the
+deployed relay: **97.6%** (82 of 84 requests over ~4 minutes of live blocks, Nov 6). The 2 direct requests
+were the worker's bootstrap reads at startup, so the share rises the longer the app runs.
+
+Exceptions (all counted in the denominator above):
+
+- **Bootstrap:** the Anon-RPC worker reads its specifier contract from a public node (publicnode, with fallbacks),
+  directly. It's the same public data for every user and names no address.
 - **Local relay:** a relay on `localhost` is fetched directly (exits can't reach it). Dev only; shown in the UI.
 - **Named reads:** a few reads must name an address: your nonce and gas when sending, and balances of addresses
   not in the PIR directory. Each goes out on its own fresh mixnet route, so it can't be linked to you or to
@@ -122,7 +133,8 @@ quotes, token names and sends. The Spy panel lists every request as the server r
 
 - **C**ensorship resistance: the relay is optional and untrusted; any node serving `eth_getBlockAccessList` works.
 - **O**pen source: MIT.
-- **P**rivacy: reads are address-free; transport is Anon-RPC; lookups via PIR; sends skip the public mempool.
+- **P**rivacy: reads are address-free; transport is Anon-RPC; lookups via PIR; sends leave from a mixnet exit
+  (and skip the public mempool where a private builder exists, i.e. mainnet).
 - **S**ecurity: every block is hash-checked three ways and anchored; keys never leave the device.
 
 ## After the hackathon
