@@ -89,7 +89,7 @@ Demo: `docs/DEMO.md` (script) and `docs/DEMO-CHECKLIST.md` (exact steps, timings
 
 ```bash
 bun install
-bun test                      # 81 tests, real Sepolia block fixtures
+bun test                      # 85 tests, real Sepolia block fixtures
 bun run relay                 # relay on :8787
 cd apps/web && VITE_RELAY_URL=http://localhost:8787 bunx vite    # app on :5173
 ```
@@ -302,20 +302,29 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
   Sepolia they reach the public mempool).
 - **S**ecurity: every block is hash-checked three ways and anchored; keys never leave the device.
 
-## After the hackathon
+## What's next
 
-Not built, by choice (assessed Nov 6; each was too large or risky to finish properly before the deadline):
+In order of what removes the most trust or leakage. Assessed Nov 6–7; each was too large or risky to finish
+properly before the deadline.
 
-- **PIR beyond ~1,000 addresses.** Paillier PIR cost grows with the table; 2,048 is a one-setting change but 2–4×
-  slower per lookup. Real coverage needs a hint-based scheme (SimplePIR/Spiral-style) updated from the block stream.
+- **A light client instead of relay + second provider.** We checked what's available: Lodestar's Sepolia node
+  (`lodestar-sepolia.chainsafe.io`) serves light-client optimistic updates (478 of 512 sync-committee signatures in
+  our sample), and its header carries `execution_block_hash` with an 11-node Merkle branch. That's enough to prove
+  each execution block hash from the sync committee and drop the Tenderly check. Its consensus reads would go through
+  Anon-RPC too. (publicnode's beacon API doesn't serve light-client data.) 4–8 hours, high risk.
+- **Hint-based PIR (SimplePIR / YPIR).** Paillier PIR cost grows with the table, so we index ~1,000 addresses. A
+  hint-based scheme updated from the block stream would cover every active address, and could serve history rows
+  directly instead of k-anonymity cover downloads.
+- **A passkey wallet.** The device key lives in `localStorage` today (with backup and import). A passkey (WebAuthn)
+  smart account would keep the key in the phone's secure hardware.
+- **A dedicated server with monitoring.** The relay shares a small machine with another team's service. Its own
+  box, uptime and block-lag alerts, and per-site logging (no client IPs) are next.
+- **Browser tests in CI.** 85 unit tests run on real Sepolia fixtures; the end-to-end checks (Nox boot, a verified
+  block, pause in background, copy trade) were run by hand in a browser and should run on every push.
 - **Shielded sends (Railgun on Sepolia).** Large proving artifacts and a separate broadcaster network that would also
   have to work through Anon-RPC: 6–10 hours, high risk.
-- **A light client** (e.g. Helios) instead of trusting the relay plus a second provider: needs block-access-list
-  support and its consensus reads through Anon-RPC; 4–8 hours, high risk.
-- **Our own Tor gateway**, so Tor works when the EF demo gateway is down: ~1–2 hours; the gateway would see users'
-  IPs (as any Tor entry does), not destinations or content.
-- **Tor with a second provider that accepts Tor exits.** The temporary EF gateway worked, but Tenderly's public
-  gateway (our block anchor) returns HTTP 403 to Tor exits; Tor needs an anchor operator that serves them.
+- **Tor.** Our own Tor gateway (~1–2 hours; it would see users' IPs, as any Tor entry does, not destinations or
+  content) and a second provider that accepts Tor exits (Tenderly's public gateway returns HTTP 403 to them).
 - Proof-checked PIR rows (`eth_getProof` against a verified header); a mainnet mode after Glamsterdam, with the
   Flashbots Protect / MEV Blocker send route already tested; merchant payments on the same core (an earlier
   prototype is tagged `payments-v1`).
