@@ -4,6 +4,7 @@
 //   GET  /stream  SSE: every new block, pushed identically to every client
 //   POST /naive   "normal wallet" passthrough to upstream, read-only allowlist; logged for the Spy Panel
 //   GET  /spy     SSE: spy log (what a provider sees from each lane)
+//   GET  /log     public: recent bina-lane requests as this relay saw them (block numbers only, no token)
 //   GET  /pir     PIR table: public address directory + layout (no balances)
 //   POST /pir     PIR query: encrypted selectors in, encrypted rows out; the index never leaves the client
 import { RpcClient, toHex } from "@bina/sdk";
@@ -46,6 +47,11 @@ function sse(subscribe: (send: (data: unknown) => void) => () => void, initial: 
   });
 }
 const big = (_k: string, v: unknown) => (typeof v === "bigint" ? toHex(v) : v);
+
+/** Public log keeps only params we know are address-free; anything else a client sent shows as "…". */
+const SAFE_PARAM = (p: unknown) =>
+  typeof p === "boolean" || (typeof p === "string" && (BLOCK_RE.test(p) || p === "latest" || /^(epoch \d+|\d+ ciphertexts)$/.test(p)));
+export const MAX_PUBLIC_LOG = 100;
 
 async function readBody(req: Request, max = MAX_BODY): Promise<any> {
   const len = Number(req.headers.get("content-length") ?? 0);
@@ -183,6 +189,13 @@ export function createApp(opts: AppOptions) {
     if (req.method === "GET" && url.pathname === "/stream")
       // Tiny "new block" signal, identical for everyone; clients then fetch and verify the block itself.
       return sse((send) => cache.onBlock((b) => send({ number: b.number, hash: b.header.hash, txs: b.receipts.length })));
+    if (req.method === "GET" && url.pathname === "/log") {
+      const entries = spy.recent().filter((e) => e.lane === "bina").slice(-MAX_PUBLIC_LOG).map((e) => ({
+        t: e.t, client: e.client, method: e.method,
+        params: Array.isArray(e.params) ? e.params.map((p) => (SAFE_PARAM(p) ? p : "…")) : [],
+      }));
+      return json({ entries });
+    }
     if (url.pathname.startsWith("/spy")) {
       if (!spyAllowed(req)) return new Response("forbidden", { status: 403 });
       if (req.method === "GET" && url.pathname === "/spy") return sse((send) => spy.subscribe(send), spy.recent());

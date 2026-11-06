@@ -134,6 +134,30 @@ describe("relay", () => {
   });
 });
 
+describe("public log", () => {
+  const ADDR = "0x2077e1b9f57955d36dea89effd395ce43b64033d";
+  const get = (app: ReturnType<typeof setup>["app"]) => app(new Request("http://r/log")).then((r) => r.json() as any);
+
+  test("shows the bina lane only, with no addresses even in junk params", async () => {
+    const { app, cache, rpc, post } = setup({ enableNaive: true });
+    await cache.poll();
+    await rpc("eth_getBlockAccessList", [fx.header.number]);
+    await rpc("eth_getBlockByNumber", [ADDR, false]); // junk a client could send
+    await post("/naive", { jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [ADDR, "latest"] });
+    const { entries } = await get(app);
+    expect(entries.length).toBe(2);
+    expect(entries.every((e: any) => e.lane === undefined)).toBe(true);
+    expect(entries[0].params).toEqual([fx.header.number]);
+    expect(JSON.stringify(entries)).not.toMatch(/0x[0-9a-f]{40}/i);
+  });
+
+  test("needs no token, unlike /spy", async () => {
+    const { app } = setup({ spyToken: "s3cret" });
+    expect((await app(new Request("http://r/log"))).status).toBe(200);
+    expect((await app(new Request("http://r/spy"))).status).toBe(403);
+  });
+});
+
 describe("PIR", () => {
   const read = async (addrs: Address[]) =>
     new Map(addrs.map((a, i) => [a, { eth: BigInt(i + 1), usdc: BigInt(1000 + i), weth: 0n }]));
