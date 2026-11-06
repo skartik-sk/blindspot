@@ -7,6 +7,7 @@ import { TOKEN } from "../lib/trade";
 import { removeWallet, setState, useStore, type Alert } from "../lib/store";
 import { AddWallet } from "./Portfolio";
 import { watchWallet } from "../lib/actions";
+import BackgroundWatch from "../components/BackgroundWatch";
 
 function Leg({ leg, noAmount }: { leg?: { token: `0x${string}`; value: bigint }; noAmount?: boolean }) {
   const m = useToken(leg?.token);
@@ -86,6 +87,8 @@ export default function Watch() {
           </button>
         ))}
       </div>
+
+      {tab === "alerts" && <BackgroundWatch />}
 
       {tab === "alerts" && <section className="panel flush" id="tab-alerts" role="tabpanel">
         <header>

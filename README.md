@@ -251,7 +251,7 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 - **Bandwidth.** The phone downloads whole blocks: ~250 KB to ~1 MB per Sepolia block from publicnode.
   The relay serves receipts without blooms (about 3x smaller).
 - **Data use.** About 250–330 KB per block while the app is open (roughly 75–100 MB an hour on Sepolia's 12 s
-  blocks); nothing while it's hidden or closed. The Network page shows the live per-block average.
+  blocks); nothing while it's hidden or closed, unless you turn on background watching. The Network page shows the live per-block average.
 - **No light client yet.** Each block hash is checked against a second provider. Faking data needs the relay
   and the anchor to collude. A light client (e.g. Helios) would remove this.
 - **History anonymity is up to 8, not 1,000.** The history download hides the address among up to 8, not the whole directory,
@@ -272,8 +272,16 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
   block number instead; alerts still arrive within a block (~12 s).
 - **Paused in the background.** When the tab or app is hidden, block following stops (no requests at all; checked
   in the browser: 0 requests in 36 s hidden) and the app shows "Paused while in background". When it's visible again
-  it catches up from the last block it saw, at most 30 blocks; older ones are skipped and it says how many. So there
-  are no alerts while the app is closed or hidden; push notifications would need a server that knows what you watch.
+  it catches up from the last block it saw, at most 30 blocks; older ones are skipped and it says how many.
+- **Background alerts are opt-in, and nothing new is sent.** Watch → "While you're away":
+  - **Keep watching in background** (desktop, off by default): blocks keep downloading while the tab is hidden, and a
+    local browser notification fires when a watched wallet trades. Permission is asked only when you turn it on, and
+    the text comes only from data already on the device. Browsers may slow hidden tabs, so it can be up to a minute
+    late.
+  - **Watch mode** (phones; shown only where the Screen Wake Lock API exists): keeps the screen awake while you watch,
+    with a battery warning. It's released when you leave the screen, switch apps or tap again.
+
+  Alerts work while the tab is open (including in the background on desktop) or with Watch mode on a phone. Fully closed-app push is future work: private bucketed push, where the server only learns a coarse address group shared by thousands of wallets.
 - **Keys on device.** The device key lives in `localStorage`. Send → "This wallet's key" can back it up (behind a
   warning, masked until shown, copy or download a text file) and import one (validated, shows the address it opens,
   asks you to confirm the old key is backed up). The key is never logged or sent anywhere: checked in the browser

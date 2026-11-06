@@ -64,15 +64,18 @@ serving history rows directly.
 
 ### 7. How much data does it use?
 
-About 250–330 KB per block while the app is open, roughly 75–100 MB an hour on Sepolia. Nothing while it's hidden:
-polling stops in the background (0 requests in 36 s, checked) and catches up at most 30 blocks when you come back.
+About 250–330 KB per block while the app is open, roughly 75–100 MB an hour on Sepolia. Nothing while it's hidden (unless you turn on
+background watching): polling stops in the background (0 requests in 36 s, checked) and catches up at most 30 blocks when you come back.
 The relay drops receipt blooms, which makes blocks about 3× smaller. The Network page shows the live average.
 
 ### 8. Why no push notifications?
 
-A push server has to know whom to wake for what, and that is exactly the watchlist we refuse to hand over. Alerts
-work while the app is open. The honest future version is a content-free "new block" push, identical for every
-device, that wakes the app to fetch and filter locally.
+A push server has to know whom to wake for what, and that's exactly the watchlist we refuse to hand over.
+
+Alerts work while the tab is open (including in the background on desktop) or with Watch mode on a phone. Fully closed-app push is future work: private bucketed push, where the server only learns a coarse address group shared by thousands of wallets.
+
+Both background options are opt-in and send nothing new: the same block-number requests continue, and the
+notification text comes from data already on the device.
 
 ### 9. Aren't copy trades public anyway?
 

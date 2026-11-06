@@ -4,6 +4,7 @@ import { ETH_LOGGER, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scan
 import type { Address } from "viem";
 import { anonFetch, anonRpc } from "./anon";
 import { resumeFrom } from "./resume";
+import { keepWatching, onVisibility } from "./background";
 import { config } from "./config";
 import { fmtToken, short } from "./format";
 import { resolveAll } from "./tokens";
@@ -27,12 +28,14 @@ export function startEngine() {
   if (typeof document !== "undefined" && !listening) {
     listening = true;
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
+      // "Keep watching in background" (opt-in) keeps the loop running while hidden.
+      const step = onVisibility(document.hidden, keepWatching(), !!ac);
+      if (step === "pause") {
         hiddenAt = Date.now();
         ac?.abort();
         ac = undefined;
         setState((s) => ({ status: { ...s.status, phase: "paused", message: "Paused while in background" } }));
-      } else if (!ac) {
+      } else if (step === "resume") {
         const { from, skipped } = resumeFrom(lastBlock, Date.now() - hiddenAt);
         run(from, skipped);
       }
@@ -215,7 +218,8 @@ function notify(alerts: Alert[]) {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   for (const a of alerts.slice(0, 3)) {
     try {
-      new Notification(a.title, { body: `${a.detail} · block ${a.block}`, tag: a.id });
+      // Built only from what is already on this device; nothing is sent.
+      new Notification(a.title, { body: a.pending ? `${a.detail} · pending, unverified` : `${a.detail} · block ${a.block}`, tag: a.id });
     } catch {}
   }
 }

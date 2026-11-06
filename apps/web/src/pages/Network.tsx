@@ -110,7 +110,7 @@ export default function Network() {
           </dd>
           <dt>Per block</dt><dd>{tape.length ? `${fmtBytes(avgBytes)} in ${(avgMs / 1000).toFixed(1)} s on average` : "–"}</dd>
           <dt>Data use</dt>
-          <dd className="small">About 250–330 KB per block while the app is open (roughly 75–100 MB an hour); nothing while it's hidden or closed.</dd>
+          <dd className="small">About 250–330 KB per block while the app is open (roughly 75–100 MB an hour); nothing while it's hidden or closed, unless you turn on background watching (Watch page).</dd>
         </dl>
       </section>
 
