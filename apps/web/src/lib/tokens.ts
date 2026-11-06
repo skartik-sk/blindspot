@@ -1,5 +1,7 @@
 // Token symbol/decimals, looked up once through the mixnet and cached on this device.
 // A lookup names a token contract, never a wallet. Known tokens never hit the network.
+// The engine resolves every token that trades in every block (resolveAll), so which tokens get looked up
+// doesn't depend on which wallets you watch. Symbols of unknown tokens are untrusted: anyone can deploy "USDC".
 import { RpcClient, SEPOLIA_TOKENS, newIsolationKey } from "@bina/sdk";
 import { useEffect, useState } from "react";
 import { decodeFunctionResult, encodeFunctionData, erc20Abi, type Address, type Hex } from "viem";
@@ -42,6 +44,21 @@ export function tokenMeta(token: Address): Promise<TokenMeta> {
   if (cache[t]) return Promise.resolve(cache[t]);
   if (!inflight.has(t)) inflight.set(t, fetchMeta(t as Address).finally(() => inflight.delete(t)));
   return inflight.get(t)!;
+}
+
+export const isKnown = (token: Address) => SEPOLIA_TOKENS.some((t) => t.token === token.toLowerCase());
+
+/** Queue lookups for every token seen, a few at a time, so request timing isn't tied to your watchlist. */
+const queue: Address[] = [];
+let draining = false;
+export function resolveAll(tokens: Address[]) {
+  for (const t of tokens) if (!cache[t.toLowerCase()] && !queue.includes(t)) queue.push(t);
+  if (draining) return;
+  draining = true;
+  (async () => {
+    while (queue.length) await tokenMeta(queue.shift()!).catch(() => {});
+    draining = false;
+  })();
 }
 
 export function useToken(token?: Address): TokenMeta | undefined {

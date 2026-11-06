@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icon";
 import { ago, fmtAmount, short } from "../lib/format";
-import { useToken } from "../lib/tokens";
+import { isKnown, useToken } from "../lib/tokens";
 import { TOKEN } from "../lib/trade";
 import { rescan } from "../lib/engine";
 import { addWallet, removeWallet, setState, useStore, type Alert, type Wallet } from "../lib/store";
@@ -15,14 +15,20 @@ export function watchWallet(w: Wallet) {
 function Leg({ leg }: { leg?: { token: `0x${string}`; value: bigint } }) {
   const m = useToken(leg?.token);
   if (!leg) return null;
-  return <span>{m ? fmtAmount(leg.value, m.decimals) : "…"} {m?.symbol ?? short(leg.token)}</span>;
+  const known = isKnown(leg.token);
+  return (
+    <span title={known ? undefined : `Unverified token ${leg.token}: anyone can name a token anything`}>
+      {m ? fmtAmount(leg.value, m.decimals) : "…"}{" "}
+      {known ? m?.symbol : <span className="faint">{m?.symbol ?? short(leg.token)}<sup>?</sup></span>}
+    </span>
+  );
 }
 
 const tradable = new Set<string>([TOKEN.USDC, TOKEN.WETH]);
 
 function AlertRow({ a, fresh }: { a: Alert; fresh: boolean }) {
   const legs = a.sold && a.bought;
-  const canCopy = a.kind === "swap" && !!legs && (tradable.has(a.sold!.token) || tradable.has(a.bought!.token));
+  const canCopy = a.kind === "swap" && !!legs && tradable.has(a.sold!.token) && tradable.has(a.bought!.token);
   return (
     <li className="alert-row" data-new={fresh}>
       <span className="alert-icon" data-kind={a.kind}><Icon name={a.kind} /></span>

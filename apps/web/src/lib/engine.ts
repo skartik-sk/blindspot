@@ -5,6 +5,7 @@ import type { Address } from "viem";
 import { anonFetch } from "./anon";
 import { config } from "./config";
 import { fmtToken, short } from "./format";
+import { resolveAll } from "./tokens";
 import { getState, labelOf, setBalance, setState, type Alert, type Trader } from "./store";
 
 let ac: AbortController | undefined;
@@ -105,6 +106,9 @@ async function onBlock(b: VerifiedBlock) {
     if (Object.keys(patch).length) setBalance(a.address, { ...patch, block, source: "verified" });
   }
 
+  // Names for every token that traded in this block, not only your wallets' tokens (see tokens.ts).
+  const swapTxs = new Set(b.feed.filter((f) => f.kind === "swap").map((f) => f.tx));
+  resolveAll([...new Set(b.feed.filter((f) => f.kind === "transfer" && swapTxs.has(f.tx)).map((f) => (f as { token: Address }).token))]);
   const alerts = acts.flatMap((a) => describe(a, b));
   if (alerts.length) notify(alerts);
 
