@@ -193,7 +193,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
               <span className="small muted">
                 {privOk === undefined ? "Checking for a private builder on this network…"
                   : privOk ? "Skips the public mempool, so bots can't front-run it."
-                  : "Not available on Sepolia: Flashbots retired its Sepolia endpoint. On mainnet this uses Flashbots Protect."}
+                  : "Not available on Sepolia: Flashbots retired its Sepolia endpoint. Mainnet Flashbots Protect was tested, but this app is Sepolia-only."}
               </span>
             </span>
           </label>
