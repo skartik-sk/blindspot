@@ -62,6 +62,8 @@ It's a PWA: one codebase for phone and desktop, installable from the browser. Th
 says "Reconnecting" with a plain reason (raw error under Network → Details), Lookup says the private directory is
 unreachable and falls back to a one-off mixnet read (labelled as such), and history is skipped rather than guessed.
 
+Demo: `docs/DEMO.md` (script) and `docs/DEMO-CHECKLIST.md` (exact steps, timings, fallbacks).
+
 ## Layout
 
 | Path | What |
