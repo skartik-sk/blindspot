@@ -3,11 +3,11 @@ import { isAddress, type Address } from "viem";
 import Icon from "../components/Icon";
 import { config } from "../lib/config";
 import { ago, fmtAmount, short } from "../lib/format";
-import { privateHistory, type HistoryResult } from "../lib/history";
+import { ANONYMITY, crowdFor, privateHistory, type HistoryResult } from "../lib/history";
 import { pirTable, privateBalance, type LookupResult } from "../lib/lookup";
 import { useStore } from "../lib/store";
 
-type History = { state: "idle" } | { state: "loading"; done: number; total: number } | { state: "done"; r: HistoryResult } | { state: "error"; msg: string };
+type History = { state: "idle" } | { state: "exposed" } | { state: "loading"; done: number; total: number } | { state: "done"; r: HistoryResult } | { state: "error"; msg: string };
 
 export default function Lookup() {
   const [addr, setAddr] = useState("");
@@ -39,17 +39,22 @@ export default function Lookup() {
     try {
       const r = await privateBalance(a, setStep);
       setRes({ ...r, address: a });
-      if (r.via === "pir" && r.history?.length && r.block) {
-        setHist({ state: "loading", done: 0, total: r.history.length * 2 });
-        privateHistory(a, r.history, parseInt(r.block, 16), (done, total) => setHist({ state: "loading", done, total }))
-          .then((h) => setHist({ state: "done", r: h }))
-          .catch((e) => setHist({ state: "error", msg: (e as Error).message }));
+      if (r.via === "pir" && r.history?.length) {
+        // Without other addresses to hide among, the block pattern would point straight at this one: ask first.
+        if (crowdFor(r.history, r.cover ?? []).crowd < 2) setHist({ state: "exposed" });
+        else loadHistory(a, r);
       }
     } catch (e) {
       setErr((e as Error).message);
     } finally {
       setStep(undefined);
     }
+  };
+  const loadHistory = (a: Address, r: LookupResult) => {
+    setHist({ state: "loading", done: 0, total: 1 });
+    privateHistory(a, r.history ?? [], r.cover ?? [], (done, total) => setHist({ state: "loading", done, total }))
+      .then((h) => setHist({ state: "done", r: h }))
+      .catch((e) => setHist({ state: "error", msg: (e as Error).message }));
   };
   const run = (e: React.FormEvent) => (e.preventDefault(), valid && lookup(addr));
 
@@ -118,13 +123,20 @@ export default function Lookup() {
         <section className="panel" aria-live="polite">
           <header>
             <h2>Recent activity</h2>
-            {hist.state === "done" && <span className="chip" data-kind="verified">{hist.r.real} blocks verified · {(hist.r.ms / 1000).toFixed(1)} s</span>}
+            {hist.state === "done" && <span className="chip" data-kind="verified">Hidden among {hist.r.crowd} · {(hist.r.ms / 1000).toFixed(1)} s</span>}
           </header>
           {res.via !== "pir" && <p className="small muted">History is private only for addresses in the directory. This one isn't, so none was fetched.</p>}
           {res.via === "pir" && !res.history?.length && <p className="small muted">No activity in the relay's recent window for this address.</p>}
+          {hist.state === "exposed" && (
+            <div className="callout">
+              <strong>No cover available right now</strong>
+              <span>Too few other addresses have recent activity to hide among, so the relay could tell whose blocks these are.</span>
+              <button className="btn small" onClick={() => loadHistory(res.address, res)}>Load anyway</button>
+            </div>
+          )}
           {hist.state === "loading" && (
             <div className="hist-progress">
-              <span className="small">Downloading {hist.total} blocks by number, each on its own mixnet route: {hist.done} of {hist.total}</span>
+              <span className="small">Downloading verified blocks for {ANONYMITY} addresses, each on its own mixnet route: {hist.done} of {hist.total}</span>
               <span className="bar"><i style={{ width: `${(100 * hist.done) / Math.max(1, hist.total)}%` }} /></span>
             </div>
           )}
@@ -151,7 +163,10 @@ export default function Lookup() {
               {hist.r.failed > 0 && <p className="small muted">{hist.r.failed} block(s) couldn't be verified and were left out.</p>}
               <div className="callout">
                 <strong>What the relay saw</strong>
-                <span>{hist.r.real + hist.r.decoys} block numbers in random order, each from a different mixnet exit. {hist.r.decoys} were decoys. Never the address.</span>
+                <span>
+                  {hist.r.blocks} block numbers in random order, each from a different mixnet exit: the combined recent activity of {hist.r.crowd} directory
+                  addresses. It can't tell which of the {hist.r.crowd} you looked up. It could see the downloads arrive close together.
+                </span>
               </div>
             </>
           )}

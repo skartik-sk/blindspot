@@ -15,6 +15,8 @@ export interface LookupResult {
   via: "pir" | "mixnet";
   /** Recent active blocks (newest first), from the PIR record. Only for directory addresses. */
   history?: number[];
+  /** Other directory addresses' histories from the same PIR reply: cover for fetching this one's blocks. */
+  cover?: number[][];
   /** What the answering server received. */
   serverSaw: string;
   ms: number;
@@ -56,9 +58,12 @@ export async function pirLookup(address: Address, onStep?: (s: string) => void):
   const j = (await r.json()) as { answers?: Hex[]; error?: string };
   if (!j.answers) throw new Error(j.error ?? `PIR query failed (${r.status})`);
   at = mark(`Server answered ${j.answers.length} rows`, at);
-  const b = unpackRecord(c.decode(t, index, j.answers), parseInt(t.block, 16));
+  const at0 = parseInt(t.block, 16);
+  const b = unpackRecord(c.decode(t, index, j.answers), at0);
+  const cover = c.decodeColumn(t, index, j.answers).filter((x) => x.index !== index)
+    .map((x) => unpackRecord(x.record, at0).history).filter((h) => h.length > 0);
   mark("Decrypted one row on this device", at);
-  return { ...b, block: t.block, via: "pir", ms: Math.round(performance.now() - t0), steps,
+  return { ...b, cover, block: t.block, via: "pir", ms: Math.round(performance.now() - t0), steps,
     serverSaw: `epoch ${t.epoch} and ${q.q.length} ciphertexts. No address, no row number.` };
 }
 

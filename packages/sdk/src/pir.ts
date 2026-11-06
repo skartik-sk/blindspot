@@ -106,6 +106,16 @@ export class PirClient {
     const col = index % t.cols;
     return { epoch: t.epoch, n: hex(this.pk.n), q: Array.from({ length: t.cols }, (_, j) => hex(this.pk.encrypt(j === col ? 1n : 0n))) };
   }
+  /**
+   * Every record in the queried column (the reply carries one per row). The extra rows are other directory
+   * addresses: useful as cover for follow-up requests, so those can't single out the one you looked up.
+   */
+  decodeColumn(t: PirTable, index: number, answers: Hex[]): { index: number; record: bigint }[] {
+    if (answers.length !== t.rows) throw new Error("bad answer size");
+    const col = index % t.cols;
+    return answers.map((a, r) => ({ index: r * t.cols + col, record: this.sk.decrypt(BigInt(a)) }))
+      .filter((x) => x.index < t.addresses.length);
+  }
   decode(t: PirTable, index: number, answers: Hex[]): bigint {
     const row = Math.floor(index / t.cols);
     if (answers.length !== t.rows) throw new Error("bad answer size");

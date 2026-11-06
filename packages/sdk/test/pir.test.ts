@@ -68,3 +68,17 @@ describe("PIR records with history", () => {
     expect(c.decode(t, 2, pirAnswer(records, t, q))).toBe(r);
   });
 });
+
+describe("PIR column decode", () => {
+  test("returns every row's record in the queried column, including the one asked for", async () => {
+    const addresses = Array.from({ length: 10 }, (_, i) => `0x${String(i).padStart(40, "0")}` as Address);
+    const t: PirTable = { epoch: 1, block: "0x1", addresses, ...pirLayout(addresses.length) };
+    const records = addresses.map((_, i) => BigInt(1000 + i));
+    const c = await PirClient.create(1024);
+    const i = 5;
+    const col = c.decodeColumn(t, i, pirAnswer(records, t, c.query(t, i)));
+    expect(col.every((x) => x.index % t.cols === i % t.cols && x.record === BigInt(1000 + x.index))).toBe(true);
+    expect(col.some((x) => x.index === i)).toBe(true);
+    expect(col.length).toBe(Math.ceil((addresses.length - (i % t.cols)) / t.cols));
+  });
+});
