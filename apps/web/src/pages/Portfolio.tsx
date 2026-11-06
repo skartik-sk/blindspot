@@ -154,7 +154,7 @@ export default function Portfolio() {
       <section className="hero-card" aria-label="Total holdings">
         <div className="hc-top">
           <span className="hc-label">Across {mine.length} wallet{mine.length === 1 ? "" : "s"}</span>
-          <span className="hc-chip"><span className="dot" style={{ background: status.phase === "live" ? "#7cf29a" : "#ffd166" }} aria-hidden />{status.phase === "live" ? "Private · live" : status.phase === "error" ? "Reconnecting" : "Connecting"}</span>
+          <span className="hc-chip"><span className="dot" style={{ background: status.phase === "live" ? "#7cf29a" : "#ffd166" }} aria-hidden />{status.phase === "live" ? "Private · live" : status.phase === "paused" ? "Paused" : status.phase === "error" ? "Reconnecting" : "Connecting"}</span>
         </div>
         <div className="hc-big">{loaded ? fmtAmount(total("eth"), 18) : <span className="skeleton" style={{ width: "4ch", height: "0.8em" }} />}<small>ETH</small></div>
         <div className="hc-row">

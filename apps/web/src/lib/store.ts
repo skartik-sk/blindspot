@@ -57,7 +57,7 @@ export interface Trader {
 }
 
 export interface Status {
-  phase: "idle" | "connecting" | "live" | "error";
+  phase: "idle" | "connecting" | "live" | "error" | "paused";
   message?: string;
   head?: string;
 }

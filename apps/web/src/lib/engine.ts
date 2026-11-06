@@ -3,6 +3,7 @@
 import { ETH_LOGGER, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scanBlock, type Activity, type PendingTx, type VerifiedBlock } from "@blindspot/sdk";
 import type { Address } from "viem";
 import { anonFetch, anonRpc } from "./anon";
+import { resumeFrom } from "./resume";
 import { config } from "./config";
 import { fmtToken, short } from "./format";
 import { resolveAll } from "./tokens";
@@ -21,20 +22,47 @@ export function startEngine() {
   const g = globalThis as { __bpEngine?: AbortController };
   g.__bpEngine?.abort();
   if (ac) return;
+  run();
+  // Pause while the app is hidden (no downloads in the background), catch up when it's visible again.
+  if (typeof document !== "undefined" && !listening) {
+    listening = true;
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        hiddenAt = Date.now();
+        ac?.abort();
+        ac = undefined;
+        setState((s) => ({ status: { ...s.status, phase: "paused", message: "Paused while in background" } }));
+      } else if (!ac) {
+        const { from, skipped } = resumeFrom(lastBlock, Date.now() - hiddenAt);
+        run(from, skipped);
+      }
+    });
+  }
+}
+
+let listening = false;
+let hiddenAt = 0;
+let lastBlock: bigint | undefined;
+
+function run(from?: bigint, skipped = 0) {
+  const g = globalThis as { __bpEngine?: AbortController };
   ac = g.__bpEngine = new AbortController();
-  setState(() => ({ status: { phase: "connecting", message: "Opening a route through the mixnet" } }));
+  setState((s) => ({ status: { ...s.status, phase: s.status.head ? "live" : "connecting",
+    message: skipped ? `Catching up; skipped ${skipped} older blocks from the break` : s.status.head ? undefined : "Opening a route through the mixnet" } }));
   const rpc = anonRpc(config.feedUrl, newIsolationKey());
   const anchor = anonRpc(config.anchorUrl, newIsolationKey());
+  const signal = ac.signal;
   follow({
-    rpc, anchor, compact: config.feedCompact, signal: ac.signal, pollMs: 3000,
-    onBlock,
+    rpc, anchor, compact: config.feedCompact, signal, pollMs: 3000, from,
+    onBlock: (b) => { lastBlock = b.number; return onBlock(b); },
     onError: (e, n) => {
+      if (signal.aborted) return;
       const msg = (e as Error).message ?? String(e);
       // A not-yet-produced block is normal; anything else is worth showing.
       setState((s) => ({ status: { ...s.status, phase: s.status.phase === "live" ? "live" : "error", message: `Block ${n}: ${msg}` } }));
     },
-  }).catch((e) => setState(() => ({ status: { phase: "error", message: String(e) } })));
-  if (config.relayUrl) pollPending(ac.signal);
+  }).catch((e) => { if (!signal.aborted) setState(() => ({ status: { phase: "error", message: String(e) } })); });
+  if (config.relayUrl) pollPending(signal);
 }
 
 const PENDING_POLL_MS = 2000;

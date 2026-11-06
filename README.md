@@ -268,6 +268,10 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 - **Polling, not streaming.** We tried streaming new blocks (the relay's `/stream` SSE) through the Anon-RPC worker
   on Nov 6: the worker returns only complete responses, so an open stream times out after 25 s. The app polls by
   block number instead; alerts still arrive within a block (~12 s).
+- **Paused in the background.** When the tab or app is hidden, block following stops (no requests at all; checked
+  in the browser: 0 requests in 36 s hidden) and the app shows "Paused while in background". When it's visible again
+  it catches up from the last block it saw, at most 30 blocks; older ones are skipped and it says how many. So there
+  are no alerts while the app is closed or hidden; push notifications would need a server that knows what you watch.
 - **Keys on device.** The device key lives in `localStorage`. Send → "This wallet's key" can back it up (behind a
   warning, masked until shown, copy or download a text file) and import one (validated, shows the address it opens,
   asks you to confirm the old key is backed up). The key is never logged or sent anywhere: checked in the browser
