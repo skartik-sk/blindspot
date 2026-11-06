@@ -170,7 +170,8 @@ Exceptions (all counted in the denominator above):
   that touches the address corrects it. Next step: proof-checked rows (`eth_getProof` against a verified header).
 - **PIR scale.** Paillier PIR is slow on big tables, so the demo indexes ~1k active addresses. 1024-bit keys.
 - **No private builder on Sepolia.** Flashbots removed the DNS for its Sepolia Protect RPC and relay (checked Nov 6,
-  2026), and the builders producing Sepolia blocks today (builder.nflaig.eth, MigaLabs rbuilder) publish no
+  2026, and re-checked that evening: `rpc-sepolia.flashbots.net` and `relay-sepolia.flashbots.net` still resolve to
+  nothing, so no Sepolia private-send test or Spy-panel "private vs public send" proof was possible), and the builders producing Sepolia blocks today (builder.nflaig.eth, MigaLabs rbuilder) publish no
   private-tx endpoint. The app checks the configured builder through the mixnet before offering the private route;
   on Sepolia it sends to the public mempool via the mixnet (IP hidden, tx visible before it lands). Set
   `VITE_SEND_URL=https://rpc.flashbots.net/fast` on mainnet.
