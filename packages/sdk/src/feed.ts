@@ -12,6 +12,9 @@ export const TOPIC = {
   v4Swap: "0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f",
 } as const;
 
+/** EIP-7708 (Amsterdam): plain ETH transfers emit Transfer logs from this address. Treat it as ETH. */
+export const ETH_LOGGER = "0xfffffffffffffffffffffffffffffffffffffffe" as const;
+
 export type FeedItem =
   | { kind: "transfer"; tx: number; token: Address; from: Address; to: Address; value: bigint }
   | {
