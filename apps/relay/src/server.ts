@@ -36,7 +36,7 @@ async function readBalances(addrs: Address[]) {
   return out;
 }
 const seeds = (process.env.PIR_SEED ?? "").split(",").map((s) => s.trim()).filter((s): s is Address => isAddress(s));
-const pir = new PirStore(readBalances, { seeds, max: Number(process.env.PIR_MAX ?? 1024) });
+const pir = new PirStore(readBalances, { seeds, max: Number(process.env.PIR_MAX ?? 1024), newPerBlock: Number(process.env.PIR_NEW_PER_BLOCK ?? 8) });
 
 const app = createApp({
   cache, spy, upstream, chainId,

@@ -33,7 +33,9 @@ export class PirStore {
   constructor(read: BalanceReader, opts: { max?: number; newPerBlock?: number; seeds?: Address[] } = {}) {
     this.read = read;
     this.max = opts.max ?? 1024;
-    this.newPerBlock = opts.newPerBlock ?? 60;
+    // Slow admission keeps a wallet listed for ~max/newPerBlock blocks after it goes quiet (1024/8 ≈ 25 min),
+    // so its private history is still there when someone looks it up.
+    this.newPerBlock = opts.newPerBlock ?? 8;
     this.seeds = new Set((opts.seeds ?? []).map((a) => a.toLowerCase() as Address));
     this.seeds.forEach((a) => this.pending.add(a));
   }

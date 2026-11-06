@@ -73,7 +73,8 @@ cd apps/web && VITE_RELAY_URL=http://localhost:8787 bunx vite    # app on :5173
 
 Without `VITE_RELAY_URL` the app reads blocks straight from publicnode through the mixnet (no relay needed;
 PIR lookup falls back to a one-off mixnet read). Relay env: `UPSTREAM_RPC`, `PORT`, `POLL_MS`, `SPY_TOKEN`,
-`ENABLE_NAIVE=1`, `RATE_LIMIT`, `TRUST_PROXY=1`, `PIR_SEED` (comma-separated addresses), `PIR_MAX`.
+`ENABLE_NAIVE=1`, `RATE_LIMIT`, `TRUST_PROXY=1`, `PIR_SEED` (comma-separated addresses, never evicted), `PIR_MAX`,
+`PIR_NEW_PER_BLOCK` (default 8: how fast new wallets enter the directory; lower keeps quiet wallets listed longer).
 
 Deployed on a small VM: the relay runs as a systemd service (`bina-relay`, bound to 127.0.0.1, MemoryMax 400M)
 behind Caddy, which serves the static web build and HTTPS (sslip.io hostnames, no DNS setup). The root

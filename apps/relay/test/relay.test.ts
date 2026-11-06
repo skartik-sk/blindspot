@@ -216,6 +216,16 @@ describe("PIR", () => {
     expect(await look(B)).toEqual([109, 100]);
   });
 
+  test("admits few new accounts per block, so the directory doesn't churn active wallets out in minutes", async () => {
+    const senders = Array.from({ length: 30 }, (_, i) => ({
+      address: `0x${(i + 1).toString(16).padStart(40, "0")}` as Address, storageChanges: [], storageReads: [], balanceChanges: [], codeChanges: [],
+      nonceChanges: [{ index: "0x1" as const, value: "0x1" as const }],
+    }));
+    const pir = new PirStore(read);
+    await pir.onBlock(200n, senders as BalJson);
+    expect(pir.table()!.addresses.length).toBe(8);
+  });
+
   test("rejects a query for an unknown epoch", async () => {
     const pir = new PirStore(read);
     const { app } = setup({ pir });
