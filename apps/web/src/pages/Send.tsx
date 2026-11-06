@@ -33,6 +33,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
     });
   }, []);
   const [out, setOut] = useState<bigint>();
+  const [quoteFailed, setQuoteFailed] = useState(false);
   const [step, setStep] = useState<string>();
   const [err, setErr] = useState<string>();
 
@@ -60,8 +61,9 @@ export default function Send({ query }: { query: URLSearchParams }) {
   // Live quote (names tokens and an amount, never you).
   useEffect(() => {
     setOut(undefined);
+    setQuoteFailed(false);
     if (mode !== "Swap" || !amt || asset === toAsset) return;
-    const t = setTimeout(() => quote(asset, toAsset, amt).then(setOut).catch(() => setOut(undefined)), 500);
+    const t = setTimeout(() => quote(asset, toAsset, amt).then(setOut).catch(() => setQuoteFailed(true)), 500);
     return () => clearTimeout(t);
   }, [mode, amt, asset, toAsset]);
 
@@ -71,7 +73,9 @@ export default function Send({ query }: { query: URLSearchParams }) {
 
   const have = asset === "ETH" ? bal?.eth : asset === "USDC" ? bal?.usdc : bal?.weth;
   const enough = have === undefined || amt <= have;
-  const canSend = amt > 0n && enough && !step && (mode === "Swap" ? asset !== toAsset && toAsset !== "ETH" : isAddress(to.trim()));
+  const canSend = amt > 0n && enough && !step && (mode === "Swap" ? asset !== toAsset && toAsset !== "ETH" && !!out : isAddress(to.trim()));
+  // The trade button waits for a price instead of failing after the tap.
+  const waitingQuote = mode === "Swap" && amt > 0n && asset !== toAsset && !out;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -206,7 +210,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
         <div className="dock">
           {step && <span className="small dock-step" aria-live="polite">{step}</span>}
           <button className="btn primary dock-btn" disabled={!canSend} aria-busy={!!step}>
-            <Icon name="send" />{step ? "Working…" : mode === "Swap" ? `Trade ${asset} for ${toAsset}` : route === "private" ? `Send ${asset} via private builder` : `Send ${asset}`}
+            <Icon name="send" />{step ? "Working…" : waitingQuote ? (quoteFailed ? "No price right now, edit the amount to retry" : "Getting a price through the mixnet…") : mode === "Swap" ? `Trade ${asset} for ${toAsset}` : route === "private" ? `Send ${asset} via private builder` : `Send ${asset}`}
           </button>
         </div>
       </form>
