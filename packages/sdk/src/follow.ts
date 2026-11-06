@@ -29,6 +29,12 @@ export interface FollowOptions {
    * the starting point is trust-on-first-use (onError is told).
    */
   anchor?: RpcClient;
+  /**
+   * Also anchor a linked block before onBlock when this returns true (e.g. it touches a watched wallet).
+   * Linking alone isn't proof: a lying relay can mint a self-consistent fake chain. Anything the app acts on
+   * should be anchored; unanchored blocks are only as trustworthy as the relay.
+   */
+  anchorIf?: (b: VerifiedBlock) => boolean;
   /** Start here; default: current head. */
   from?: bigint;
   pollMs?: number;
@@ -83,6 +89,9 @@ export async function follow(o: FollowOptions): Promise<void> {
         else if (prevHash) throw new HeaderInvalid(`block ${n} does not extend block ${n - 1n}`);
         else o.onError?.(new Error("no anchor: starting block is trust-on-first-use"), n);
         b.anchored = !!o.anchor;
+      } else if (o.anchor && o.anchorIf?.(b)) {
+        await confirmWithAnchor(o.anchor, n, b.hash);
+        b.anchored = true;
       }
       prevHash = b.hash;
       await o.onBlock(b);
