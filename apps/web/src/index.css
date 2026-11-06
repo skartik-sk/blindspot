@@ -511,3 +511,4 @@ html, body { overflow-x: clip; }
 .pending-chip { background: color-mix(in srgb, var(--signal) 12%, transparent); color: var(--signal); font-weight: 600; }
 .pending-rows { border-bottom: 1px dashed var(--line); }
 .pending-rows .alert-icon { outline: 1.5px dashed color-mix(in srgb, var(--signal) 60%, transparent); outline-offset: 2px; }
+.copy-warn { color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 8px; margin-top: 4px; }

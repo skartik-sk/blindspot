@@ -127,6 +127,10 @@ export default function Send({ query }: { query: URLSearchParams }) {
               ? `${fmtAmount(copy.sold.value, decimalsOf(copy.sold.token))} ${assetOf(copy.sold.token) ?? "?"} → ${fmtAmount(copy.bought.value, decimalsOf(copy.bought.token))} ${assetOf(copy.bought.token) ?? "?"}`
               : copy.detail}{copy.pending ? " · pending, unverified: it may never land." : ` in block ${copy.block}.`} Pick your own size.
           </span>
+          <span className="small copy-warn">
+            Heads up: your trade is public on-chain once it lands. Matching the whale's pair right after it can show that you
+            follow it. Use a separate wallet for copy trading.
+          </span>
         </section>
       )}
 
