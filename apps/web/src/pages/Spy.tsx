@@ -86,7 +86,9 @@ export default function Spy() {
                 <span className="m">{e.method} <span className="faint">→ {e.host}</span></span>
                 {e.detail && <span className="p"><Highlight text={e.detail} addrs={all} /></span>}
                 <span className="from">
-                  {e.route === "mixnet" ? `from a mixnet exit · route ${e.key}` : "direct to a relay on this machine"}
+                  {e.route === "mixnet" ? `from a mixnet exit · route ${e.key}`
+                    : e.route === "bootstrap" ? "direct: the worker reading the public network contract"
+                    : "direct to a relay on this machine"}
                 </span>
               </li>
             ))}

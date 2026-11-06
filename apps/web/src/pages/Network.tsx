@@ -1,9 +1,10 @@
 // Where every request goes, and how the privacy route is doing.
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Tape from "../components/Tape";
 import { getWorker, network } from "../lib/anon";
 import { config, isLocal } from "../lib/config";
 import { fmtBytes } from "../lib/format";
+import { reqlog, trafficShare } from "../lib/reqlog";
 import { useStore } from "../lib/store";
 
 const host = (u?: string) => (u ? new URL(u).host : "not set");
@@ -12,6 +13,8 @@ export default function Network() {
   const status = useStore((s) => s.status);
   const tape = useStore((s) => s.tape);
   const [logs, setLogs] = useState<string[]>([]);
+  useSyncExternalStore(reqlog.subscribe, reqlog.get); // re-render on every request
+  const share = trafficShare();
   const n = tape.length || 1;
   const avgMs = tape.reduce((a, b) => a + b.ms, 0) / n;
   const avgBytes = tape.reduce((a, b) => a + b.bytes, 0) / n;
@@ -43,6 +46,15 @@ export default function Network() {
         {status.message && <p className="small muted">{status.message}</p>}
         <dl className="kv">
           <dt>Privacy network</dt><dd>{network().label}{!network().anonymous && <strong className="down"> · not anonymous</strong>}</dd>
+          <dt>Traffic share</dt>
+          <dd>
+            {share.total ? `${share.pct.toFixed(1)}% through ${network().label}` : "–"}
+            <br />
+            <span className="small muted">
+              {share.mixnet} of {share.total} requests since this page loaded. Not through it: {share.bootstrap} bootstrap reads of the
+              public network contract{share.direct ? `, ${share.direct} to a relay on this machine` : ""}.
+            </span>
+          </dd>
           <dt>Per block</dt><dd>{tape.length ? `${fmtBytes(avgBytes)} in ${(avgMs / 1000).toFixed(1)} s on average` : "–"}</dd>
         </dl>
       </section>

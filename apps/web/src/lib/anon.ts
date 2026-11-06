@@ -53,6 +53,7 @@ function bootstrapProvider(urls: string[]) {
       let last: unknown;
       for (let i = 0; i < urls.length; i++) {
         const url = urls[(start + i) % urls.length];
+        logRequest(url, { method: "POST", body: JSON.stringify({ method, params }) }, "bootstrap");
         try {
           const r = await fetch(url, {
             method: "POST",
