@@ -11,6 +11,31 @@ specifier `0x35133267A8F7EC35046a83DCA0f4Ca8A6e1b7A9A` on Sepolia).
 
 Track: Ethereum Foundation, Best Use of Anon-RPC (ETHGlobal Mumbai 2026).
 
+## Why this is different
+
+Private RPCs and private wallets hide *who you are*: your IP, sometimes your requests. They still have to ask a
+server about the addresses you care about, so they can't privately **watch other wallets** or **look up an
+address's balance**: the question itself gives the address away.
+
+Bina Pooche never asks about an address:
+
+- **Watching** is local. Every user downloads the same verified blocks (header, access list, receipts) by block
+  number through Anon-RPC, and the phone filters them for the wallets it watches. The server can't tell who
+  watches whom, because everyone gets identical bytes.
+- **Lookups** use PIR: the server computes over its whole table and can't tell which row you asked for.
+
+What this does **not** give you (we never claim "100% private"):
+
+- **PIR scope.** The table covers about 1,000 addresses that were active in recent verified blocks, plus a few
+  seeds, with ETH, USDC and WETH balances. An address outside it falls back to a one-off read over a fresh
+  mixnet route: the node learns the address, but not who asked.
+- **PIR hides, it doesn't prove.** Our PIR is single-server (Paillier): privacy rests on encryption, not on servers
+  not colluding. But the server could return a wrong row; the next verified block touching that address corrects it.
+- **Who we trust in the demo.** Blocks come from our relay, and every block hash is cross-checked with Tenderly.
+  Faking a block needs both to collude. The relay and the PIR server are the same machine, run by us. A light client
+  would remove the second-provider trust.
+- **Sends are public once they land,** and on Sepolia they pass the public mempool (no private builder there).
+
 ## Live
 
 - App: https://bina.13-53-45-89.sslip.io (landing at `/`, app at `/#/portfolio`)
