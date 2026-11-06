@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { network } from "../lib/anon";
 import { useStore } from "../lib/store";
 import Icon from "./Icon";
-import ThemeToggle from "./ThemeToggle";
 import Tape from "./Tape";
 
 export const NAV = [
@@ -54,13 +53,13 @@ export default function Shell({ route, children }: { route: string; children: Re
           </a>
         </nav>
         <div className="grow" />
-        <span className="side-row"><Status /><ThemeToggle /></span>
+        <Status />
         <p className="small faint">Every read goes through {network().label.replace(" (Sepolia)", "")}. Nothing you hold or watch leaves this device.</p>
       </aside>
 
       <header className="topbar">
         <Brand />
-        <span className="topbar-end"><Status /><ThemeToggle /></span>
+        <Status />
       </header>
 
       <main className="main" id="main">{children}</main>

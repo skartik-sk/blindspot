@@ -48,7 +48,8 @@ export default function Network() {
           <dt>Privacy network</dt><dd>{network().label}{!network().anonymous && <strong className="down"> · not anonymous</strong>}</dd>
           <dt>Traffic share</dt>
           <dd>
-            <span className="spy-score up">{share.total ? `${share.pct.toFixed(1)}%` : "–"}</span>
+            {/* Startup is mostly Anon-RPC's own bootstrap; wait for a fair sample before showing a percentage. */}
+            <span className="spy-score up">{share.total >= 20 ? `${share.pct.toFixed(1)}%` : <span className="muted" style={{ fontSize: 20 }}>Measuring…</span>}</span>
             <br />
             <span className="small muted">
               {share.mixnet} of {share.total} requests since this page loaded went through {network().short}. Not through it: {share.bootstrap} Anon-RPC bootstrap

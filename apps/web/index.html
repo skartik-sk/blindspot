@@ -6,15 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="A private trading companion: every read goes through Anon-RPC." />
     <meta name="theme-color" content="#fbfafc" />
-    <script>
-      // Light by default; apply a saved choice before first paint so the page never flashes.
-      try { if (localStorage.getItem("bp.theme") === "dark") { document.documentElement.dataset.theme = "dark"; document.querySelector('meta[name="theme-color"]').content = "#0e0d18"; } } catch (e) {}
-    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bina Pooche" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
-    <title>Bina Pooche</title>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>Bina Pooche: watch any wallet, ask nobody</title>
+    <!-- Share preview. Absolute URLs: update when the custom domain goes live. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Bina Pooche: watch any wallet, ask nobody" />
+    <meta property="og:description" content="Copy-trade alerts and balances, without telling any RPC provider who you watch. Every request through Anon-RPC." />
+    <meta property="og:url" content="https://bina.13-53-45-89.sslip.io/" />
+    <meta property="og:image" content="https://bina.13-53-45-89.sslip.io/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div id="root"></div>

@@ -1,14 +1,17 @@
 {
   "name": "Bina Pooche",
+  "id": "./#/portfolio",
   "short_name": "Bina Pooche",
   "description": "Watch wallets, copy trades and check balances without telling any provider what you hold or follow.",
   "start_url": "./#/portfolio",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0e0d18",
-  "theme_color": "#0e0d18",
+  "background_color": "#fbfafc",
+  "theme_color": "#fbfafc",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }
