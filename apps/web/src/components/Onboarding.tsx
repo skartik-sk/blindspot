@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { isAddress, type Address } from "viem";
 import { network } from "../lib/anon";
+import { friendly } from "../lib/errors";
 import { rescan } from "../lib/engine";
 import { short } from "../lib/format";
 import { addWallet, useStore } from "../lib/store";
@@ -94,7 +95,7 @@ function Connect({ onNext }: { onNext: () => void }) {
           </div>
         ))}
         {ready && <p className="small muted">Block {tape[0]?.number} verified in {tape[0].ms < 1000 ? `${tape[0].ms} ms` : `${(tape[0].ms / 1000).toFixed(1)} s`}. You're connected without revealing anything.</p>}
-        {status.phase === "error" && !ready && <p className="small muted">Still trying: mixnet routes sometimes take a few tries. {status.message}</p>}
+        {status.phase === "error" && !ready && <p className="small muted">Still trying: mixnet routes sometimes take a few tries. {friendly(status.message)}</p>}
       </div>
       <h2 className="ob-title">{ready ? "You're connected, privately." : "Connecting privately…"}</h2>
       <p className="ob-text">This takes a few seconds the first time. Every request from now on goes through the mixnet.</p>

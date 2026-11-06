@@ -58,6 +58,10 @@ What this does **not** give you (we never claim "100% private"):
 It's a PWA: one codebase for phone and desktop, installable from the browser. The landing page's headline rotates through six lines every 4 s
 (one fixed-size box, so nothing below moves); with reduced motion on, it shows the first line only.
 
+**When something is down.** Every screen keeps working on what it can: if the relay can't be reached, the status pill
+says "Reconnecting" with a plain reason (raw error under Network → Details), Lookup says the private directory is
+unreachable and falls back to a one-off mixnet read (labelled as such), and history is skipped rather than guessed.
+
 ## Layout
 
 | Path | What |

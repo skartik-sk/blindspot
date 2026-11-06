@@ -6,6 +6,7 @@ import { config, isLocal } from "../lib/config";
 import { fmtBytes } from "../lib/format";
 import { reqlog, trafficShare } from "../lib/reqlog";
 import { useStore } from "../lib/store";
+import { friendly } from "../lib/errors";
 
 const host = (u?: string) => (u ? new URL(u).host : "not set");
 
@@ -43,7 +44,10 @@ export default function Network() {
 
       <section className="panel">
         <header><h2>Status</h2><span className="chip" data-kind={status.phase === "live" ? "verified" : undefined}>{status.phase}</span></header>
-        {status.message && <p className="small muted">{status.message}</p>}
+        {status.message && <p className="small muted">{friendly(status.message)}</p>}
+        {status.message && friendly(status.message) !== status.message && (
+          <details className="small muted"><summary>Details</summary><code className="mono">{status.message}</code></details>
+        )}
         <dl className="kv">
           <dt>Privacy network</dt><dd>{network().label}{!network().anonymous && <strong className="down"> · not anonymous</strong>}</dd>
           <dt>Traffic share</dt>

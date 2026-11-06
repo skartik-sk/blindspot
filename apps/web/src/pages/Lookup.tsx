@@ -15,11 +15,14 @@ export default function Lookup() {
   const [res, setRes] = useState<LookupResult & { address: Address }>();
   const [err, setErr] = useState<string>();
   const [dir, setDir] = useState<{ count: number; block: string; addresses: string[] }>();
+  const [dirFailed, setDirFailed] = useState(false);
   const [hist, setHist] = useState<History>({ state: "idle" });
   const traders = useStore((s) => s.traders);
 
   useEffect(() => {
-    pirTable().then((t) => t && setDir({ count: t.addresses.length, block: t.block, addresses: t.addresses })).catch(() => {});
+    pirTable()
+      .then((t) => (t ? setDir({ count: t.addresses.length, block: t.block, addresses: t.addresses }) : setDirFailed(true)))
+      .catch(() => setDirFailed(true));
   }, []);
 
   // Suggestions: wallets trading right now that the private directory already holds (real, and private to look up).
@@ -87,8 +90,10 @@ export default function Lookup() {
           <div className="actions">
             <button className="btn primary" disabled={!valid || !!step}><Icon name="lookup" />{step ? "Looking up…" : "Look up privately"}</button>
             <span className="small muted">
-              {dir ? `Directory: ${dir.count} active Sepolia addresses as of block ${parseInt(dir.block, 16)}` :
-                config.relayUrl ? "Loading the directory…" : "No relay configured: lookups use a fresh mixnet route"}
+              {dir ? `Directory: ${dir.count} active Sepolia addresses as of block ${parseInt(dir.block, 16)}`
+                : !config.relayUrl ? "No relay configured: lookups use a fresh mixnet route"
+                : dirFailed ? "The private directory isn't reachable right now. Lookups still work as a one-off mixnet read (the node sees the address, not you); history needs the directory."
+                : "Loading the directory…"}
             </span>
           </div>
         </form>

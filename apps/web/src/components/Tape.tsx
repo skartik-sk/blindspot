@@ -1,4 +1,5 @@
 // The live tape: every block this device verified, newest first.
+import { friendly } from "../lib/errors";
 import { fmtBytes } from "../lib/format";
 import { useStore } from "../lib/store";
 
@@ -16,7 +17,7 @@ export default function Tape({ limit = 14 }: { limit?: number }) {
         </p>
       </header>
       {tape.length === 0 ? (
-        <p className="small muted">{status.phase === "error" ? status.message : "Waiting for the first block…"}</p>
+        <p className="small muted">{status.phase === "error" ? friendly(status.message) : "Waiting for the first block…"}</p>
       ) : (
         <ol className="tape">
           {tape.slice(0, limit).map((b, i) => (

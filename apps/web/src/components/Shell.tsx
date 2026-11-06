@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { network } from "../lib/anon";
+import { friendly } from "../lib/errors";
 import { useStore } from "../lib/store";
 import Icon from "./Icon";
 import Tape from "./Tape";
@@ -16,7 +17,7 @@ function Status() {
   const s = useStore((s) => s.status);
   const text = s.phase === "live" ? <span>Live<span className="status-long"> · block</span> {s.head}</span> : s.phase === "connecting" ? "Connecting" : s.phase === "error" ? "Reconnecting" : "Idle";
   return (
-    <a className="status" href="#/network" data-phase={s.phase} title={s.message ?? network().label}>
+    <a className="status" href="#/network" data-phase={s.phase} title={friendly(s.message) ?? network().label}>
       <span className="dot" aria-hidden />
       {text}
     </a>
