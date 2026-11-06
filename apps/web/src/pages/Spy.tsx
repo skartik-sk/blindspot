@@ -1,7 +1,9 @@
-// Side by side: what a typical wallet's provider learns from the same screens, and what ours actually received.
+// Three providers, side by side, all real: a normal RPC (your IP + addresses), Anon-RPC used per address (addresses,
+// not your IP), and ours (block numbers only). The first two send the same demo requests to our relay's normal-wallet
+// lane, directly and through Anon-RPC; the relay answers with what it saw. The third is the relay's own log.
 import { newIsolationKey, SEPOLIA_USDC } from "@bina/sdk";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { anonFetch } from "../lib/anon";
+import { anonFetch, getWorker } from "../lib/anon";
 import { config } from "../lib/config";
 import { encodeFunctionData, erc20Abi, type Address } from "viem";
 import { short } from "../lib/format";
@@ -38,7 +40,7 @@ interface Seen { id: number; ip: string; method: string; params: unknown[] }
  * Opt-in: act like a normal wallet for the demo addresses, once per new block. Sent straight to our relay's /naive
  * lane (no mixnet, like MetaMask to Infura), which answers with what it just learned. Real server-side data.
  */
-function useNaiveDemo(on: boolean, head: string) {
+function useNaiveDemo(on: boolean, head: string, via: "direct" | "anon") {
   const [state, setState] = useState<{ seen: Seen[]; unavailable?: string }>({ seen: [] });
   useEffect(() => {
     if (!on || !config.relayUrl) return;
@@ -52,9 +54,9 @@ function useNaiveDemo(on: boolean, head: string) {
     (async () => {
       for (const c of calls) {
         const init = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, ...c }) };
-        logRequest(url, init, "demo");
+        logRequest(url, init, "demo"); // demo traffic: shown here, kept out of the traffic share
         try {
-          const r = await fetch(url, init);
+          const r = via === "direct" ? await fetch(url, init) : await getWorker().fetch(url, { ...init, anonOptions: { isolationKey: newIsolationKey() } });
           if (r.status === 404) return live && setState((s) => ({ ...s, unavailable: "The relay's normal-wallet lane is off (ENABLE_NAIVE)." }));
           const j = await r.json();
           if (live && j.seen) setState((s) => ({ seen: [{ id: Math.random(), ...j.seen }, ...s.seen].slice(0, 30) }));
@@ -64,7 +66,7 @@ function useNaiveDemo(on: boolean, head: string) {
       }
     })();
     return () => { live = false; };
-  }, [on, head]);
+  }, [on, head, via]);
   return state;
 }
 
@@ -94,129 +96,122 @@ function Highlight({ text, addrs }: { text: string; addrs: string[] }) {
   return <>{text.split(re).map((p, i) => (i % 2 ? <mark key={i} className="leak">{p}</mark> : p))}</>;
 }
 
+function Column({ tone, title, sub, score, scoreLabel, children, note }: {
+  tone: "bad" | "mid" | "good"; title: string; sub: string; score: string; scoreLabel: string; children: React.ReactNode; note: string;
+}) {
+  return (
+    <section className={`panel spy-col spy-${tone}`}>
+      <header>
+        <span className="spy-title">{title}</span>
+        <span className="small muted">{sub}</span>
+        <span className={`spy-score ${tone === "bad" ? "down" : tone === "good" ? "up" : "mid"}`}>{score}</span>
+        <span className="small">{scoreLabel}</span>
+      </header>
+      {children}
+      <p className="small faint">{note}</p>
+    </section>
+  );
+}
+
+function SeenList({ seen, label, waiting }: { seen: Seen[]; label: string; waiting: string }) {
+  return (
+    <ul className="log" aria-label={label}>
+      {seen.map((r) => (
+        <li key={r.id}>
+          <span className="m">{r.method}</span>
+          <span className="p"><Highlight text={JSON.stringify(r.params)} addrs={DEMO.map((d) => d.address.slice(2))} /></span>
+          <span className="from">from {r.ip}</span>
+        </li>
+      ))}
+      {seen.length === 0 && <li className="p">{waiting}</li>}
+    </ul>
+  );
+}
+
 export default function Spy() {
   const wallets = useStore((s) => s.wallets);
   const tape = useStore((s) => s.tape);
   const logged = useSyncExternalStore(reqlog.subscribe, reqlog.get);
-  const entries = useMemo(() => logged.filter((e) => e.route !== "demo"), [logged]); // the demo lane is shown on the left
-  const [demoOn, setDemoOn] = useState(false);
+  const entries = useMemo(() => logged.filter((e) => e.route !== "demo"), [logged]);
+  const [on, setOn] = useState(false);
   const head = tape[0]?.number ?? "latest";
   const typical = useMemo(() => typicalRequests(wallets, head), [wallets, head]);
   const all = wallets.map((w) => w.address);
   const ours = [...entries].reverse().slice(0, 80);
-  // Addresses that actually appeared in our requests (one-off mixnet lookups, sends): shown, not hidden.
   const oursLeaked = useMemo(() => new Set(entries.flatMap((e) => all.filter((a) => e.detail.toLowerCase().includes(a)))), [entries, all]);
   const relay = useRelayLog();
-  const demo = useNaiveDemo(demoOn, head);
-  const real = demoOn && !demo.unavailable;
+  const naive = useNaiveDemo(on, head, "direct");
+  const anon = useNaiveDemo(on, head, "anon");
+  const unavailable = naive.unavailable ?? anon.unavailable;
   const feedReqs = entries.filter((e) => !all.some((a) => e.detail.toLowerCase().includes(a))).length;
 
   return (
     <>
       <header className="head">
         <h1>Spy panel</h1>
-        <p>The same screens, two ways. On the left, what a normal wallet sends its provider. On the right, every request this app actually sent.</p>
+        <p>Three providers, the same wallet activity. What each one learns, from real requests.</p>
       </header>
 
-      <div className="spy">
-        <section className="panel spy-col">
-          <header>
-            <span className="small muted">What a normal provider sees{real ? ": live, from our relay's normal-wallet lane" : ""}</span>
-            <span className="spy-score down">{real ? DEMO.length : all.length}</span>
-            <span className="small">
-              {real
-                ? "demo addresses handed over, plus your IP on every request. These are real requests and the relay's real record of them."
-                : `${all.length === 1 ? "address" : "addresses"} handed over, plus your IP on every request. Your provider now knows your portfolio and who you copy.`}
-            </span>
-          </header>
-          {config.relayUrl && (
-            <button className="btn small" onClick={() => setDemoOn((v) => !v)} aria-pressed={demoOn}>
-              {demoOn ? "Stop the normal wallet" : "Run a normal wallet against our relay"}
-            </button>
-          )}
-          {demoOn && demo.unavailable && <p className="small muted">{demo.unavailable} Showing the simulated version.</p>}
-          {real ? (
-            <ul className="log" aria-label="What a normal provider saw">
-              {demo.seen.map((r) => (
-                <li key={r.id}>
-                  <span className="m">{r.method}</span>
-                  <span className="p"><Highlight text={JSON.stringify(r.params)} addrs={DEMO.map((d) => d.address.slice(2))} /></span>
-                  <span className="from">from {r.ip} (your IP, masked here) · block {head}</span>
-                </li>
-              ))}
-              {demo.seen.length === 0 && <li className="p">Sending the first block's requests…</li>}
-            </ul>
-          ) : typical.length === 0 ? (
-            <p className="small muted">Add a wallet or watch one to see what would leak.</p>
-          ) : (
-            <ul className="log" aria-label="Typical wallet requests">
-              {typical.map((r, i) => (
-                <li key={i}>
-                  <span className="m">{r.method}</span>
-                  <span className="p"><Highlight text={r.params} addrs={[r.leaks]} /></span>
-                  <span className="from">from your IP · block {head}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="small faint">
-            {real
-              ? `Demo addresses only (${DEMO.map((d) => d.label).join(", ")}), never yours. Sent directly, without the mixnet, the way a normal wallet does.`
-              : "Simulated from your wallet list, the way MetaMask-style wallets poll. Nothing on this side is sent anywhere."}
-          </p>
-        </section>
-
-        <section className="panel spy-col">
-          <header>
-            <span className="small muted">This app, live</span>
-            <span className={`spy-score ${oursLeaked.size ? "" : "up"}`}>{oursLeaked.size}</span>
-            <span className="small">
-              {oursLeaked.size === 1 ? "address" : "addresses"} in {entries.length} requests. {feedReqs} of them name only a block number, and none carry your IP.
-            </span>
-          </header>
-          <ul className="log" aria-label="This app's requests">
-            {ours.map((e) => (
-              <li key={e.id}>
-                <span className="m">{e.method} <span className="faint">→ {e.host}</span></span>
-                {e.detail && <span className="p"><Highlight text={e.detail} addrs={all} /></span>}
-                <span className="from">
-                  {e.route === "mixnet" ? `from a mixnet exit · route ${e.key}`
-                    : e.route === "bootstrap" ? "direct: Anon-RPC bootstrap (public network contract or code, no address)"
-                    : "direct to a relay on this machine"}
-                </span>
-              </li>
-            ))}
-            {ours.length === 0 && <li className="p">Requests appear here as they're sent.</li>}
-          </ul>
-          {oursLeaked.size > 0 && (
-            <p className="small muted">
-              Highlighted: one-off lookups and sends that must name an address ({[...oursLeaked].map(short).join(", ")}). Each went
-              out on its own mixnet route, so the node can't tell they're the same person.
-            </p>
-          )}
-        </section>
-      </div>
-
       {config.relayUrl && (
-        <section className="panel spy-col">
-          <header>
-            <span className="small muted">Our relay's own log, server side</span>
-            <span className="small">
-              What {new URL(config.relayUrl).host} recorded from every client: block numbers and nothing else. It saw mixnet exits, never your IP.
-            </span>
-          </header>
+        <div className="spy-run">
+          <button className="btn primary" onClick={() => setOn((v) => !v)} aria-pressed={on}>{on ? "Stop the comparison" : "Run the comparison"}</button>
+          <span className="small muted">Sends the same requests for {DEMO.length} public demo addresses ({DEMO.map((d) => d.label).join(", ")}), once directly and once through Anon-RPC, to our relay's normal-wallet lane. Never your addresses.</span>
+        </div>
+      )}
+      {on && unavailable && <p className="error-text">{unavailable}</p>}
+
+      <div className="spy three">
+        <Column tone="bad" title="Normal RPC" sub="Like MetaMask to Infura" score={on ? `${DEMO.length} + IP` : `${all.length} + IP`}
+          scoreLabel="addresses it learns, plus your IP on every request"
+          note={on ? "Real: sent straight to our relay; it saw your IP (masked on screen)." : "Simulated from your wallets until you run the comparison."}>
+          {on ? <SeenList seen={naive.seen} label="Normal RPC saw" waiting="Sending…" /> : (
+            <ul className="log" aria-label="Typical wallet requests">
+              {typical.slice(0, 6).map((r, i) => (
+                <li key={i}><span className="m">{r.method}</span><span className="p"><Highlight text={r.params} addrs={[r.leaks]} /></span><span className="from">from your IP</span></li>
+              ))}
+              {typical.length === 0 && <li className="p">Add or watch a wallet to see what would leak.</li>}
+            </ul>
+          )}
+        </Column>
+
+        <Column tone="mid" title="Anon-RPC alone" sub="Same queries, through the mixnet" score={on ? `${DEMO.length}` : `${all.length}`}
+          scoreLabel="addresses it still learns. Your IP is hidden."
+          note="Anon-RPC hides who is asking. A wallet that queries per address still tells the node which addresses matter.">
+          {on ? <SeenList seen={anon.seen} label="Anon-RPC alone saw" waiting="Sending through the mixnet…" /> : <ul className="log"><li className="p">Run the comparison to send these through Anon-RPC.</li></ul>}
+        </Column>
+
+        <Column tone="good" title="Bina Pooche" sub="Our relay's real log, every client" score="0" scoreLabel="addresses. Block numbers only, from mixnet exits."
+          note="Everyone downloads the same verified blocks; filtering happens on the phone.">
           <ul className="log" aria-label="Relay log">
-            {relay.entries.map((e, i) => (
-              <li key={`${e.t}-${i}`}>
-                <span className="m">{e.method}</span>
-                <span className="p">{JSON.stringify(e.params)}</span>
-                <span className="from">{new Date(e.t).toLocaleTimeString()}</span>
-              </li>
+            {relay.entries.slice(0, 12).map((e, i) => (
+              <li key={`${e.t}-${i}`}><span className="m">{e.method}</span><span className="p">{JSON.stringify(e.params)}</span><span className="from">{new Date(e.t).toLocaleTimeString()}</span></li>
             ))}
             {relay.entries.length === 0 && <li className="p">{relay.error ? `Couldn't load the relay log: ${relay.error}` : "Loading the relay's log…"}</li>}
           </ul>
-        </section>
-      )}
+        </Column>
+      </div>
+
+      <details className="panel">
+        <summary>Every request this app sent ({entries.length}): {oursLeaked.size} named an address, {feedReqs} named only a block</summary>
+        <ul className="log" aria-label="This app's requests">
+          {ours.map((e) => (
+            <li key={e.id}>
+              <span className="m">{e.method} <span className="faint">→ {e.host}</span></span>
+              {e.detail && <span className="p"><Highlight text={e.detail} addrs={all} /></span>}
+              <span className="from">
+                {e.route === "mixnet" ? `from a mixnet exit · route ${e.key}`
+                  : e.route === "bootstrap" ? "direct: Anon-RPC bootstrap (public network contract or code, no address)"
+                  : "direct to a relay on this machine"}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {oursLeaked.size > 0 && (
+          <p className="small muted">
+            Highlighted: one-off lookups and sends that must name an address ({[...oursLeaked].map(short).join(", ")}), each on its own mixnet route.
+          </p>
+        )}
+      </details>
     </>
   );
 }

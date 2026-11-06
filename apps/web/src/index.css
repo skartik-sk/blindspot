@@ -491,3 +491,13 @@ html, body { overflow-x: clip; }
 .hist-progress { display: grid; gap: 8px; }
 .hist-progress .bar { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
 .hist-progress .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffc24a, #ff7a45 55%, #f0397e); transition: width 300ms ease-out; }
+
+/* Spy panel: three providers */
+.spy-run { display: grid; gap: 8px; justify-items: start; }
+@media (min-width: 1200px) { .spy.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 760px) and (max-width: 1199.98px) { .spy.three { grid-template-columns: 1fr; } }
+.spy-title { font: 650 17px var(--display); letter-spacing: -0.02em; }
+.spy-score.mid { color: var(--signal); }
+.spy-bad { border-top: 3px solid var(--down); }
+.spy-mid { border-top: 3px solid var(--signal); }
+.spy-good { border-top: 3px solid var(--up); }
