@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ETH_LOGGER } from "@bina/sdk";
 import { formatUnits, isAddress, parseUnits, type Address, type Hex } from "viem";
 import Icon from "../components/Icon";
 import { deviceAccount } from "../lib/device";
@@ -9,7 +10,7 @@ import { Source, loadBalance } from "./Portfolio";
 
 const ASSETS: Asset[] = ["ETH", "USDC", "WETH"];
 const assetOf = (t?: Address): Asset | undefined =>
-  t === TOKEN.USDC ? "USDC" : t === TOKEN.WETH ? "WETH" : undefined;
+  t === TOKEN.USDC ? "USDC" : t === TOKEN.WETH ? "WETH" : t === ETH_LOGGER ? "ETH" : undefined;
 
 export default function Send({ query }: { query: URLSearchParams }) {
   const me = deviceAccount().address.toLowerCase() as Address;
@@ -75,7 +76,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
         : await swapPlan(asset, toAsset, amt, out ? (out * 995n) / 1000n : 0n);
       const hashes = await execute(plan, route, setStep);
       const last = hashes.at(-1) as Hex;
-      setState(() => ({ pendingTx: { hash: last, to: (mode === "Send" ? to.trim() : TOKEN[toAsset as "USDC"]) as Address,
+      setState(() => ({ pendingTx: { route, hash: last, to: (mode === "Send" ? to.trim() : TOKEN[toAsset as "USDC"]) as Address,
         label: plan.at(-1)!.label, sentAt: Date.now() } }));
       setAmount("");
     } catch (e) {
@@ -175,7 +176,14 @@ export default function Send({ query }: { query: URLSearchParams }) {
           </label>
         </fieldset>
 
-        {err && <p className="error-text" role="alert">{err}</p>}
+        {err && (
+          <div className="callout" role="alert">
+            <span className="error-text">{err}</span>
+            {route === "private" && /isn't reachable/.test(err) && (
+              <button type="button" className="btn small" onClick={() => { setRoute("public"); setErr(undefined); }}>Use the public route</button>
+            )}
+          </div>
+        )}
 
         <div className="dock">
           {step && <span className="small dock-step" aria-live="polite">{step}</span>}
@@ -189,7 +197,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
         <section className="panel">
           <header>
             <h2>{pending.landed ? "Landed" : "Waiting to land"}</h2>
-            {pending.landed ? <span className="chip" data-kind="verified">Verified · block {pending.landed}</span> : <span className="chip">Private, not public yet</span>}
+            {pending.landed ? <span className="chip" data-kind="verified">Verified · block {pending.landed}</span> : <span className="chip">{pending.route === "public" ? "In the mempool" : "Private, not public yet"}</span>}
           </header>
           <dl className="kv">
             <dt>Transaction</dt><dd>{pending.label}</dd>
@@ -197,6 +205,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
           </dl>
           <p className="small muted">
             {pending.landed ? "Seen in a verified block on this device. Your balance above is already updated from it."
+              : pending.route === "public" ? "Sent through the mixnet to the public mempool. It usually lands within a block or two."
               : "Private builders include it in a block when they win one; this can take a few blocks on Sepolia."}
           </p>
           {pending.landed && <button className="btn small" onClick={() => setState(() => ({ pendingTx: undefined }))}>Dismiss</button>}

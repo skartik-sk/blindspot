@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icon";
 import { ago, fmtAmount, short } from "../lib/format";
+import { ETH_LOGGER } from "@bina/sdk";
 import { isKnown, useToken } from "../lib/tokens";
 import { TOKEN } from "../lib/trade";
 import { rescan } from "../lib/engine";
@@ -24,7 +25,7 @@ function Leg({ leg }: { leg?: { token: `0x${string}`; value: bigint } }) {
   );
 }
 
-const tradable = new Set<string>([TOKEN.USDC, TOKEN.WETH]);
+const tradable = new Set<string>([TOKEN.USDC, TOKEN.WETH, ETH_LOGGER]);
 
 function AlertRow({ a, fresh }: { a: Alert; fresh: boolean }) {
   const legs = a.sold && a.bought;

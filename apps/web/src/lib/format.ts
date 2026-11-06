@@ -1,4 +1,4 @@
-import { SEPOLIA_TOKENS } from "@bina/sdk";
+import { ETH_LOGGER, SEPOLIA_TOKENS } from "@bina/sdk";
 import { formatUnits, type Address } from "viem";
 
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -11,7 +11,7 @@ export function fmtAmount(v: bigint, decimals: number, max = 4) {
 }
 
 export const decimalsOf = (token: Address) =>
-  SEPOLIA_TOKENS.find((t) => t.token === token.toLowerCase())?.decimals ?? 18;
+  token.toLowerCase() === ETH_LOGGER ? 18 : SEPOLIA_TOKENS.find((t) => t.token === token.toLowerCase())?.decimals ?? 18;
 
 export const fmtToken = (v: bigint, token: Address) => fmtAmount(v, decimalsOf(token));
 

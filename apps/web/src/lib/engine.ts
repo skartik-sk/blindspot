@@ -1,6 +1,6 @@
 // The live loop: follow the chain through Anon-RPC, verify every block, filter it here on the device.
 // Requests name block numbers only. Which wallets you hold or watch never leaves this tab.
-import { RpcClient, SEPOLIA_TOKENS, follow, newIsolationKey, scanBlock, type Activity, type VerifiedBlock } from "@bina/sdk";
+import { ETH_LOGGER, RpcClient, SEPOLIA_TOKENS, follow, newIsolationKey, scanBlock, type Activity, type VerifiedBlock } from "@bina/sdk";
 import type { Address } from "viem";
 import { anonFetch } from "./anon";
 import { config } from "./config";
@@ -61,7 +61,7 @@ function describe(a: Activity, b: VerifiedBlock): Alert[] {
       const legs = items.filter((i) => i.kind === "transfer");
       const sold = legs.find((l) => l.kind === "transfer" && l.from === a.address);
       const bought = legs.findLast((l) => l.kind === "transfer" && l.to === a.address);
-      const tok = (t: Address) => SEPOLIA_TOKENS.find((x) => x.token === t)?.symbol ?? short(t);
+      const tok = (t: Address) => (t === ETH_LOGGER ? "ETH" : SEPOLIA_TOKENS.find((x) => x.token === t)?.symbol ?? short(t));
       const detail = sold && bought && sold.kind === "transfer" && bought.kind === "transfer"
         ? `${fmtToken(sold.value, sold.token)} ${tok(sold.token)} → ${fmtToken(bought.value, bought.token)} ${tok(bought.token)}`
         : `Uniswap ${s.kind === "swap" ? s.dex : ""} pool ${short(s.kind === "swap" ? s.pool : a.address)}`;

@@ -66,7 +66,7 @@ export interface State {
   tape: TapeBlock[];
   traders: Trader[];
   status: Status;
-  pendingTx?: { hash: Hex; to: Address; label: string; sentAt: number; landed?: string };
+  pendingTx?: { route?: "private" | "public"; hash: Hex; to: Address; label: string; sentAt: number; landed?: string };
 }
 
 const KEY = "bp.state.v1";

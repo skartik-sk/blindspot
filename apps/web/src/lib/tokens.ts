@@ -2,7 +2,7 @@
 // A lookup names a token contract, never a wallet. Known tokens never hit the network.
 // The engine resolves every token that trades in every block (resolveAll), so which tokens get looked up
 // doesn't depend on which wallets you watch. Symbols of unknown tokens are untrusted: anyone can deploy "USDC".
-import { RpcClient, SEPOLIA_TOKENS, newIsolationKey } from "@bina/sdk";
+import { ETH_LOGGER, RpcClient, SEPOLIA_TOKENS, newIsolationKey } from "@bina/sdk";
 import { useEffect, useState } from "react";
 import { decodeFunctionResult, encodeFunctionData, erc20Abi, type Address, type Hex } from "viem";
 import { anonFetch } from "./anon";
@@ -22,6 +22,7 @@ const cache: Record<string, TokenMeta> = (() => {
   }
 })();
 for (const t of SEPOLIA_TOKENS) cache[t.token] = { symbol: t.symbol, decimals: t.decimals };
+cache[ETH_LOGGER] = { symbol: "ETH", decimals: 18 };
 const inflight = new Map<string, Promise<TokenMeta>>();
 const subs = new Set<() => void>();
 
@@ -51,7 +52,7 @@ export function tokenMeta(token: Address): Promise<TokenMeta> {
   return inflight.get(t)!;
 }
 
-export const isKnown = (token: Address) => SEPOLIA_TOKENS.some((t) => t.token === token.toLowerCase());
+export const isKnown = (token: Address) => token.toLowerCase() === ETH_LOGGER || SEPOLIA_TOKENS.some((t) => t.token === token.toLowerCase());
 
 /** Queue lookups for every token seen, a few at a time, so request timing isn't tied to your watchlist. */
 const queue: Address[] = [];
