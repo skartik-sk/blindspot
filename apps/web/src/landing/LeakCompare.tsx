@@ -1,70 +1,61 @@
-// The same screens, two request logs: what a typical wallet sends its provider, and what Bina Pooche sends.
-// Illustrative addresses; block numbers follow the live chain. The app's Spy panel shows the real logs.
-import { motion, useInView, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+// Left: what a normal wallet would send its provider for the wallets on screen right now (real addresses: your
+// wallets plus the traders the live feed found; built locally, never sent). Right: the real requests this page sent.
+import { motion, useReducedMotion } from "motion/react";
+import { useMemo, useSyncExternalStore } from "react";
+import { short } from "../lib/format";
+import { reqlog } from "../lib/reqlog";
 import { useStore } from "../lib/store";
 
-const ME = ["0x8d48be79d5be14bfec88dfd1276601e9b5ac25dc", "0x3f9a0c51e2b7d84a6c19f0e7b2d5a8c4e1f6b91c"];
-const WHALES = ["0x75c3cf2cf0ea8fbf19f3775dfca513885f273624", "0x59fc6e1d0b7a9e3c2f84a5d6e7b8c9d0a1b28952"];
-
-function naive(i: number, block: number) {
-  const kinds = [
-    { m: "eth_getBalance", a: ME[i % 2], rest: ', "latest"' },
-    { m: "eth_call balanceOf", a: ME[(i + 1) % 2], rest: " on USDC" },
-    { m: "eth_getLogs", a: WHALES[i % 2], rest: ` · Transfer · ${block}` },
-    { m: "eth_getTransactionCount", a: WHALES[(i + 1) % 2], rest: ', "latest"' },
-  ];
-  return kinds[i % kinds.length];
-}
-const OURS = ["eth_getBlockByNumber", "eth_getBlockAccessList", "bina_getReceipts", "eth_getBlockByNumber · 2nd provider"];
-
 export default function LeakCompare() {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { margin: "-120px" });
   const reduce = useReducedMotion();
+  const wallets = useStore((s) => s.wallets);
+  const traders = useStore((s) => s.traders);
   const head = useStore((s) => s.status.head);
-  const block = head ? Number(head) : 12075800;
-  const [n, setN] = useState(6);
-  useEffect(() => {
-    if (!inView || reduce) return;
-    const t = setInterval(() => setN((x) => x + 1), 1100);
-    return () => clearInterval(t);
-  }, [inView, reduce]);
-  const idx = Array.from({ length: 5 }, (_, k) => n - k).filter((i) => i >= 0);
+  const entries = useSyncExternalStore(reqlog.subscribe, reqlog.get);
+
+  const addrs = useMemo(() => [...new Set([...wallets.map((w) => w.address), ...traders.slice(0, 3).map((t) => t.address)].map((a) => a.toLowerCase()))], [wallets, traders]);
+  const block = head ? Number(head).toString() : "latest";
+  const naive = addrs.flatMap((a) => [
+    { m: "eth_getBalance", a, rest: ', "latest"' },
+    { m: "eth_getLogs", a, rest: ` · Transfer · ${block}` },
+  ]).slice(0, 5);
+  const ours = entries.filter((e) => e.route === "mixnet").slice(-5).reverse();
+  const named = ours.filter((e) => addrs.some((a) => e.detail.toLowerCase().includes(a))).length;
   const item = reduce ? {} : { initial: { opacity: 0, y: -6 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.25 } };
 
   return (
-    <div className="S-leak" ref={ref}>
-      <section className="S-leak-col" aria-label="A typical wallet">
+    <div className="S-leak">
+      <section className="S-leak-col" aria-label="A normal wallet">
         <header>
-          <div><h3>A typical wallet</h3><p>To its RPC provider, from your IP</p></div>
-          <div className="S-score bad"><strong>{n + 1}</strong><span>requests naming you</span></div>
+          <div><h3>A normal wallet</h3><p>Every block, to its provider, from your IP</p></div>
+          <div className="S-score bad"><strong>{addrs.length}</strong><span>addresses exposed</span></div>
         </header>
         <ul className="S-log">
-          {idx.map((i) => {
-            const r = naive(i, block);
-            return (
-              <motion.li key={i} {...item}>
-                <code><b>{r.m}</b>(<mark>{r.a}</mark>{r.rest})</code>
-                <span>from 49.36.x.x · your home IP</span>
-              </motion.li>
-            );
-          })}
+          {naive.map((r) => (
+            <motion.li key={r.m + r.a + block} {...item}>
+              <code><b>{r.m}</b>(<mark>{short(r.a)}</mark>{r.rest})</code>
+              <span>sent from your IP</span>
+            </motion.li>
+          ))}
+          {naive.length === 0 && <li><code>Waiting for the first verified block…</code></li>}
         </ul>
+        <p className="S-leak-note">Built from the wallets on this page. Shown, never sent.</p>
       </section>
       <section className="S-leak-col ours" aria-label="Bina Pooche">
         <header>
-          <div><h3>Bina Pooche</h3><p>Through the Anon-RPC mixnet</p></div>
-          <div className="S-score good"><strong>0</strong><span>requests naming you</span></div>
+          <div><h3>Bina Pooche, live</h3><p>The requests this page actually sent</p></div>
+          <div className="S-score good"><strong>{named}</strong><span>addresses exposed</span></div>
         </header>
         <ul className="S-log">
-          {idx.map((i) => (
-            <motion.li key={i} {...item}>
-              <code><b>{OURS[i % 4]}</b>(<em>{(block - (Math.floor(i / 4) % 2)).toLocaleString("en-US")}</em>)</code>
-              <span>from a mixnet exit · route {((i * 2654435761) >>> 0).toString(16).slice(0, 6)}</span>
+          {ours.map((e) => (
+            <motion.li key={e.id} {...item}>
+              <code><b>{e.method}</b>{e.detail && <em>{e.detail.slice(0, 48)}</em>}</code>
+              <span>{e.host} · from a mixnet exit · route {e.key}</span>
             </motion.li>
           ))}
+          {ours.length === 0 && <li><code>Opening a route through the mixnet…</code></li>}
         </ul>
+        <p className="S-leak-note">Real log from your browser. The full list is in the app's Spy panel.</p>
       </section>
     </div>
   );

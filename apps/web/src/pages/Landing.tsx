@@ -4,11 +4,14 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import Icon from "../components/Icon";
 import LeakCompare from "../landing/LeakCompare";
 import Reveal from "../landing/Reveal";
+import Skyline from "../landing/Skyline";
 import "../landing/site.css";
 import { short } from "../lib/format";
 import { reqlog, trafficShare } from "../lib/reqlog";
 import { useStore } from "../lib/store";
 import { isKnown } from "../lib/tokens";
+import { quote } from "../lib/trade";
+import { formatUnits } from "viem";
 import { watchWallet } from "./Watch";
 
 const REPO = import.meta.env.VITE_REPO_URL as string | undefined;
@@ -34,28 +37,10 @@ const LIMITS = [
   "A few seconds slower, a few hundred KB per block.",
 ];
 
-const ALERTS = [
-  { who: "Whale A", d: "12.4 WETH → 41,820 USDC" },
-  { who: "Fund wallet", d: "250,000 USDC → 74.1 WETH" },
-  { who: "Market maker", d: "88,000 USDC → 26.2 WETH" },
-  { who: "Whale B", d: "5.0 WETH → 16,870 USDC" },
-];
 
 function useShare() {
   useSyncExternalStore(reqlog.subscribe, reqlog.get);
   return trafficShare();
-}
-
-/** A counter that ticks while visible; stops for reduced motion. */
-function useTick(ms: number) {
-  const reduce = useReducedMotion();
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    if (reduce) return;
-    const t = setInterval(() => setN((x) => x + 1), ms);
-    return () => clearInterval(t);
-  }, [ms, reduce]);
-  return n;
 }
 
 function Nav() {
@@ -129,7 +114,12 @@ function Hero() {
   const reduce = useReducedMotion();
   const head = useStore((s) => s.status.head);
   const alerts = useStore((s) => s.alerts);
+  const traders = useStore((s) => s.traders);
+  const wallets = useStore((s) => s.wallets);
   const share = useShare();
+  // Counted, not claimed: requests from this visit that contain any of your wallets' addresses.
+  const exposed = new Set(reqlog.get().flatMap((e) => wallets.map((w) => w.address.toLowerCase()).filter((a) => e.detail.toLowerCase().includes(a)))).size;
+  const latest = traders[0];
   const ready = share.total >= 20;
   // Prefer a copyable swap (both legs known tokens); the app marks unknown tokens and won't copy them.
   const swap = alerts.find((a) => a.kind === "swap" && a.sold && a.bought && isKnown(a.sold.token) && isKnown(a.bought.token));
@@ -138,7 +128,7 @@ function Hero() {
   return (
     <section className="S-hero">
       <div className="S-wrap S-hero-copy">
-        <motion.h1 className="S-h1" {...enter(0)}>Watch any wallet.<br />Ask nobody.</motion.h1>
+        <motion.h1 className="S-h1" {...enter(0)}>Follow the whales.<br />Leave no trace.</motion.h1>
         <motion.p className="S-lead" {...enter(0.08)}>Copy-trade alerts and balances, without telling any RPC provider who you watch.</motion.p>
         <motion.div className="S-ctas" {...enter(0.14)}>
           <a className="S-btn dark" href="#/portfolio">Launch the app <Icon name="arrow" /></a>
@@ -154,19 +144,19 @@ function Hero() {
             <AppCard />
 
             <motion.div className="S-float f1" {...pop(0.55)}>
-              <span className="S-label">Addresses sent to providers</span>
-              <strong className="S-big good">0</strong>
+              <span className="S-label">Your addresses sent to providers</span>
+              <strong className={`S-big ${exposed ? "" : "good"}`}>{exposed}</strong>
             </motion.div>
 
             <motion.div className="S-float f2" {...pop(0.7)}>
               <div className="S-alert">
-                <span className="S-av warm" aria-hidden><Icon name="bell" /><i className="S-ping" /></span>
+                <span className="S-av warm" aria-hidden><Icon name="bell" />{(swap || latest) && <i className="S-ping" />}</span>
                 <span className="S-row-main">
-                  <b>{swap ? swap.title : "Whale A swapped"}</b>
-                  <small>{swap ? `block ${fmtBlock(swap.block)}` : "0.002 ETH → 52.3 USDC"}</small>
+                  <b>{swap ? swap.title : latest ? `${short(latest.address)} swapped` : "Waiting for a swap…"}</b>
+                  <small>{swap ? `block ${fmtBlock(swap.block)}` : latest ? `in block ${fmtBlock(latest.block)}` : "Live from verified blocks"}</small>
                 </span>
               </div>
-              <a className="S-btn dark xs" href="#/watch">Copy trade</a>
+              {swap ? <a className="S-btn dark xs" href="#/watch">Copy trade</a> : <a className="S-btn dark xs" href="#/watch">Open</a>}
             </motion.div>
 
             <motion.div className="S-float f3" {...pop(0.85)}>
@@ -182,7 +172,7 @@ function Hero() {
 
             <motion.div className="S-float f4" {...pop(1)}>
               <span className="S-av lilac" aria-hidden><Icon name="lock" /></span>
-              <span className="S-row-main"><b>Private lookup</b><small>Server saw 32 ciphertexts</small></span>
+              <span className="S-row-main"><b>Private balance lookup</b><small>32 ciphertexts, no address</small></span>
             </motion.div>
 
             <motion.div className="S-float f5" {...pop(1.15)}>
@@ -204,17 +194,18 @@ function Hero() {
   );
 }
 
-function AlertTicker() {
-  const n = useTick(2600);
-  const items = [0, 1].map((k) => ({ key: n - k, ...ALERTS[(((n - k) % ALERTS.length) + ALERTS.length) % ALERTS.length] }));
+/** Real swaps from the live verified feed, newest first. */
+function LiveSwaps() {
+  const traders = useStore((s) => s.traders).slice(0, 2);
+  if (!traders.length) return <ul className="S-rows tight"><li className="S-skel"><span className="S-av" /><span className="S-row-main"><b /><small /></span></li></ul>;
   return (
     <ul className="S-rows tight">
       <AnimatePresence initial={false} mode="popLayout">
-        {items.map((a, i) => (
-          <motion.li key={a.key} layout initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 14 }} transition={{ duration: 0.35, ease }}>
+        {traders.map((t, i) => (
+          <motion.li key={t.address + t.block} layout initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 14 }} transition={{ duration: 0.35, ease }}>
             <span className={`S-av ${i === 0 ? "warm" : ""}`}><Icon name="swap" /></span>
-            <span className="S-row-main"><b>{a.who} swapped</b><small>{a.d}</small></span>
-            <span className="S-mini">{i === 0 ? "now" : "12s"}</span>
+            <span className="S-row-main"><b className="mono">{short(t.address)} swapped</b><small>in block {fmtBlock(t.block)}</small></span>
+            <span className="S-mini">{i === 0 ? "latest" : "before"}</span>
           </motion.li>
         ))}
       </AnimatePresence>
@@ -222,7 +213,19 @@ function AlertTicker() {
   );
 }
 
+/** A live quote through the mixnet: names two tokens and an amount, never an address. */
+function useLiveQuote() {
+  const [usdc, setUsdc] = useState<string>();
+  useEffect(() => {
+    let live = true;
+    quote("ETH", "USDC", 10n ** 16n).then((v) => live && setUsdc(Number(formatUnits(v, 6)).toFixed(2))).catch(() => {});
+    return () => { live = false; };
+  }, []);
+  return usdc;
+}
+
 function Features() {
+  const usdc = useLiveQuote();
   const tape = useStore((s) => s.tape);
   const blocks = (tape.length ? tape.slice(0, 4).map((b) => b.number) : ["12075790", "12075789", "12075788", "12075787"]);
   return (
@@ -234,17 +237,17 @@ function Features() {
         </Reveal>
         <div className="S-bento">
           <Reveal className="S-tile w3">
-            <div className="S-vis"><AlertTicker /></div>
+            <div className="S-vis"><LiveSwaps /></div>
             <h3>Whale alerts within a block</h3>
-            <p>Nobody learns who you follow.</p>
+            <p>Real swaps from the latest verified blocks. Nobody learns who you follow.</p>
           </Reveal>
           <Reveal className="S-tile w3" delay={0.05}>
             <div className="S-vis">
-              <div className="S-swap"><span>You pay</span><b>0.5 <em>ETH</em></b></div>
+              <div className="S-swap"><span>0.01 ETH buys</span><b>{usdc ? <>{usdc} <em>USDC</em></> : <em>quoting…</em>}</b></div>
               <div className="S-path" aria-hidden><span>Your device</span><i /><span>Mixnet</span><i /><span>Chain</span></div>
             </div>
             <h3>Copy in one tap</h3>
-            <p>Signed on your device. Sent without your IP.</p>
+            <p>Live Sepolia quote. Signed on your device, sent without your IP.</p>
           </Reveal>
           <Reveal className="S-tile w2">
             <div className="S-vis S-pir" aria-hidden>{Array.from({ length: 48 }, (_, i) => <i key={i} data-on={i === 29} style={{ "--i": i } as React.CSSProperties} />)}</div>
@@ -364,7 +367,7 @@ export default function Landing() {
         <div className="S-wrap S-foot-grid">
           <div className="S-foot-brand">
             <a className="S-brand" href="#/"><span className="S-mark" aria-hidden />Bina Pooche</a>
-            <p>बिना पूछे, Hindi for “without asking”. Built at ETHGlobal Mumbai 2026.</p>
+            <p>बिना पूछे, Hindi for “without asking”. A private trading companion.</p>
           </div>
           <nav aria-label="App">
             <b>App</b>
@@ -376,17 +379,8 @@ export default function Landing() {
             {REPO && <a href={REPO} target="_blank" rel="noreferrer">Source</a>}
           </nav>
         </div>
-        <figure className="S-photo">
-          <img src="/sealink-2400.jpg" srcSet="/sealink-1200.jpg 1200w, /sealink-2400.jpg 2400w" sizes="100vw" loading="lazy" decoding="async"
-            alt="The Bandra–Worli Sea Link at dusk, Mumbai" width={2400} height={1600} />
-          <figcaption>
-            <span className="S-photo-word" aria-hidden>Bina Pooche</span>
-            <span className="S-photo-meta">
-              <span>Built in Mumbai · every request through Anon-RPC · MIT</span>
-              <a href="https://unsplash.com/photos/a-long-suspension-bridge-over-the-ocean-at-sunset-PkWaGNTWbcE" target="_blank" rel="noreferrer">Photo: Ishaan Sen / Unsplash</a>
-            </span>
-          </figcaption>
-        </figure>
+        <Skyline />
+        <div className="S-foot-base"><div className="S-wrap"><span>© 2026 Bina Pooche · MIT</span><span>Every request through Anon-RPC</span></div></div>
       </footer>
     </div>
   );

@@ -467,3 +467,16 @@ html, body { overflow-x: clip; }
 .side-row > :first-child { flex: 1; min-width: 0; }
 .brand { white-space: nowrap; }
 @media (max-width: 420px) { .status-long { display: none; } }
+
+/* Production polish: match the landing — neutral active states, black actions, one clean mark. */
+.brand-mark { background: #14122a; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12); }
+.brand-mark::after { box-shadow: none; }
+@media (min-width: 960px) {
+  .side nav a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(20 18 42 / 0.06), inset 0 0 0 1px var(--line); }
+  .side nav a[aria-current="page"] svg { color: var(--ink); }
+}
+.tabs a[aria-current="page"]::before { background: var(--sunk); }
+.tabs a[aria-current="page"] svg { color: var(--ink); }
+.btn.primary { background: #14122a; color: #fff; box-shadow: 0 1px 2px rgb(20 18 42 / 0.2), 0 8px 20px -8px rgb(20 18 42 / 0.45); }
+.btn.primary:disabled { background: var(--sunk); color: var(--ink-3); box-shadow: none; opacity: 1; border: 1px solid var(--line); }
+@media (hover: hover) { .btn.primary:not(:disabled):hover { filter: none; background: #241f45; } }

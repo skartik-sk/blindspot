@@ -74,7 +74,7 @@
 .S-head .S-eyebrow { margin-bottom: 0; }
 
 /* ---------- Hero ---------- */
-.S-hero { padding: 40px 0 0; }
+.S-hero { padding: clamp(64px, 9vw, 120px) 0 0; }
 .S-hero-copy { display: grid; justify-items: center; text-align: center; gap: 22px; }
 .S-badge { display: inline-flex; align-items: center; gap: 9px; padding: 6px 14px 6px 10px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--card);
   font-size: 13.5px; font-weight: 500; color: var(--ink-2); text-decoration: none; box-shadow: 0 1px 2px rgb(20 18 42 / 0.05); }
@@ -256,7 +256,6 @@ span.S-mini { cursor: default; color: var(--ink-2); }
 @media (min-width: 980px) { .S-cta { padding: 104px 40px; } }
 
 /* Footer with the illustration */
-.S-foot { margin-top: 120px; border-top: 1px solid var(--line); padding-top: 56px; overflow: hidden; }
 .S-foot-grid { display: grid; gap: 32px; grid-template-columns: 1fr 1fr; }
 .S-foot-brand { grid-column: 1 / -1; }
 .S-foot-brand p { margin: 12px 0 0; max-width: 40ch; color: var(--ink-2); font-size: 15px; }
@@ -332,12 +331,25 @@ ul.S-chain { list-style: none; margin: 0; }
   @keyframes S-flow { 0% { left: 0; } 45%, 55% { left: 50%; } 100% { left: calc(100% - 10px); } }
 }
 
-/* Footer photo: the Sea Link at dusk, fading up into the page */
-.S-photo { position: relative; margin: 48px 0 0; height: clamp(360px, 52vw, 640px); overflow: hidden; }
-.S-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 40% 60%; }
-.S-photo::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, var(--bg) 0%, transparent 28%, transparent 55%, rgb(12 10 26 / 0.55) 100%); }
-.S-photo figcaption { position: absolute; inset: auto 0 0; z-index: 2; padding: 0 var(--gutter) 22px; display: grid; gap: 12px; color: #fff; }
-.S-photo-word { font: 650 clamp(56px, 14vw, 200px)/0.85 var(--display); letter-spacing: -0.055em; color: rgb(255 255 255 / 0.92); text-shadow: 0 10px 40px rgb(0 0 0 / 0.25); }
-.S-photo-meta { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; font-size: 13px; color: rgb(255 255 255 / 0.82); }
-.S-photo-meta a { color: inherit; }
+/* Footer: links, then the illustrated Sea Link at dusk running into the bottom edge. */
+.S-foot { margin-top: 120px; padding-top: 56px; overflow: hidden;
+  --sky-1: #e6e0ff; --sky-2: #ffd3e2; --sky-3: #ffe3cc; --sea-1: #f6cfdc; --sea-2: #e4defa;
+  --sun-1: #ffe6a8; --sun-2: #ff9a6b; --city: #c9b8dc; --link: #5f5280; --glint: #fff4e6; }
+.S-skyline { display: block; width: 100%; height: clamp(200px, 26vw, 360px); margin-top: 40px; }
+.S-skyline .sk-city rect { fill: var(--city); }
+.S-skyline .sk-link, .S-skyline .sk-link path { stroke: var(--link); }
+.S-skyline .sk-piers rect { fill: var(--link); opacity: 0.5; }
+.S-skyline .sk-glint rect { fill: var(--glint); opacity: 0.85; }
+.S-skyline .sk-waves path { stroke: var(--glint); }
+@media (prefers-reduced-motion: no-preference) {
+  .S-skyline .sk-glint rect { animation: S-glint 3.2s ease-in-out infinite alternate; }
+  .S-skyline .sk-glint rect:nth-child(2n) { animation-delay: -1.6s; }
+  @keyframes S-glint { from { opacity: 0.35; } to { opacity: 0.95; } }
+  .S-skyline .sk-waves path { animation: S-wave 9s ease-in-out infinite alternate; }
+  @keyframes S-wave { to { transform: translateX(-24px); } }
+}
+.S-foot-base { background: var(--sea-2); margin-top: -1px; }
+.S-foot-base .S-wrap { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; padding-top: 14px; padding-bottom: 22px; font-size: 13px; color: var(--ink-3); }
+.S-leak-note { margin: 14px 2px 0; font-size: 12.5px; color: var(--ink-3); }
+.S-log code em { margin-left: 6px; }
 @media (min-width: 760px) { .S-lead { max-width: 860px; } }
