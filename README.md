@@ -102,6 +102,9 @@ quotes, token names and sends. The Spy panel lists every request as the server r
 - **PIR hides, it doesn't prove.** A lying PIR server could return a wrong balance; the next verified block
   that touches the address corrects it. Next step: proof-checked rows (`eth_getProof` against a verified header).
 - **PIR scale.** Paillier PIR is slow on big tables, so the demo indexes ~1k active addresses. 1024-bit keys.
+- **Private send on Sepolia.** Flashbots Protect's Sepolia endpoint didn't resolve from mixnet exits (Nov 6).
+  The app says so and offers the public route, still through the mixnet (IP hidden, tx visible in the mempool).
+  On mainnet the same code uses Flashbots Protect.
 - **Keys on device.** The device key lives in `localStorage`. Production would use a passkey or hardware wallet.
 - **Token names are untrusted.** Unknown tokens are marked; copy-trade is offered only for known pairs.
 - **Testnet only** until Glamsterdam (block access lists) reaches mainnet.
