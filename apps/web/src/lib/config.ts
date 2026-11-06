@@ -4,6 +4,7 @@ const env = import.meta.env;
 export type NetworkName = "tor" | "sphinx" | "passthrough";
 
 const relay = env.VITE_RELAY_URL as string | undefined;
+const list = (v: string | undefined, fallback: string[]) => (v ? v.split(",").map((s: string) => s.trim()).filter(Boolean) : fallback);
 
 export const config = {
   network: (env.VITE_ANON_NETWORK ?? "sphinx") as NetworkName,
@@ -22,10 +23,10 @@ export const config = {
   readUrl: env.VITE_READ_URL ?? "https://ethereum-sepolia-rpc.publicnode.com",
   /** Private send: Flashbots Protect keeps the tx out of the public mempool until it lands. */
   sendUrl: env.VITE_SEND_URL ?? "https://rpc-sepolia.flashbots.net/",
-  /** Bootstrap providers: used once, only to read the Anon-RPC specifier contract. */
+  /** Bootstrap providers, tried in order: only used to read the Anon-RPC specifier contract (public data). */
   bootstrap: {
-    mainnet: env.VITE_BOOTSTRAP_MAINNET ?? "https://ethereum-rpc.publicnode.com",
-    sepolia: env.VITE_BOOTSTRAP_SEPOLIA ?? "https://ethereum-sepolia-rpc.publicnode.com",
+    mainnet: list(env.VITE_BOOTSTRAP_MAINNET, ["https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://1rpc.io/eth"]),
+    sepolia: list(env.VITE_BOOTSTRAP_SEPOLIA, ["https://ethereum-sepolia-rpc.publicnode.com", "https://sepolia.gateway.tenderly.co", "https://sepolia.drpc.org", "https://1rpc.io/sepolia"]),
   },
 };
 

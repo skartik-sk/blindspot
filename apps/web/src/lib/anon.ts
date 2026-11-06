@@ -42,17 +42,33 @@ export const NETWORKS: Record<NetworkName, Network> = {
 
 let worker: AnonRpcWorker | undefined;
 
-function bootstrapProvider(url: string) {
+/**
+ * The worker reads its specifier contract through this provider (directly; it's public chain data, the same for
+ * every user). One public node rate-limiting us would take the whole privacy path down, so try several in turn.
+ */
+function bootstrapProvider(urls: string[]) {
+  let start = 0;
   return {
     request: async ({ method, params }: { method: string; params?: unknown[] }) => {
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: params ?? [] }),
-      });
-      const j = await r.json();
-      if (j.error) throw new Error(j.error.message);
-      return j.result;
+      let last: unknown;
+      for (let i = 0; i < urls.length; i++) {
+        const url = urls[(start + i) % urls.length];
+        try {
+          const r = await fetch(url, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: params ?? [] }),
+            signal: AbortSignal.timeout(10_000),
+          });
+          const j = await r.json();
+          if (j.error) throw new Error(typeof j.error === "string" ? j.error : j.error.message);
+          start = (start + i) % urls.length; // stick with the one that worked
+          return j.result;
+        } catch (e) {
+          last = e;
+        }
+      }
+      throw last;
     },
   };
 }
