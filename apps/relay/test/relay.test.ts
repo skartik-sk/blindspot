@@ -253,6 +253,13 @@ describe("naive lane", () => {
     expect((await call("eth_getBalance", ["0x2077e1b9f57955d36dea89effd395ce43b64033d", "latest"])).error.code).toBe(-32602);
     expect((await call("eth_call", [balanceOf("0x2077e1b9f57955d36dea89effd395ce43b64033d"), "latest"])).error.code).toBe(-32602);
     expect((await call("eth_call", [{ to: "0x2077e1b9f57955d36dea89effd395ce43b64033d", data: "0x" }, "latest"])).error.code).toBe(-32602);
+    // smuggling attempts: extra keys, `input`, state overrides, padding tricks
+    const other = "0x2077e1b9f57955d36dea89effd395ce43b64033d";
+    expect((await call("eth_call", [{ ...balanceOf(demo), from: other }, "latest"])).error.code).toBe(-32602);
+    expect((await call("eth_call", [{ ...balanceOf(demo), input: balanceOf(other).data }, "latest"])).error.code).toBe(-32602);
+    expect((await call("eth_call", [balanceOf(demo), "latest", { [other]: { balance: "0x1" } }])).error.code).toBe(-32602);
+    expect((await call("eth_call", [{ to: SEPOLIA_USDC.token, data: `0x70a08231${other.slice(2).padStart(24, "f")}${demo.slice(2)}` }, "latest"])).error.code).toBe(-32602);
+    expect((await call("eth_getBalance", [demo, "latest", other])).error.code).toBe(-32602);
   });
 
   test("is off unless enabled", async () => {

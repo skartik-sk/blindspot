@@ -200,16 +200,24 @@ export function createApp(opts: AppOptions) {
 
   const allow = new Set((naiveAllow ?? []).map((a) => a.toLowerCase()));
   const TOKENS = new Set([SEPOLIA_USDC.token.toLowerCase(), SEPOLIA_WETH.token.toLowerCase()]);
-  /** Every address a request names must be a demo address (balanceOf calls go to USDC/WETH about a demo address). */
+  /**
+   * Exact shapes only, so nothing can smuggle another address past the check:
+   *   eth_getBalance / eth_getTransactionCount: [demoAddress, "latest"]
+   *   eth_call: [{ to: USDC|WETH, data: balanceOf(demoAddress) }, "latest"], no other keys, no state overrides
+   */
   function naiveAllowed(method: string, params: unknown[]): boolean {
-    if (method === "eth_blockNumber" || method === "eth_chainId") return true;
-    if (method === "eth_getBalance" || method === "eth_getTransactionCount") return typeof params[0] === "string" && allow.has(params[0].toLowerCase());
+    if (method === "eth_blockNumber" || method === "eth_chainId") return params.length === 0;
+    const latest = params.length === 2 && params[1] === "latest";
+    if (method === "eth_getBalance" || method === "eth_getTransactionCount")
+      return latest && typeof params[0] === "string" && allow.has(params[0].toLowerCase());
     if (method === "eth_call") {
-      const c = params[0] as { to?: unknown; data?: unknown } | undefined;
-      const to = typeof c?.to === "string" ? c.to.toLowerCase() : "";
-      const data = typeof c?.data === "string" ? c.data.toLowerCase() : "";
-      if (allow.has(to)) return !/[0-9a-f]{40}/.test(data.slice(10).replace(/^0+/, "")) || allow.has(`0x${data.slice(-40)}`);
-      return TOKENS.has(to) && data.startsWith("0x70a08231") && data.length === 74 && allow.has(`0x${data.slice(-40)}`);
+      const c = params[0];
+      if (!latest || !c || typeof c !== "object" || Array.isArray(c)) return false;
+      const keys = Object.keys(c).sort().join(",");
+      const { to, data } = c as { to?: unknown; data?: unknown };
+      if (keys !== "data,to" || typeof to !== "string" || typeof data !== "string") return false;
+      const d = data.toLowerCase();
+      return TOKENS.has(to.toLowerCase()) && /^0x70a08231[0]{24}[0-9a-f]{40}$/.test(d) && allow.has(`0x${d.slice(-40)}`);
     }
     return false; // eth_getLogs and anything else: not needed for the demo
   }
