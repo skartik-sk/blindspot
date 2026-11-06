@@ -103,3 +103,6 @@ export async function fetchReceipts(rpc: RpcClient, n: bigint, compact = false, 
   }
   throw err;
 }
+
+/** Random isolation key for Anon-RPC: requests under different keys take different routes and can't be linked. */
+export const newIsolationKey = () => crypto.randomUUID();

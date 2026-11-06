@@ -6,3 +6,10 @@ NOTES.md
 *.log
 .DS_Store
 HANDOFF.md
+
+# keys and secrets, never committed
+*.pem
+*.key
+*.bak
+backup-*.txt
+blindspot-key-*.txt

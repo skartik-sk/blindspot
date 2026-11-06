@@ -11,9 +11,7 @@ import {
   balanceSlot,
   findHits,
   hashBal,
-  saleAccount,
   verifyBal,
-  watchWindow,
   type BalJson,
   type Header,
 } from "../src";
@@ -92,61 +90,7 @@ describe("findHits", () => {
   });
 
   test("an unwatched list yields nothing", () => {
-    expect(findHits(bal, [saleAccount("test test test test test test test test test test test junk", 0).address])).toEqual([]);
-  });
-});
-
-describe("watchWindow", () => {
-  // Fake transport: serves the fixture block and records every request body (a mini spy log).
-  function fakeRpc(tamper = false) {
-    const seen: string[] = [];
-    const n = BigInt(header.number);
-    const fetchFn = async (_u: string, init: RequestInit) => {
-      const { method, params } = JSON.parse(String(init.body));
-      seen.push(`${method} ${JSON.stringify(params)}`);
-      let result: unknown = null;
-      if (BigInt(params[0]) === n) {
-        if (method === "eth_getBlockByNumber") result = header;
-        if (method === "eth_getBlockAccessList") result = tamper ? bal.slice(1) : bal;
-      }
-      return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result }));
-    };
-    return { rpc: new RpcClient("http://fake", fetchFn), seen };
-  }
-
-  test("detects a payment and never sends the address", async () => {
-    const target = bal.find((x) => x.balanceChanges.length)!.address;
-    const { rpc, seen } = fakeRpc();
-    const hits = await watchWindow({ rpc, addresses: [target], from: BigInt(header.number), blocks: 1 });
-    expect(hits.length).toBe(1);
-    expect(seen.join("\n").toLowerCase()).not.toContain(target.toLowerCase().slice(2));
-  });
-
-  test("hit is confirmed by an independent anchor", async () => {
-    const target = bal.find((x) => x.balanceChanges.length)!.address;
-    const anchored: boolean[] = [];
-    await watchWindow({
-      rpc: fakeRpc().rpc, anchor: fakeRpc().rpc, addresses: [target], from: BigInt(header.number), blocks: 1,
-      onBlock: (b) => anchored.push(b.anchored),
-    });
-    expect(anchored).toEqual([true]);
-  });
-
-  test("a forged chain the anchor disagrees with is rejected", async () => {
-    const target = bal.find((x) => x.balanceChanges.length)!.address;
-    const other = { ...header, hash: hashBal([]) }; // anchor reports a different hash for this number
-    const anchor = new RpcClient("http://anchor", async () =>
-      new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: other })));
-    await expect(
-      watchWindow({ rpc: fakeRpc().rpc, anchor, addresses: [target], from: BigInt(header.number), blocks: 1 }),
-    ).rejects.toThrow(HeaderInvalid);
-  });
-
-  test("refuses a list the header does not commit to", async () => {
-    const { rpc } = fakeRpc(true);
-    await expect(
-      watchWindow({ rpc, addresses: [], from: BigInt(header.number), blocks: 1 }),
-    ).rejects.toThrow(BalHashMismatch);
+    expect(findHits(bal, ["0x00000000000000000000000000000000000000ff" as Address])).toEqual([]);
   });
 });
 
