@@ -45,6 +45,32 @@ export const unpackBalances = (r: bigint): Balances => ({
   weth: r & MASK128,
 });
 
+/** Recent active blocks kept per address in a v2 record. */
+export const HISTORY_SLOTS = 6;
+const DELTA_BITS = 20n; // offsets up to ~1M blocks (~145 days at 12 s)
+const MASK_D = (1n << DELTA_BITS) - 1n;
+const BAL_BITS = 320n;
+
+/**
+ * v2 record: balances in the low 320 bits (unpackBalances still works), then up to 6 recent active blocks,
+ * newest first, each stored as (snapshot block − block + 1) in 20 bits; 0 means empty. 440 bits in all.
+ */
+export function packRecord(b: Balances, history: number[], at: number): bigint {
+  let r = packBalances(b);
+  const ok = history.filter((n) => n <= at && BigInt(at - n + 1) <= MASK_D).slice(0, HISTORY_SLOTS);
+  ok.forEach((n, i) => { r |= BigInt(at - n + 1) << (BAL_BITS + DELTA_BITS * BigInt(i)); });
+  return r;
+}
+
+export function unpackRecord(r: bigint, at: number): Balances & { history: number[] } {
+  const history: number[] = [];
+  for (let i = 0; i < HISTORY_SLOTS; i++) {
+    const d = (r >> (BAL_BITS + DELTA_BITS * BigInt(i))) & MASK_D;
+    if (d) history.push(at - Number(d) + 1);
+  }
+  return { ...unpackBalances(r & ((1n << BAL_BITS) - 1n)), history };
+}
+
 export function pirLayout(count: number) {
   const cols = Math.max(1, Math.ceil(Math.sqrt(count)));
   return { rows: Math.max(1, Math.ceil(count / cols)), cols };

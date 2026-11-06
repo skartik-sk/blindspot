@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { PirClient, RpcClient, unpackBalances, verifyReceipts, type BalJson, type CompactReceipt, type PirTable } from "@bina/sdk";
+import { PirClient, RpcClient, SEPOLIA_USDC, balanceSlot, toHex, unpackBalances, unpackRecord, verifyReceipts, type BalJson, type CompactReceipt, type PirTable } from "@bina/sdk";
 import type { Address } from "viem";
 import { PirStore } from "../src/pirstore";
 import fx from "../../../packages/sdk/test/fixtures/block.json";
@@ -193,6 +193,29 @@ describe("PIR", () => {
     expect(logged).toContain("pir_query");
     expect(logged).not.toContain(t.addresses[i].slice(2));
   });
+  test("records each indexed account's recent active blocks, readable only through PIR", async () => {
+    const A = "0x00000000000000000000000000000000000000aa" as Address;
+    const B = "0x00000000000000000000000000000000000000bb" as Address;
+    const acct = (address: Address, nonce = false) => ({ address, storageChanges: [], storageReads: [], balanceChanges: [], codeChanges: [],
+      nonceChanges: nonce ? [{ index: "0x1" as const, value: "0x1" as const }] : [] });
+    const usdcTo = (holder: Address) => ({ ...acct(SEPOLIA_USDC.token as Address),
+      storageChanges: [{ key: toHex(balanceSlot(holder, SEPOLIA_USDC.mappingSlot)), changes: [{ index: "0x1" as const, value: "0x5" as const }] }] });
+    const pir = new PirStore(read);
+    await pir.onBlock(100n, [acct(A, true), acct(B, true)] as BalJson); // both send: indexed with block 100
+    await pir.onBlock(105n, [acct(A, true)] as BalJson);                // A sends again
+    await pir.onBlock(109n, [usdcTo(B)] as BalJson);                     // B only receives USDC
+    await pir.onBlock(110n, [acct(B)] as BalJson);                       // B merely appears, no change: not activity
+    const t = pir.table()!;
+    const at = parseInt(t.block, 16);
+    const look = async (who: Address) => {
+      const i = t.addresses.indexOf(who);
+      const c = await PirClient.create(1024);
+      return unpackRecord(c.decode(t, i, pir.answer(c.query(t, i))), at).history;
+    };
+    expect(await look(A)).toEqual([105, 100]);
+    expect(await look(B)).toEqual([109, 100]);
+  });
+
   test("rejects a query for an unknown epoch", async () => {
     const pir = new PirStore(read);
     const { app } = setup({ pir });
