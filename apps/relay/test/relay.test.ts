@@ -146,7 +146,7 @@ describe("public log", () => {
     await post("/naive", { jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [ADDR, "latest"] });
     const { entries } = await get(app);
     expect(entries.length).toBe(2);
-    expect(entries.every((e: any) => e.lane === undefined)).toBe(true);
+    expect(entries.every((e: any) => e.lane === undefined && e.client === undefined)).toBe(true);
     expect(entries[0].params).toEqual([fx.header.number]);
     expect(JSON.stringify(entries)).not.toMatch(/0x[0-9a-f]{40}/i);
   });

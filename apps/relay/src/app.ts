@@ -191,7 +191,8 @@ export function createApp(opts: AppOptions) {
       return sse((send) => cache.onBlock((b) => send({ number: b.number, hash: b.header.hash, txs: b.receipts.length })));
     if (req.method === "GET" && url.pathname === "/log") {
       const entries = spy.recent().filter((e) => e.lane === "bina").slice(-MAX_PUBLIC_LOG).map((e) => ({
-        t: e.t, client: e.client, method: e.method,
+        // No client tag and second-level time: the public can't group requests by client.
+        t: Math.floor(e.t / 1000) * 1000, method: e.method,
         params: Array.isArray(e.params) ? e.params.map((p) => (SAFE_PARAM(p) ? p : "…")) : [],
       }));
       return json({ entries });
