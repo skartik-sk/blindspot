@@ -269,8 +269,19 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 
 ## After the hackathon
 
-Faster PIR with hints updated from the block stream; mempool streaming for earlier alerts; shielded sends;
-merchant payments on the same core (an earlier prototype lives in this repo's history).
+Not built, by choice (assessed Nov 6; each was too large or risky to finish properly before the deadline):
+
+- **PIR beyond ~1,000 addresses.** Paillier PIR cost grows with the table; 2,048 is a one-setting change but 2–4×
+  slower per lookup. Real coverage needs a hint-based scheme (SimplePIR/Spiral-style) updated from the block stream.
+- **Shielded sends (Railgun on Sepolia).** Large proving artifacts and a separate broadcaster network that would also
+  have to work through Anon-RPC: 6–10 hours, high risk.
+- **A light client** (e.g. Helios) instead of trusting the relay plus a second provider: needs block-access-list
+  support and its consensus reads through Anon-RPC; 4–8 hours, high risk.
+- **Our own Tor gateway**, so Tor works when the EF demo gateway is down: ~1–2 hours; the gateway would see users'
+  IPs (as any Tor entry does), not destinations or content.
+- Proof-checked PIR rows (`eth_getProof` against a verified header); a mainnet mode after Glamsterdam, with the
+  Flashbots Protect / MEV Blocker send route already tested; merchant payments on the same core (an earlier
+  prototype is tagged `payments-v1`).
 
 ## AI usage
 
