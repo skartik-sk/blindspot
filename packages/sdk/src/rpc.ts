@@ -28,15 +28,36 @@ export class RpcClient {
     return new RpcClient(this.url, this.fetchFn, isolationKey);
   }
 
+  /** Per-request timeout. A mixnet route can stall; one stuck request must not freeze a follower. */
+  timeoutMs = 25_000;
+
   async call<T>(method: string, params: unknown[] = []): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${method}: timed out after ${this.timeoutMs / 1000}s`)), this.timeoutMs);
+    });
+    try {
+      return await Promise.race([this.send<T>(method, params), timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async send<T>(method: string, params: unknown[]): Promise<T> {
     const res = await this.fetchFn(this.url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: ++this.id, method, params }),
       ...(this.isolationKey ? { anonOptions: { isolationKey: this.isolationKey } } : {}),
     });
-    const j = (await res.json()) as { result?: T; error?: { code: number; message: string } };
-    if (j.error) throw new Error(`${method}: ${j.error.message} (${j.error.code})`);
+    const text = await res.text();
+    let j: { result?: T; error?: { code: number; message: string } | string };
+    try {
+      j = JSON.parse(text);
+    } catch {
+      throw new Error(`${method}: HTTP ${res.status} ${text.slice(0, 80)}`);
+    }
+    if (j.error) throw new Error(`${method}: ${typeof j.error === "string" ? j.error : `${j.error.message} (${j.error.code})`}`);
     return j.result as T;
   }
 
