@@ -24,6 +24,13 @@ dig +short useblindspot.xyz A        # the four 185.199.x.153 addresses
 dig +short www.useblindspot.xyz      # skartik-sk.github.io. then the same addresses
 ```
 
+**Status (Nov 7, ~05:00 IST): live.** `https://useblindspot.xyz/` serves the app. HTTP, `www` and the old
+`skartik-sk.github.io/blindspot/` all redirect to it with a 301. The Cloudflare records are Proxied (orange cloud), so
+Cloudflare terminates HTTPS and fetches from GitHub. Lesson: don't point GitHub at the domain until Cloudflare's edge
+certificate is issued. Before that, HTTPS failed the handshake and visitors landed on plain HTTP, where the app can't
+run. Storage is per site, so a wallet made on the old github.io address stays there; move it with Send → Back up key,
+then Import key.
+
 ## 2. Switch the site (only after step 1 resolves)
 
 Do this in order. If you add the CNAME before DNS works, `skartik-sk.github.io/blindspot/` starts redirecting to a
