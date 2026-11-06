@@ -25,7 +25,7 @@ function NetworkPicker() {
   };
   return (
     <fieldset className="routes net-pick">
-      <legend className="small muted">Privacy network (saved on this device)</legend>
+      <legend className="small muted">Your choice is saved on this device. Switching reloads the app.</legend>
       {CHOICES.map((c) => (
         <label key={c.id} className="route" data-on={config.network === c.id} data-disabled={!!c.disabled}>
           <input type="radio" name="net" checked={config.network === c.id} disabled={!!c.disabled} onChange={() => pick(c.id)} />

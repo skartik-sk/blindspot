@@ -512,3 +512,20 @@ html, body { overflow-x: clip; }
 .pending-rows { border-bottom: 1px dashed var(--line); }
 .pending-rows .alert-icon { outline: 1.5px dashed color-mix(in srgb, var(--signal) 60%, transparent); outline-offset: 2px; }
 .copy-warn { color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 8px; margin-top: 4px; }
+
+/* Getting started checklist */
+.guide { display: grid; gap: 12px; }
+.guide-bar { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.guide-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffc24a, #ff7a45 55%, #f0397e); transition: width 400ms ease-out; }
+.guide-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.guide-steps li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 8px 4px; border-radius: 12px; }
+.guide-steps li[data-next="true"] { background: var(--sunk); padding: 10px 10px; }
+.guide-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; flex: none; }
+.guide-steps li[data-done="true"] .guide-dot { background: var(--up); border-color: var(--up); color: #fff; }
+.guide-steps li[data-next="true"] .guide-dot { border-color: var(--signal); }
+.guide-dot svg { width: 13px; height: 13px; }
+.guide-text { display: grid; gap: 2px; min-width: 0; }
+.guide-text b { font-weight: 600; font-size: 14.5px; }
+.guide-steps li[data-done="true"] .guide-text b { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
+.guide-text small { color: var(--ink-2); font-size: 13px; }
+.guide-hide { justify-self: start; border: 0; background: none; color: var(--ink-3); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }

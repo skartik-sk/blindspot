@@ -3,6 +3,7 @@
 // lane, directly and through Anon-RPC; the relay answers with what it saw. The third is the relay's own log.
 import { newIsolationKey, SEPOLIA_USDC } from "@bina/sdk";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { markGuide } from "../components/GettingStarted";
 import { anonFetch, getWorker } from "../lib/anon";
 import { config } from "../lib/config";
 import { encodeFunctionData, erc20Abi, type Address } from "viem";
@@ -129,6 +130,7 @@ function SeenList({ seen, label, waiting }: { seen: Seen[]; label: string; waiti
 }
 
 export default function Spy() {
+  useEffect(() => markGuide("spy"), []);
   const wallets = useStore((s) => s.wallets);
   const tape = useStore((s) => s.tape);
   const logged = useSyncExternalStore(reqlog.subscribe, reqlog.get);

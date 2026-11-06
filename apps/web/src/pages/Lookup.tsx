@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { isAddress, type Address } from "viem";
 import Icon from "../components/Icon";
+import { markGuide } from "../components/GettingStarted";
 import { config } from "../lib/config";
 import { ago, fmtAmount, fmtBytes, short } from "../lib/format";
 import { ANONYMITY, crowdFor, privateHistory, type HistoryResult } from "../lib/history";
@@ -42,6 +43,7 @@ export default function Lookup() {
     try {
       const r = await privateBalance(a, setStep);
       setRes({ ...r, address: a });
+      markGuide("lookup");
       if (r.via === "pir" && r.history?.length) {
         // Without other addresses to hide among, the block pattern would point straight at this one: ask first.
         if (crowdFor(r.history, r.cover ?? []).crowd < 2) setHist({ state: "exposed" });
