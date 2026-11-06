@@ -4,3 +4,6 @@ export * from "./extract";
 export * from "./rpc";
 export * from "./watch";
 export * from "./addresses";
+export * from "./receipts";
+export * from "./feed";
+export * from "./follow";

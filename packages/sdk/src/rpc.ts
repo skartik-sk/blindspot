@@ -2,6 +2,7 @@
 import type { Hex } from "viem";
 import type { BalJson } from "./bal";
 import type { FullHeader } from "./header";
+import { compactReceipts, type CompactReceipt, type RpcReceipt } from "./receipts";
 
 /** Matches AnonRpcWorker.fetch: a standard fetch plus optional anonOptions. */
 export type AnonFetch = (
@@ -42,6 +43,9 @@ export class RpcClient {
   blockNumber = async () => BigInt(await this.call<Hex>("eth_blockNumber"));
   header = (n: bigint) => this.call<Header | null>("eth_getBlockByNumber", [toHex(n), false]);
   bal = (n: bigint) => this.call<BalJson | null>("eth_getBlockAccessList", [toHex(n)]);
+  receipts = (n: bigint) => this.call<RpcReceipt[] | null>("eth_getBlockReceipts", [toHex(n)]);
+  /** Relay-only: receipts without blooms or hashes (about 3x smaller); still checked against receiptsRoot. */
+  compactReceipts = (n: bigint) => this.call<CompactReceipt[] | null>("bina_getReceipts", [toHex(n)]);
 }
 
 export const toHex = (n: bigint) => `0x${n.toString(16)}` as Hex;
@@ -56,6 +60,22 @@ export async function fetchBal(rpc: RpcClient, n: bigint, attempts = 4): Promise
   for (let i = 0; i < attempts; i++) {
     try {
       return await (i === 0 ? rpc : rpc.isolated(crypto.randomUUID())).bal(n);
+    } catch (e) {
+      err = e;
+    }
+  }
+  throw err;
+}
+
+/** A block's receipts in compact form, with the same retry policy as fetchBal. Verify with verifyReceipts. */
+export async function fetchReceipts(rpc: RpcClient, n: bigint, compact = false, attempts = 3): Promise<CompactReceipt[]> {
+  let err: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const c = i === 0 ? rpc : rpc.isolated(crypto.randomUUID());
+      const r = compact ? await c.compactReceipts(n) : await c.receipts(n).then((x) => x && compactReceipts(x));
+      if (!r) throw new Error(`no receipts for block ${n}`);
+      return r;
     } catch (e) {
       err = e;
     }
