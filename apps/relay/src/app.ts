@@ -8,7 +8,8 @@
 //   GET  /pending mempool snapshot (unverified), the same for every client; no parameters, cached ~1 s
 //   GET  /pir     PIR table: public address directory + layout (no balances)
 //   POST /pir     PIR query: encrypted selectors in, encrypted rows out; the index never leaves the client
-import { RpcClient, compactPending, toHex, type PendingTx } from "@bina/sdk";
+import { RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, compactPending, toHex, type PendingTx } from "@bina/sdk";
+import type { Address } from "viem";
 import type { PirStore } from "./pirstore";
 import type { BlockCache, CachedBlock } from "./relay";
 import type { SpyLog } from "./spy";
@@ -77,6 +78,11 @@ export interface AppOptions {
   chainId: string;
   /** Required to read /spy (?token=). If unset, /spy is disabled. */
   spyToken?: string;
+  /**
+   * If set, the /naive lane only answers about these addresses (public demo contracts), so it can't be used as a
+   * general RPC that would see real users' addresses together with their IPs.
+   */
+  naiveAllow?: Address[];
   /** Serve the /naive demo lane. Off by default in production. */
   enableNaive?: boolean;
   /** Requests per IP per minute across both lanes. */
@@ -104,7 +110,7 @@ export function bucket(ip: string): string {
 const MAX_TRACKED = 10_000;
 
 export function createApp(opts: AppOptions) {
-  const { cache, spy, upstream, pendingUpstream = upstream, chainId, spyToken, enableNaive = false, rateLimit = 600, trustProxy = false, pir } = opts;
+  const { naiveAllow, cache, spy, upstream, pendingUpstream = upstream, chainId, spyToken, enableNaive = false, rateLimit = 600, trustProxy = false, pir } = opts;
   // PIR answers cost ~1-2 s of CPU each (synchronous, so they run one at a time): own, much lower limit.
   const pirHits = new Map<string, number[]>();
   const pirLimited = (key: string, perMin = 10) => {
@@ -192,6 +198,22 @@ export function createApp(opts: AppOptions) {
     return json({ jsonrpc: "2.0", id, result });
   }
 
+  const allow = new Set((naiveAllow ?? []).map((a) => a.toLowerCase()));
+  const TOKENS = new Set([SEPOLIA_USDC.token.toLowerCase(), SEPOLIA_WETH.token.toLowerCase()]);
+  /** Every address a request names must be a demo address (balanceOf calls go to USDC/WETH about a demo address). */
+  function naiveAllowed(method: string, params: unknown[]): boolean {
+    if (method === "eth_blockNumber" || method === "eth_chainId") return true;
+    if (method === "eth_getBalance" || method === "eth_getTransactionCount") return typeof params[0] === "string" && allow.has(params[0].toLowerCase());
+    if (method === "eth_call") {
+      const c = params[0] as { to?: unknown; data?: unknown } | undefined;
+      const to = typeof c?.to === "string" ? c.to.toLowerCase() : "";
+      const data = typeof c?.data === "string" ? c.data.toLowerCase() : "";
+      if (allow.has(to)) return !/[0-9a-f]{40}/.test(data.slice(10).replace(/^0+/, "")) || allow.has(`0x${data.slice(-40)}`);
+      return TOKENS.has(to) && data.startsWith("0x70a08231") && data.length === 74 && allow.has(`0x${data.slice(-40)}`);
+    }
+    return false; // eth_getLogs and anything else: not needed for the demo
+  }
+
   async function naive(body: any, client: string, ip: string) {
     const { id, method, params = [] } = body ?? {};
     if (!NAIVE_METHODS.has(method) || !Array.isArray(params)) return rpcErr(id, -32601, `not allowed: ${method}`);
@@ -201,6 +223,7 @@ export function createApp(opts: AppOptions) {
       if (!ok || BigInt(f.toBlock) - BigInt(f.fromBlock) > MAX_LOG_RANGE)
         return rpcErr(id, -32602, `eth_getLogs needs hex fromBlock/toBlock within ${MAX_LOG_RANGE} blocks`);
     }
+    if (naiveAllow && !naiveAllowed(method, params)) return rpcErr(id, -32602, "demo lane: only the demo addresses can be queried");
     spy.add({ t: Date.now(), lane: "naive", client, method, params });
     try {
       // `seen`: what this provider just learned, echoed to the caller (their own IP, masked) for the Spy Panel.

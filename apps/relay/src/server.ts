@@ -51,6 +51,9 @@ const app = createApp({
   pendingUpstream: process.env.PENDING_RPC ? new RpcClient(process.env.PENDING_RPC) : undefined,
   spyToken: process.env.SPY_TOKEN || undefined,
   enableNaive: process.env.ENABLE_NAIVE === "1",
+  // Demo lane answers only about public demo contracts (Uniswap router + quoter on Sepolia) unless overridden.
+  naiveAllow: (process.env.NAIVE_ALLOW ?? "0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e,0xed1f6473345f45b75f8179591dd5ba1888cf2fb3")
+    .split(",").map((x) => x.trim()).filter((x): x is Address => isAddress(x)),
   rateLimit: Number(process.env.RATE_LIMIT ?? 600),
   trustProxy: process.env.TRUST_PROXY === "1",
   pir,

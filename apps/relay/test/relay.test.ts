@@ -29,7 +29,7 @@ function setup(over: Partial<AppOptions> = {}, tamper: boolean | "receipts" = fa
     const result =
       method === "eth_blockNumber" ? fx.header.number
       : method === "eth_getBlockByNumber" && params[0] === "pending" ? { number: "0x1", transactions: PENDING }
-      : BigInt(params[0]) !== N ? null
+      : typeof params[0] !== "string" || !/^0x[0-9a-f]+$/i.test(params[0]) || BigInt(params[0]) !== N ? (method === "eth_call" ? "0x0" : null)
       : method === "eth_getBlockByNumber" ? fx.header
       : method === "eth_getBlockAccessList" ? (tamper === true ? fx.bal.slice(1) : fx.bal)
       : method === "eth_getBlockReceipts" ? (tamper === "receipts" ? raw.slice(1) : raw)
@@ -241,6 +241,18 @@ describe("naive lane", () => {
     const { post } = setup({ enableNaive: true });
     const r = await post("/naive", { jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: ["0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e", "latest"] });
     expect(r.seen).toEqual({ ip: "203.0.•.•", method: "eth_getBalance", params: ["0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e", "latest"] });
+  });
+
+  test("with an allowlist, only the demo addresses can be queried", async () => {
+    const demo = "0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e";
+    const { post } = setup({ enableNaive: true, naiveAllow: [demo as Address] });
+    const call = (method: string, params: unknown[]) => post("/naive", { jsonrpc: "2.0", id: 1, method, params });
+    const balanceOf = (a: string) => ({ to: SEPOLIA_USDC.token, data: `0x70a08231${a.slice(2).padStart(64, "0")}` });
+    expect((await call("eth_getBalance", [demo, "latest"])).seen).toBeDefined();
+    expect((await call("eth_call", [balanceOf(demo), "latest"])).seen).toBeDefined();
+    expect((await call("eth_getBalance", ["0x2077e1b9f57955d36dea89effd395ce43b64033d", "latest"])).error.code).toBe(-32602);
+    expect((await call("eth_call", [balanceOf("0x2077e1b9f57955d36dea89effd395ce43b64033d"), "latest"])).error.code).toBe(-32602);
+    expect((await call("eth_call", [{ to: "0x2077e1b9f57955d36dea89effd395ce43b64033d", data: "0x" }, "latest"])).error.code).toBe(-32602);
   });
 
   test("is off unless enabled", async () => {
