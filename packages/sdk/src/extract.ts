@@ -16,6 +16,20 @@ export const SEPOLIA_USDC: Erc20Slot = {
   mask: (1n << 255n) - 1n,
 };
 
+/** WETH9: balanceOf mapping at slot 3 (checked against balanceOf on Sepolia). */
+export const SEPOLIA_WETH: Erc20Slot = { token: "0xfff9976782d46cc05630d1f6ebab18b2324d6b14", mappingSlot: 3n };
+
+export interface TokenInfo extends Erc20Slot {
+  symbol: string;
+  decimals: number;
+}
+
+/** Tokens whose balances the app can read straight from verified BALs (slot layout known). */
+export const SEPOLIA_TOKENS: TokenInfo[] = [
+  { ...SEPOLIA_USDC, symbol: "USDC", decimals: 6 },
+  { ...SEPOLIA_WETH, symbol: "WETH", decimals: 18 },
+];
+
 export function balanceSlot(holder: Address, mappingSlot: bigint): bigint {
   return BigInt(
     keccak256(encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [holder, mappingSlot])),
