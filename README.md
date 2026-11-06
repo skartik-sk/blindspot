@@ -10,6 +10,11 @@ request goes through [Anon-RPC](https://github.com/ethereum/anon-rpc) (Sphinx mi
 
 Track: Ethereum Foundation, Best Use of Anon-RPC (ETHGlobal Mumbai 2026).
 
+## Live
+
+- App: https://bina.13-53-45-89.sslip.io (landing at `/`, app at `/#/portfolio`)
+- Relay: https://bina-relay.13-53-45-89.sslip.io/health
+
 ## What it does
 
 | Screen | What you get | What the provider learns |
@@ -43,7 +48,9 @@ Without `VITE_RELAY_URL` the app reads blocks straight from publicnode through t
 PIR lookup falls back to a one-off mixnet read). Relay env: `UPSTREAM_RPC`, `PORT`, `POLL_MS`, `SPY_TOKEN`,
 `ENABLE_NAIVE=1`, `RATE_LIMIT`, `TRUST_PROXY=1`, `PIR_SEED` (comma-separated addresses), `PIR_MAX`.
 
-Deploy the relay with the root `Dockerfile` (Railway, fly.io). Mixnet exits only reach `https://` hosts on 443,
+Deployed on a small VM: the relay runs as a systemd service (`bina-relay`, bound to 127.0.0.1, MemoryMax 400M)
+behind Caddy, which serves the static web build and HTTPS (sslip.io hostnames, no DNS setup). The root
+`Dockerfile` works for Railway/fly.io too. Mixnet exits only reach `https://` hosts on 443,
 so a deployed relay needs a public https URL.
 
 ## Using the SDK
