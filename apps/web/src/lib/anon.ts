@@ -79,8 +79,29 @@ function bootstrapProvider(urls: string[]) {
   };
 }
 
+/**
+ * Safety net for the traffic share: any request this page sends directly that wasn't logged above (the worker
+ * downloading its network bundle, or anything unexpected) is counted as not-through-Anon-RPC. App assets from our
+ * own origin, and hosts already logged (bootstrap providers, the relay's opt-in demo lane, localhost), are skipped.
+ */
+let watching = false;
+function countUnloggedDirectRequests() {
+  if (watching || typeof PerformanceObserver === "undefined") return;
+  watching = true;
+  const host = (u: string) => { try { return new URL(u).host; } catch { return ""; } };
+  const logged = new Set([location.host, ...config.bootstrap.mainnet.map(host), ...config.bootstrap.sepolia.map(host),
+    ...(config.relayUrl ? [host(config.relayUrl)] : [])]);
+  new PerformanceObserver((list) => {
+    for (const e of list.getEntries()) {
+      if (!/^https?:/.test(e.name) || logged.has(host(e.name)) || isLocal(e.name)) continue;
+      logRequest(e.name, { method: "GET" }, "bootstrap");
+    }
+  }).observe({ type: "resource", buffered: true });
+}
+
 export function getWorker(name: NetworkName = config.network) {
   if (worker) return worker;
+  countUnloggedDirectRequests();
   const n = NETWORKS[name];
   worker = new AnonRpcWorker({
     address: n.address,

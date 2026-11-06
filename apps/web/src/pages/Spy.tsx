@@ -181,7 +181,7 @@ export default function Spy() {
                 {e.detail && <span className="p"><Highlight text={e.detail} addrs={all} /></span>}
                 <span className="from">
                   {e.route === "mixnet" ? `from a mixnet exit · route ${e.key}`
-                    : e.route === "bootstrap" ? "direct: the worker reading the public network contract"
+                    : e.route === "bootstrap" ? "direct: Anon-RPC bootstrap (public network contract or code, no address)"
                     : "direct to a relay on this machine"}
                 </span>
               </li>

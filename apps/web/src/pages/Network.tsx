@@ -51,8 +51,8 @@ export default function Network() {
             <span className="spy-score up">{share.total ? `${share.pct.toFixed(1)}%` : "–"}</span>
             <br />
             <span className="small muted">
-              {share.mixnet} of {share.total} requests since this page loaded went through {network().short}. Not through it: {share.bootstrap} bootstrap reads of the
-              public network contract{share.direct ? `, ${share.direct} to a relay on this machine` : ""}.
+              {share.mixnet} of {share.total} requests since this page loaded went through {network().short}. Not through it: {share.bootstrap} Anon-RPC bootstrap
+              requests (the public network contract and code, no address){share.direct ? `, ${share.direct} to a relay on this machine` : ""}.
               {share.demo ? ` Not counted: ${share.demo} requests from the Spy panel's normal-wallet demo, sent directly on purpose.` : ""}
             </span>
           </dd>
