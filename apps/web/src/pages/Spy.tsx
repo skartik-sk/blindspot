@@ -1,5 +1,8 @@
 // Side by side: what a typical wallet's provider learns from the same screens, and what ours actually received.
-import { useMemo, useSyncExternalStore } from "react";
+import { newIsolationKey } from "@bina/sdk";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { anonFetch } from "../lib/anon";
+import { config } from "../lib/config";
 import type { Address } from "viem";
 import { short } from "../lib/format";
 import { reqlog } from "../lib/reqlog";
@@ -24,6 +27,26 @@ function typicalRequests(wallets: Wallet[], block: string) {
   return out;
 }
 
+interface RelayEntry { t: number; method: string; params: unknown[] }
+
+/** Our relay's own record of what it received (public GET /log, block numbers only). Polled while this page is open. */
+function useRelayLog() {
+  const [log, setLog] = useState<{ entries: RelayEntry[]; error?: string }>({ entries: [] });
+  useEffect(() => {
+    if (!config.relayUrl) return;
+    let live = true;
+    const load = () =>
+      anonFetch(`${config.relayUrl}/log`, { method: "GET", anonOptions: { isolationKey: newIsolationKey() } })
+        .then((r) => r.json())
+        .then((j) => live && setLog({ entries: (j.entries as RelayEntry[]).slice(-40).reverse() }))
+        .catch((e) => live && setLog((l) => ({ ...l, error: (e as Error).message })));
+    load();
+    const id = setInterval(load, 15_000);
+    return () => ((live = false), clearInterval(id));
+  }, []);
+  return log;
+}
+
 function Highlight({ text, addrs }: { text: string; addrs: string[] }) {
   const re = useMemo(() => (addrs.length ? new RegExp(`(${addrs.join("|")})`, "gi") : undefined), [addrs]);
   if (!re) return <>{text}</>;
@@ -40,6 +63,7 @@ export default function Spy() {
   const ours = [...entries].reverse().slice(0, 80);
   // Addresses that actually appeared in our requests (one-off mixnet lookups, sends): shown, not hidden.
   const oursLeaked = useMemo(() => new Set(entries.flatMap((e) => all.filter((a) => e.detail.toLowerCase().includes(a)))), [entries, all]);
+  const relay = useRelayLog();
   const feedReqs = entries.filter((e) => !all.some((a) => e.detail.toLowerCase().includes(a))).length;
 
   return (
@@ -102,6 +126,27 @@ export default function Spy() {
           )}
         </section>
       </div>
+
+      {config.relayUrl && (
+        <section className="panel spy-col">
+          <header>
+            <span className="small muted">Our relay's own log, server side</span>
+            <span className="small">
+              What {new URL(config.relayUrl).host} recorded from every client: block numbers and nothing else. It saw mixnet exits, never your IP.
+            </span>
+          </header>
+          <ul className="log" aria-label="Relay log">
+            {relay.entries.map((e, i) => (
+              <li key={`${e.t}-${i}`}>
+                <span className="m">{e.method}</span>
+                <span className="p">{JSON.stringify(e.params)}</span>
+                <span className="from">{new Date(e.t).toLocaleTimeString()}</span>
+              </li>
+            ))}
+            {relay.entries.length === 0 && <li className="p">{relay.error ? `Couldn't load the relay log: ${relay.error}` : "Loading the relay's log…"}</li>}
+          </ul>
+        </section>
+      )}
     </>
   );
 }
