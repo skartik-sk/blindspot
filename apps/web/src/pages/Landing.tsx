@@ -22,7 +22,7 @@ const go = (id: string) => (e: React.MouseEvent) => (e.preventDefault(), documen
 const fmtBlock = (h?: string) => (h ? Number(h).toLocaleString("en-US") : "…");
 
 const FAQ = [
-  ["How is this different from a private RPC or wallet?", "They hide who you are, but still ask a server about the addresses you care about. Bina Pooche never asks: everyone downloads the same verified blocks, and your phone filters them."],
+  ["How is this different from a private RPC or wallet?", "They hide who you are, but still ask a server about the addresses you care about. Blindspot never asks: everyone downloads the same verified blocks, and your phone filters them."],
   ["What does the RPC provider see?", "Block numbers, from a mixnet exit. No address, no IP. The Spy panel shows every request exactly as the server received it."],
   ["Can the relay lie to me?", "Not without getting caught. Every block is hash-checked against its header and confirmed by a second, independent provider."],
   ["How does the private lookup work?", "PIR: the server computes over its whole table, encrypted, and can't tell which row you read. It covers about 1,000 active addresses."],
@@ -40,6 +40,7 @@ const LIMITS = [
 
 
 const HEADLINES = [
+  "Watch from their blind spot.",
   "Follow the whales. Leave no trace.",
   "Watch the whales. Nobody watches you.",
   "See every trade. Reveal none of yours.",
@@ -91,7 +92,7 @@ function Nav() {
   return (
     <header className="S-nav" data-scrolled={scrolled}>
       <div className="S-wrap S-nav-in">
-        <a className="S-brand" href="#/"><span className="S-mark" aria-hidden />Bina Pooche</a>
+        <a className="S-brand" href="#/"><span className="S-mark" aria-hidden />Blindspot</a>
         <nav className="S-links" aria-label="Sections">
           <a href="#leak" onClick={go("leak")}>The leak</a>
           <a href="#features" onClick={go("features")}>Features</a>
@@ -457,8 +458,8 @@ export default function Landing() {
       <footer className="S-foot">
         <div className="S-wrap S-foot-grid">
           <div className="S-foot-brand">
-            <a className="S-brand" href="#/"><span className="S-mark" aria-hidden />Bina Pooche</a>
-            <p>बिना पूछे, Hindi for “without asking”. A private trading companion.</p>
+            <a className="S-brand" href="#/"><span className="S-mark" aria-hidden />Blindspot</a>
+            <p>Watch from their blind spot. A private trading companion on Anon-RPC.</p>
           </div>
           <nav aria-label="App">
             <b>App</b>
@@ -475,7 +476,7 @@ export default function Landing() {
             srcSet={`${import.meta.env.BASE_URL}sealink-dusk-1200.jpg 1200w, ${import.meta.env.BASE_URL}sealink-dusk-2400.jpg 2400w`}
             sizes="100vw" loading="lazy" decoding="async" width={2400} height={1800}
             alt="The Bandra–Worli Sea Link and Worli's skyline under a pink dusk sky, Mumbai" />
-          <figcaption className="S-wrap"><span>© 2026 Bina Pooche · MIT</span><span>Every request through Anon-RPC</span></figcaption>
+          <figcaption className="S-wrap"><span>© 2026 Blindspot · MIT</span><span>Every request through Anon-RPC</span></figcaption>
         </figure>
       </footer>
     </div>

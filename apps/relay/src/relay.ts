@@ -3,7 +3,7 @@
 import {
   RpcClient, compactReceipts, verifyBal, verifyHeader, verifyReceipts,
   type BalJson, type CompactReceipt, type Header,
-} from "@bina/sdk";
+} from "@blindspot/sdk";
 
 export interface CachedBlock {
   number: bigint;

@@ -30,7 +30,7 @@ function Brand() {
   return (
     <a className="brand" href="#/">
       <span className="brand-mark" aria-hidden />
-      Bina Pooche
+      Blindspot
     </a>
   );
 }

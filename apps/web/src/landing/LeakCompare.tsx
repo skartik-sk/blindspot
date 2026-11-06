@@ -41,9 +41,9 @@ export default function LeakCompare() {
         </ul>
         <p className="S-leak-note">Built from the wallets on this page. Shown, never sent.</p>
       </section>
-      <section className="S-leak-col ours" aria-label="Bina Pooche">
+      <section className="S-leak-col ours" aria-label="Blindspot">
         <header>
-          <div><h3>Bina Pooche, live</h3><p>The requests this page actually sent</p></div>
+          <div><h3>Blindspot, live</h3><p>The requests this page actually sent</p></div>
           <div className="S-score good"><strong>{named}</strong><span>addresses exposed</span></div>
         </header>
         <ul className="S-log">

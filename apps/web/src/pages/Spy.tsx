@@ -1,7 +1,7 @@
 // Three providers, side by side, all real: a normal RPC (your IP + addresses), Anon-RPC used per address (addresses,
 // not your IP), and ours (block numbers only). The first two send the same demo requests to our relay's normal-wallet
 // lane, directly and through Anon-RPC; the relay answers with what it saw. The third is the relay's own log.
-import { newIsolationKey, SEPOLIA_USDC } from "@bina/sdk";
+import { newIsolationKey, SEPOLIA_USDC } from "@blindspot/sdk";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { markGuide } from "../components/GettingStarted";
 import { anonFetch, getWorker } from "../lib/anon";
@@ -182,7 +182,7 @@ export default function Spy() {
           {on ? <SeenList seen={anon.seen} label="Anon-RPC alone saw" waiting="Sending through the mixnet…" /> : <ul className="log"><li className="p">Run the comparison to send these through Anon-RPC.</li></ul>}
         </Column>
 
-        <Column tone="good" title="Bina Pooche" sub="Our relay's real log, every client" score="0" scoreLabel="addresses. Block numbers only, from mixnet exits."
+        <Column tone="good" title="Blindspot" sub="Our relay's real log, every client" score="0" scoreLabel="addresses. Block numbers only, from mixnet exits."
           note="Everyone downloads the same verified blocks; filtering happens on the phone.">
           <ul className="log" aria-label="Relay log">
             {relay.entries.slice(0, 12).map((e, i) => (

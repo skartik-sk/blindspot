@@ -6,7 +6,7 @@
 import {
   HISTORY_SLOTS, SEPOLIA_USDC, SEPOLIA_WETH, balanceSlot, packRecord, pirAnswer, pirLayout,
   type Balances, type BalJson, type PirQuery, type PirTable,
-} from "@bina/sdk";
+} from "@blindspot/sdk";
 import { isAddress, type Address, type Hex } from "viem";
 
 export type BalanceReader = (addrs: Address[]) => Promise<Map<Address, Balances>>;

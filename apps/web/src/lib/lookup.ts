@@ -2,7 +2,7 @@
 //   1. PIR against the relay's table: the relay computes over every row and never learns which one you read.
 //   2. Fallback for addresses not in the table: ask a public node through the mixnet on a fresh route.
 //      The node learns the address, but not who asked, and two such lookups can't be linked.
-import { PirClient, SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey, unpackRecord, type PirTable } from "@bina/sdk";
+import { PirClient, SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey, unpackRecord, type PirTable } from "@blindspot/sdk";
 import { encodeFunctionData, erc20Abi, type Address, type Hex } from "viem";
 import { anonFetch, anonRpc } from "./anon";
 import { config } from "./config";

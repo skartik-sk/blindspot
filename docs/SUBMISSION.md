@@ -1,4 +1,4 @@
-# ETHGlobal submission: Bina Pooche
+# ETHGlobal submission: Blindspot
 
 **Prize:** Ethereum Foundation, Best Use of Anon-RPC (only).
 
@@ -8,13 +8,13 @@ Watch whales and copy their trades without telling any RPC provider which wallet
 
 ## Description
 
-Anon-RPC hides who you are; Bina Pooche also hides what you watch. A normal wallet asks its provider about your
+Anon-RPC hides who you are; Blindspot also hides what you watch. A normal wallet asks its provider about your
 addresses every block, and even through Anon-RPC a wallet that queries per address still tells the node which
-wallets matter. Bina Pooche never asks about an address: every phone downloads the same verified Sepolia blocks by
+wallets matter. Blindspot never asks about an address: every phone downloads the same verified Sepolia blocks by
 number through Anon-RPC, proves them, and finds the trades of the wallets you watch on the device. You get whale and
 copy-trade alerts (pending in a few seconds, verified within a block), your portfolio, any wallet's balance and recent
 activity through private information retrieval, and on-device signed trades sent through the mixnet. A Spy panel shows,
-from real requests, what a normal RPC, Anon-RPC alone, and Bina Pooche each reveal.
+from real requests, what a normal RPC, Anon-RPC alone, and Blindspot each reveal.
 
 ## How it's made
 
@@ -56,8 +56,8 @@ from real requests, what a normal RPC, Anon-RPC alone, and Bina Pooche each reve
 
 ## Links
 
-- Live app: https://skartik-sk.github.io/bina-pooche/
-- Source: https://github.com/skartik-sk/bina-pooche (private until submission)
+- Live app: https://useblindspot.xyz/
+- Source: https://github.com/skartik-sk/blindspot (private until submission)
 - Demo video: VIDEO_LINK_HERE
 
 ## Pre-submission checklist

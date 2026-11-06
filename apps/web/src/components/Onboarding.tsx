@@ -70,7 +70,7 @@ function ProofVisual() {
 
 const SLIDES = [
   { title: "Your wallet talks too much.", body: "Every few seconds it tells its RPC provider your addresses, from your IP. That's your portfolio and your strategy, handed over.", vis: <LeakVisual /> },
-  { title: "Watch whales without being watched.", body: "Bina Pooche reads whole blocks through a mixnet and finds the trades you care about on this device. Nobody learns who you follow.", vis: <AlertsVisual /> },
+  { title: "Watch whales without being watched.", body: "Blindspot reads whole blocks through a mixnet and finds the trades you care about on this device. Nobody learns who you follow.", vis: <AlertsVisual /> },
   { title: "Every block is proven.", body: "Before anything reaches your screen, four checks confirm the data is exactly what the chain committed to.", vis: <ProofVisual /> },
 ];
 
@@ -167,7 +167,7 @@ export default function Onboarding({ onClose }: { onClose: () => void }) {
   const next = () => setI((x) => Math.min(x + 1, total - 1));
 
   return (
-    <div className="ob" role="dialog" aria-modal="true" aria-label="Welcome to Bina Pooche">
+    <div className="ob" role="dialog" aria-modal="true" aria-label="Welcome to Blindspot">
       <div className="ob-card">
         <div className="ob-top">
           <div className="ob-dots" aria-label={`Step ${i + 1} of ${total}`}>

@@ -8,7 +8,7 @@
 //   GET  /pending mempool snapshot (unverified), the same for every client; no parameters, cached ~1 s
 //   GET  /pir     PIR table: public address directory + layout (no balances)
 //   POST /pir     PIR query: encrypted selectors in, encrypted rows out; the index never leaves the client
-import { RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, compactPending, toHex, type PendingTx } from "@bina/sdk";
+import { RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, compactPending, toHex, type PendingTx } from "@blindspot/sdk";
 import type { Address } from "viem";
 import type { PirStore } from "./pirstore";
 import type { BlockCache, CachedBlock } from "./relay";

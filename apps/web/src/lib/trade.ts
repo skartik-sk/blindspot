@@ -2,7 +2,7 @@
 // IP is never attached to it. With a private builder configured (Flashbots Protect on mainnet) it also skips the
 // public mempool; Sepolia has no such builder today, so there it goes to the public mempool.
 // Disclosed: preparing a tx (nonce, gas) names your address to a read node, on a fresh one-off mixnet route.
-import { SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey } from "@bina/sdk";
+import { SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey } from "@blindspot/sdk";
 import {
   createPublicClient, encodeFunctionData, erc20Abi, http, parseAbi, type Address, type Hex,
 } from "viem";

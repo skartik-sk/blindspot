@@ -1,8 +1,8 @@
-// Bina Pooche service worker: makes the installed app open instantly and offline.
+// Blindspot service worker: makes the installed app open instantly and offline.
 // Only same-origin GETs are handled. Every other request (Anon-RPC, the relay, providers) passes through untouched.
 // Pages: network first (a new deploy always wins), cached copy when offline. Hashed assets/icons: cache first.
 const CACHE = "bp-shell-v1";
-const SCOPE = new URL(self.registration.scope).pathname; // e.g. /bina-pooche/
+const SCOPE = new URL(self.registration.scope).pathname; // e.g. /
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll([SCOPE, `${SCOPE}manifest.webmanifest`, `${SCOPE}icon-192.png`])).then(() => self.skipWaiting()));

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ETH_LOGGER } from "@bina/sdk";
+import { ETH_LOGGER } from "@blindspot/sdk";
 import { formatUnits, isAddress, parseUnits, type Address, type Hex } from "viem";
 import Icon from "../components/Icon";
 import { deviceAccount } from "../lib/device";

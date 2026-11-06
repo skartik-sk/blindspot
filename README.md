@@ -1,4 +1,7 @@
-# Bina Pooche (बिना पूछे)
+# Blindspot
+
+*Watch from their blind spot.* We started as **Bina Pooche** (बिना पूछे, Hindi for "without asking"): the app never
+asks a provider about an address. The name changed; the idea didn't.
 
 **Anon-RPC hides who you are. We also hide what you watch.**
 
@@ -7,7 +10,7 @@ without any RPC provider learning which wallets you care about.
 
 Anon-RPC alone hides your IP. But a wallet that sends `eth_getBalance(0xWhale…)` or `eth_getLogs(…0xWhale…)` through
 Anon-RPC still tells the node *which* addresses matter; it just doesn't know who asked. Repeat that every block and
-the node holds your watchlist, minus your name. Bina Pooche never asks about an address. Every phone downloads the
+the node holds your watchlist, minus your name. Blindspot never asks about an address. Every phone downloads the
 same verified blocks by number (through Anon-RPC's Nox network, the Sphinx mixnet, specifier
 `0x35133267A8F7EC35046a83DCA0f4Ca8A6e1b7A9A` on Sepolia) and filters them locally. Balance and history lookups use PIR.
 The Spy panel shows all three side by side, from real requests: a normal RPC, Anon-RPC alone, and us.
@@ -20,7 +23,7 @@ Private RPCs and private wallets hide *who you are*: your IP, sometimes your req
 server about the addresses you care about, so they can't privately **watch other wallets** or **look up an
 address's balance**: the question itself gives the address away.
 
-Bina Pooche never asks about an address:
+Blindspot never asks about an address:
 
 - **Watching** is local. Every user downloads the same verified blocks (header, access list, receipts) by block
   number through Anon-RPC, and the phone filters them for the wallets it watches. The server can't tell who
@@ -41,7 +44,7 @@ What this does **not** give you (we never claim "100% private"):
 
 ## Live
 
-- App: https://skartik-sk.github.io/bina-pooche/ (GitHub Pages; landing at `/`, app at `#/portfolio`)
+- App: https://useblindspot.xyz/ (GitHub Pages; landing at `/`, app at `#/portfolio`)
 - Relay: https://bina-relay.13-53-45-89.sslip.io/health
 
 ## What it does
@@ -102,7 +105,7 @@ polling can't rate-limit block fetches).
 
 Deployed on a small VM: the relay runs as a systemd service (`bina-relay`, bound to 127.0.0.1, MemoryMax 400M)
 behind Caddy for HTTPS (sslip.io hostname, no DNS setup). The web app is a static build on GitHub Pages
-(`bun run build -- --base /bina-pooche/`, pushed to the `gh-pages` branch), so our server never serves the page. The root
+(`bun run build -- --base /`, pushed to the `gh-pages` branch), so our server never serves the page. The root
 `Dockerfile` works for Railway/fly.io too. Mixnet exits only reach `https://` hosts on 443,
 so a deployed relay needs a public https URL.
 

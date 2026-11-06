@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icon";
 import { ago, fmtAmount, short } from "../lib/format";
-import { ETH_LOGGER } from "@bina/sdk";
+import { ETH_LOGGER } from "@blindspot/sdk";
 import { isKnown, useToken } from "../lib/tokens";
 import { TOKEN } from "../lib/trade";
 import { rescan } from "../lib/engine";

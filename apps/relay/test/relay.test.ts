@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { PirClient, RpcClient, SEPOLIA_USDC, balanceSlot, toHex, unpackBalances, unpackRecord, verifyReceipts, type BalJson, type CompactReceipt, type PirTable } from "@bina/sdk";
+import { PirClient, RpcClient, SEPOLIA_USDC, balanceSlot, toHex, unpackBalances, unpackRecord, verifyReceipts, type BalJson, type CompactReceipt, type PirTable } from "@blindspot/sdk";
 import type { Address } from "viem";
 import { PirStore, loadPirState, savePirState } from "../src/pirstore";
 import fx from "../../../packages/sdk/test/fixtures/block.json";

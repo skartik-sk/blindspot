@@ -1,6 +1,6 @@
 # Demo checklist (live, ~3 min)
 
-Site: https://skartik-sk.github.io/bina-pooche/ · Whale A: `0xC2D7d07c52F556b1837E5FD51989850Fa4f173E9`
+Site: https://useblindspot.xyz/ · Whale A: `0xC2D7d07c52F556b1837E5FD51989850Fa4f173E9`
 (Sepolia, ~0.0045 ETH = about 8 more 0.0005 ETH swaps; it is seeded, so it never leaves the lookup directory).
 
 ## 15 minutes before
@@ -14,7 +14,7 @@ Site: https://skartik-sk.github.io/bina-pooche/ · Whale A: `0xC2D7d07c52F556b18
 ## On stage
 | Step | Click | What appears | When |
 | --- | --- | --- | --- |
-| 1 | **Spy panel → Run the comparison** | Three columns fill: Normal RPC (addresses + your IP), Anon-RPC alone (addresses, mixnet IPs), Bina Pooche (block numbers only) | 5–20 s |
+| 1 | **Spy panel → Run the comparison** | Three columns fill: Normal RPC (addresses + your IP), Anon-RPC alone (addresses, mixnet IPs), Blindspot (block numbers only) | 5–20 s |
 | 2 | Say "go", the whale swaps (Claude runs it) | **Watch → Alerts**: "Whale A is swapping · Pending · unverified" | ~5–10 s after send |
 | 3 | Wait | The pending row is replaced by "Whale A swapped 0.0005 ETH → ~13 USDC · block N ✓" | ~20–40 s after send |
 | 4 | **Copy trade** → type `0.0005` → **Trade ETH for USDC** | Button says "Getting a price through the mixnet…", then enables; after sending: "Landed · Verified · block N" | quote 3–10 s, lands 15–40 s |

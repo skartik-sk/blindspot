@@ -1,7 +1,7 @@
 {
-  "name": "Bina Pooche",
+  "name": "Blindspot",
   "id": "./#/portfolio",
-  "short_name": "Bina Pooche",
+  "short_name": "Blindspot",
   "description": "Watch wallets, copy trades and check balances without telling any provider what you hold or follow. Every request goes through Anon-RPC.",
   "start_url": "./#/portfolio",
   "scope": "./",

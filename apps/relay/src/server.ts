@@ -1,4 +1,4 @@
-import { RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, type Balances } from "@bina/sdk";
+import { RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, type Balances } from "@blindspot/sdk";
 import { createPublicClient, erc20Abi, http, isAddress, type Address } from "viem";
 import { sepolia } from "viem/chains";
 import { MAX_PIR_BODY, createApp } from "./app";

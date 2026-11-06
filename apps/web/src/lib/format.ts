@@ -1,4 +1,4 @@
-import { ETH_LOGGER, SEPOLIA_TOKENS } from "@bina/sdk";
+import { ETH_LOGGER, SEPOLIA_TOKENS } from "@blindspot/sdk";
 import { formatUnits, type Address } from "viem";
 
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;

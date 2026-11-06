@@ -10,19 +10,19 @@
       },
     },
     "apps/relay": {
-      "name": "@bina/relay",
+      "name": "@blindspot/relay",
       "version": "0.1.0",
       "dependencies": {
-        "@bina/sdk": "workspace:*",
+        "@blindspot/sdk": "workspace:*",
         "viem": "^2.57.16",
       },
     },
     "apps/web": {
-      "name": "@bina/web",
+      "name": "@blindspot/web",
       "version": "0.0.0",
       "dependencies": {
         "@anon-rpc/browser-harness": "0.4.0",
-        "@bina/sdk": "workspace:*",
+        "@blindspot/sdk": "workspace:*",
         "@fontsource-variable/archivo": "^5.3.0",
         "@fontsource-variable/public-sans": "^5.3.0",
         "@fontsource-variable/schibsted-grotesk": "^5.3.0",
@@ -43,7 +43,7 @@
       },
     },
     "packages/sdk": {
-      "name": "@bina/sdk",
+      "name": "@blindspot/sdk",
       "version": "0.1.0",
       "dependencies": {
         "paillier-bigint": "^3.4.3",
@@ -58,11 +58,11 @@
 
     "@anon-rpc/harness-core": ["@anon-rpc/harness-core@0.4.0", "", { "dependencies": { "@noble/hashes": "^1.5.0" } }, "sha512-ZFVeE0tkUgXPw1qu99s8JPKD4jFatHZ+nELisZ4WF+YMpCrBFIvpJe0qdCoLcmbhH1brbsC35qe8F1G3HxIbgA=="],
 
-    "@bina/relay": ["@bina/relay@workspace:apps/relay"],
+    "@blindspot/relay": ["@blindspot/relay@workspace:apps/relay"],
 
-    "@bina/sdk": ["@bina/sdk@workspace:packages/sdk"],
+    "@blindspot/sdk": ["@blindspot/sdk@workspace:packages/sdk"],
 
-    "@bina/web": ["@bina/web@workspace:apps/web"],
+    "@blindspot/web": ["@blindspot/web@workspace:apps/web"],
 
     "@fontsource-variable/archivo": ["@fontsource-variable/archivo@5.3.0", "", {}, "sha512-HogK8FJelrD1o7TlZlkIVtHgc20bO5PZRWE7mUeUTdMN055alznQV6/00J00IBeu8FQAH4s3zW9UJNvKExXf+g=="],
 

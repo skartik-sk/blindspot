@@ -1,6 +1,6 @@
 // The live loop: follow the chain through Anon-RPC, verify every block, filter it here on the device.
 // Requests name block numbers only. Which wallets you hold or watch never leaves this tab.
-import { ETH_LOGGER, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scanBlock, type Activity, type PendingTx, type VerifiedBlock } from "@bina/sdk";
+import { ETH_LOGGER, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scanBlock, type Activity, type PendingTx, type VerifiedBlock } from "@blindspot/sdk";
 import type { Address } from "viem";
 import { anonFetch, anonRpc } from "./anon";
 import { config } from "./config";

@@ -2,7 +2,7 @@
 // A lookup names a token contract, never a wallet. Known tokens never hit the network.
 // The engine resolves every token that trades in every block (resolveAll), so which tokens get looked up
 // doesn't depend on which wallets you watch. Symbols of unknown tokens are untrusted: anyone can deploy "USDC".
-import { ETH_LOGGER, SEPOLIA_TOKENS, newIsolationKey } from "@bina/sdk";
+import { ETH_LOGGER, SEPOLIA_TOKENS, newIsolationKey } from "@blindspot/sdk";
 import { useEffect, useState } from "react";
 import { decodeFunctionResult, encodeFunctionData, erc20Abi, type Address, type Hex } from "viem";
 import { anonRpc } from "./anon";

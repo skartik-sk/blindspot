@@ -1,5 +1,5 @@
 {
-  "name": "@bina/relay",
+  "name": "@blindspot/relay",
   "version": "0.1.0",
   "type": "module",
   "private": true,
@@ -8,7 +8,7 @@
     "dev": "bun --watch src/server.ts"
   },
   "dependencies": {
-    "@bina/sdk": "workspace:*",
+    "@blindspot/sdk": "workspace:*",
     "viem": "^2.57.16"
   }
 }

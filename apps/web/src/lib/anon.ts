@@ -1,6 +1,6 @@
 // One long-lived Anon-RPC worker for the whole app. Every network call in the app goes through `anonFetch`.
 import { AnonRpcWorker } from "@anon-rpc/browser-harness";
-import { RpcClient, type AnonFetch } from "@bina/sdk";
+import { RpcClient, type AnonFetch } from "@blindspot/sdk";
 import { NETWORK_KEY, config, isLocal, type NetworkName } from "./config";
 import { FALLBACK_TO, initialBoot, onFailure, onSuccess, type BootState } from "./fallback";
 import { logRequest } from "./reqlog";

@@ -1,5 +1,5 @@
 {
-  "name": "@bina/web",
+  "name": "@blindspot/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@anon-rpc/browser-harness": "0.4.0",
-    "@bina/sdk": "workspace:*",
+    "@blindspot/sdk": "workspace:*",
     "@fontsource-variable/archivo": "^5.3.0",
     "@fontsource-variable/public-sans": "^5.3.0",
     "@fontsource-variable/schibsted-grotesk": "^5.3.0",

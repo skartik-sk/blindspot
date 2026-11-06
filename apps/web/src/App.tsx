@@ -20,13 +20,13 @@ getState().wallets
   .forEach((w, i) => setTimeout(() => loadBalance(w.address).catch(() => {}), 1500 + i * 2500));
 
 const TITLES: Record<string, string> = {
-  "#/": "Bina Pooche: watch any wallet, ask nobody",
-  "#/portfolio": "Portfolio · Bina Pooche",
-  "#/watch": "Watch · Bina Pooche",
-  "#/lookup": "Private lookup · Bina Pooche",
-  "#/send": "Trade · Bina Pooche",
-  "#/spy": "Spy panel · Bina Pooche",
-  "#/network": "Network · Bina Pooche",
+  "#/": "Blindspot: watch from their blind spot",
+  "#/portfolio": "Portfolio · Blindspot",
+  "#/watch": "Watch · Blindspot",
+  "#/lookup": "Private lookup · Blindspot",
+  "#/send": "Trade · Blindspot",
+  "#/spy": "Spy panel · Blindspot",
+  "#/network": "Network · Blindspot",
 };
 
 function parse(hash: string) {
