@@ -126,7 +126,7 @@ export default function Spy() {
             <span className="small">
               {real
                 ? "demo addresses handed over, plus your IP on every request. These are real requests and the relay's real record of them."
-                : "addresses handed over, plus your IP on every request. Your provider now knows your portfolio and who you copy."}
+                : `${all.length === 1 ? "address" : "addresses"} handed over, plus your IP on every request. Your provider now knows your portfolio and who you copy.`}
             </span>
           </header>
           {config.relayUrl && (
@@ -171,7 +171,7 @@ export default function Spy() {
             <span className="small muted">This app, live</span>
             <span className={`spy-score ${oursLeaked.size ? "" : "up"}`}>{oursLeaked.size}</span>
             <span className="small">
-              addresses in {entries.length} requests. {feedReqs} of them name only a block number, and none carry your IP.
+              {oursLeaked.size === 1 ? "address" : "addresses"} in {entries.length} requests. {feedReqs} of them name only a block number, and none carry your IP.
             </span>
           </header>
           <ul className="log" aria-label="This app's requests">

@@ -124,7 +124,8 @@ relay's own server-side log (`GET /log`) next to it.
 counting the worker's bootstrap reads and any direct relay calls in the denominator. Measured against the
 deployed site: **97.3%** (109 of 112, Nov 6). The 3 direct requests were Anon-RPC's own bootstrap at startup
 (2 reads of the public network contract, 1 download of the network's code bundle, addressed by hash), so the
-share rises the longer the app runs. A resource observer counts any direct request the app didn't log itself.
+share rises the longer the app runs: a longer live session measured **99.7%** (876 of 879). A resource
+observer counts any direct request the app didn't log itself.
 
 **IP check (Nov 6):** with the relay's spy stream open, one deliberate direct call marked our IP's salted tag;
 the app then made 84 relay requests, **0 from our IP**, spread over 3 mixnet exits. A browser network capture
