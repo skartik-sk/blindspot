@@ -2,16 +2,90 @@
   "name": "Bina Pooche",
   "id": "./#/portfolio",
   "short_name": "Bina Pooche",
-  "description": "Watch wallets, copy trades and check balances without telling any provider what you hold or follow.",
+  "description": "Watch wallets, copy trades and check balances without telling any provider what you hold or follow. Every request goes through Anon-RPC.",
   "start_url": "./#/portfolio",
   "scope": "./",
   "display": "standalone",
   "background_color": "#fbfafc",
   "theme_color": "#fbfafc",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    {
+      "src": "favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "finance",
+    "utilities",
+    "productivity"
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "shortcuts": [
+    {
+      "name": "Watch",
+      "short_name": "Watch",
+      "description": "Alerts from wallets you follow",
+      "url": "./#/watch",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Private lookup",
+      "short_name": "Lookup",
+      "description": "Any wallet's balance and history, privately",
+      "url": "./#/lookup",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Trade",
+      "short_name": "Trade",
+      "description": "Swap or send, signed on this device",
+      "url": "./#/send",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://skartik-sk.github.io/bina-pooche/sitemap.xml

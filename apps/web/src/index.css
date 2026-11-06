@@ -534,3 +534,4 @@ html, body { overflow-x: clip; }
 .fallback-banner { display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; font-size: 14px; color: var(--ink);
   background: color-mix(in srgb, var(--signal) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--signal) 35%, transparent); }
 .fallback-banner span { color: var(--ink-2); }
+.install-cta { justify-self: stretch; width: 100%; }

@@ -5,6 +5,7 @@ import { fmtAmount, short } from "../lib/format";
 import { rescan } from "../lib/engine";
 import { privateBalance } from "../lib/lookup";
 import GettingStarted from "../components/GettingStarted";
+import InstallButton from "../components/InstallButton";
 import { addWallet, removeWallet, setBalance, useStore, type Bal, type Wallet } from "../lib/store";
 
 export function Source({ b }: { b?: Bal }) {
@@ -169,6 +170,7 @@ export default function Portfolio() {
         <a href="#/spy"><span className="q-ic"><Icon name="spy" /></span>Spy</a>
       </nav>
 
+      <InstallButton className="btn install-cta" />
       <GettingStarted />
 
       <LiveStrip />

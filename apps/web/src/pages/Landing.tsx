@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import FallbackBanner from "../components/FallbackBanner";
 import Icon from "../components/Icon";
+import InstallButton from "../components/InstallButton";
 import LeakCompare from "../landing/LeakCompare";
 import Reveal from "../landing/Reveal";
 import "../landing/site.css";
@@ -97,7 +98,10 @@ function Nav() {
           <a href="#how" onClick={go("how")}>How it works</a>
           <a href="#faq" onClick={go("faq")}>FAQ</a>
         </nav>
-        <a className="S-btn dark sm" href="#/portfolio">Launch app</a>
+        <span className="S-nav-end">
+          <InstallButton className="S-btn sm S-install" />
+          <a className="S-btn dark sm" href="#/portfolio">Launch app</a>
+        </span>
       </div>
     </header>
   );

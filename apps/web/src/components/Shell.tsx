@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { network } from "../lib/anon";
 import { friendly } from "../lib/errors";
 import FallbackBanner from "./FallbackBanner";
+import InstallButton from "./InstallButton";
 import { useStore } from "../lib/store";
 import Icon from "./Icon";
 import Tape from "./Tape";
@@ -56,6 +57,7 @@ export default function Shell({ route, children }: { route: string; children: Re
         </nav>
         <div className="grow" />
         <Status />
+        <InstallButton className="btn small" />
         <p className="small faint">Every read goes through the {network().short} mixnet. Nothing you hold or watch leaves this device.</p>
       </aside>
 

@@ -55,7 +55,11 @@ What this does **not** give you (we never claim "100% private"):
 | Spy panel | Three columns from real requests: normal RPC (your IP + addresses), Anon-RPC alone (addresses), ours (block numbers) | — |
 | Network | Traffic share: % of requests sent through Anon-RPC, live | — |
 
-It's a PWA: one codebase for phone and desktop, installable from the browser. The landing page's headline rotates through six lines every 4 s
+It's a PWA: one codebase for phone and desktop. It installs like an app ("Install app" where the browser offers it;
+Share -> Add to Home Screen on iOS), with home-screen shortcuts to Watch, Lookup and Trade. A small service worker
+caches only the app's own files, so the installed app opens instantly and offline; every other request (Anon-RPC,
+the relay, providers) passes straight through it. SEO: per-page titles, description, canonical URL, Open Graph and
+Twitter cards, PNG favicons, JSON-LD, `robots.txt` and `sitemap.xml`. The landing page's headline rotates through six lines every 4 s
 (one fixed-size box, so nothing below moves); with reduced motion on, it shows the first line only. "How it works"
 lights its three steps in turn (live block request, a packet crossing three mixnet hops, four checks ticking), the
 FAQ is a one-at-a-time accordion, and the footer is a photo of the Bandra–Worli Sea Link at dusk whose sky fades into

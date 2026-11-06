@@ -19,6 +19,16 @@ getState().wallets
   .filter((w) => w.kind !== "watch" && !getState().balances[w.address])
   .forEach((w, i) => setTimeout(() => loadBalance(w.address).catch(() => {}), 1500 + i * 2500));
 
+const TITLES: Record<string, string> = {
+  "#/": "Bina Pooche: watch any wallet, ask nobody",
+  "#/portfolio": "Portfolio · Bina Pooche",
+  "#/watch": "Watch · Bina Pooche",
+  "#/lookup": "Private lookup · Bina Pooche",
+  "#/send": "Trade · Bina Pooche",
+  "#/spy": "Spy panel · Bina Pooche",
+  "#/network": "Network · Bina Pooche",
+};
+
 function parse(hash: string) {
   const [path, q = ""] = hash.split("?");
   return { path: path || "#/", query: new URLSearchParams(q) };
@@ -33,6 +43,7 @@ export default function App() {
     return () => removeEventListener("hashchange", on);
   }, []);
   const { path, query } = parse(hash);
+  useEffect(() => { document.title = TITLES[path] ?? TITLES["#/portfolio"]; }, [path]);
   if (path === "#/") return <Landing />;
   const page =
     path === "#/portfolio" ? <Portfolio /> :

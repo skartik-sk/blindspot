@@ -2,28 +2,48 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="A private trading companion: every read goes through Anon-RPC." />
+    <title>Bina Pooche: watch any wallet, ask nobody</title>
+    <meta name="description" content="Private copy-trade alerts, portfolio and wallet lookups. Bina Pooche downloads verified Ethereum blocks through Anon-RPC and filters them on your device, so no RPC provider learns which wallets you watch." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://skartik-sk.github.io/bina-pooche/" />
+    <meta name="color-scheme" content="light" />
     <meta name="theme-color" content="#fbfafc" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Bina Pooche" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <title>Bina Pooche: watch any wallet, ask nobody</title>
+    <meta name="application-name" content="Bina Pooche" />
+
     <!-- Share preview. Absolute URLs: update if the site moves (custom domain). -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bina Pooche" />
+    <meta property="og:locale" content="en_IN" />
     <meta property="og:title" content="Bina Pooche: watch any wallet, ask nobody" />
     <meta property="og:description" content="Copy-trade alerts and balances, without telling any RPC provider who you watch. Every request through Anon-RPC." />
     <meta property="og:url" content="https://skartik-sk.github.io/bina-pooche/" />
     <meta property="og:image" content="https://skartik-sk.github.io/bina-pooche/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Bina Pooche: Follow the whales. Leave no trace." />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bina Pooche: watch any wallet, ask nobody" />
+    <meta name="twitter:description" content="Copy-trade alerts and balances, without telling any RPC provider who you watch." />
+    <meta name="twitter:image" content="https://skartik-sk.github.io/bina-pooche/og.png" />
+
+    <script type="application/ld+json">
+      {"@context": "https://schema.org", "@type": "WebApplication", "name": "Bina Pooche", "alternateName": "\u092c\u093f\u0928\u093e \u092a\u0942\u091b\u0947", "url": "https://skartik-sk.github.io/bina-pooche/", "description": "A private trading companion: watch wallets, copy trades and look up balances without telling any RPC provider which wallets you care about. Every request goes through Anon-RPC.", "applicationCategory": "FinanceApplication", "operatingSystem": "Web, iOS, Android", "isAccessibleForFree": true, "license": "https://opensource.org/licenses/MIT", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>Bina Pooche needs JavaScript: it verifies every block and filters it on your device.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
