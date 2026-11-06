@@ -16,10 +16,10 @@ const ease = [0.22, 1, 0.36, 1] as const;
 const scrollTo = (id: string) => (e: React.MouseEvent) => (e.preventDefault(), document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }));
 
 const PROOF = [
-  { t: "The header is real", d: "Its fields hash to the block hash, and a second, independent provider confirms that hash.", c: <>keccak(rlp(header)) <em>== hash ✓</em></> },
-  { t: "No balance change is missing", d: "The block's access list hashes to the value the header commits to (EIP-7928).", c: <>keccak(rlp(bal)) <em>== balHash ✓</em></> },
-  { t: "No trade is hidden or invented", d: "Every receipt goes back into a trie that has to rebuild the header's receipts root.", c: <>trie(receipts) <em>== receiptsRoot ✓</em></> },
-  { t: "It's one chain", d: "Each block links to the one before it. Only then does your phone filter it, locally.", c: <>parentHash <em>== prev.hash ✓</em></> },
+  { t: "The header is real", d: "Its fields hash to the block hash, and a second, independent provider confirms that hash.", c: <>keccak(rlp(header)) <em>== hash&nbsp;✓</em></> },
+  { t: "No balance change is missing", d: "The block's access list hashes to the value the header commits to (EIP-7928).", c: <>keccak(rlp(bal)) <em>== balHash&nbsp;✓</em></> },
+  { t: "No trade is hidden or invented", d: "Every receipt goes back into a trie that has to rebuild the header's receipts root.", c: <>trie(receipts) <em>== receiptsRoot&nbsp;✓</em></> },
+  { t: "It's one chain", d: "Each block links to the one before it. Only then does your phone filter it, locally.", c: <>parentHash <em>== prev.hash&nbsp;✓</em></> },
 ];
 
 const FAQ = [
@@ -62,6 +62,7 @@ function Hero() {
   return (
     <section className="L-hero">
       <span className="L-aura" aria-hidden />
+      <span className="L-streaks" aria-hidden><i /><i /><i /><i /><i /></span>
       <motion.a className="L-live" href="#/network" {...fade(0, 10)}>
         <span className="L-dot" aria-hidden />
         {status.phase === "live" ? <>Live on Sepolia · block <b>{Number(status.head).toLocaleString("en-US")}</b></> : "Connecting through the Anon-RPC mixnet"}
