@@ -48,7 +48,9 @@ const app = createApp({
 });
 // idleTimeout 0: keep SSE streams open. maxRequestBodySize: hard cap before the body is buffered.
 const server = Bun.serve({
-  port: PORT, idleTimeout: 0, maxRequestBodySize: MAX_PIR_BODY, fetch: (req, srv) => app(req, srv),
+  port: PORT,
+  // Behind a reverse proxy, bind to 127.0.0.1 (HOST) so the relay isn't reachable around the proxy.
+  hostname: process.env.HOST ?? "0.0.0.0", idleTimeout: 0, maxRequestBodySize: MAX_PIR_BODY, fetch: (req, srv) => app(req, srv),
 });
 
 async function loop() {
