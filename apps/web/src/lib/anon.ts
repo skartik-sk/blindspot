@@ -1,7 +1,8 @@
 // One long-lived Anon-RPC worker for the whole app. Every network call in the app goes through `anonFetch`.
 import { AnonRpcWorker } from "@anon-rpc/browser-harness";
 import type { AnonFetch } from "@bina/sdk";
-import { config, type NetworkName } from "./config";
+import { config, isLocal, type NetworkName } from "./config";
+import { logRequest } from "./reqlog";
 
 interface Network {
   label: string;
@@ -69,8 +70,19 @@ export function getWorker(name: NetworkName = config.network) {
 
 export const network = () => NETWORKS[config.network];
 
-/** The app's only network path. */
-export const anonFetch: AnonFetch = (url, init) => getWorker().fetch(url, init);
+/**
+ * The app's only network path. Every request is recorded for the Spy Panel exactly as the server receives it.
+ * A relay on localhost is the one disclosed exception: exits can't reach it, so it's fetched directly.
+ */
+export const anonFetch: AnonFetch = (url, init) => {
+  const direct = isLocal(url);
+  logRequest(url, init, direct ? "direct" : "mixnet");
+  if (direct) {
+    const { anonOptions: _, ...rest } = init;
+    return fetch(url, rest);
+  }
+  return getWorker().fetch(url, init);
+};
 
 export function resetWorker() {
   worker?.close();
