@@ -38,6 +38,42 @@ const LIMITS = [
 ];
 
 
+const HEADLINES = [
+  "Follow the whales. Leave no trace.",
+  "Watch the whales. Nobody watches you.",
+  "See every trade. Reveal none of yours.",
+  "Your watchlist is your edge. Keep it yours.",
+  "Copy the smart money, quietly.",
+  "They see block numbers. You see everything.",
+];
+
+/** One headline at a time, every 4 s, fading. Reduced motion: the first line, still. */
+function RotatingHeadline() {
+  const reduce = useReducedMotion();
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setI((x) => (x + 1) % HEADLINES.length), 4000);
+    return () => clearInterval(t);
+  }, [reduce]);
+  const line = HEADLINES[reduce ? 0 : i];
+  const parts = line.split(/(?<=\.) /); // two sentences -> two lines
+  return (
+    <h1 className="S-h1 S-rotate">
+      <span className="S-sr">{HEADLINES[0]}</span>
+      {/* Invisible copies of every line share the cell, so the box is always as tall as the tallest line. */}
+      {!reduce && HEADLINES.map((h) => <span key={h} className="S-rotate-line S-ghost" aria-hidden>{h.split(/(?<=\.) /).map((p, k) => <span key={k}>{p}</span>)}</span>)}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span key={line} aria-hidden className="S-rotate-line"
+          initial={{ opacity: 0, y: 10, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+          transition={{ duration: 0.45, ease }}>
+          {parts.map((p, k) => <span key={k}>{p}</span>)}
+        </motion.span>
+      </AnimatePresence>
+    </h1>
+  );
+}
+
 function useShare() {
   useSyncExternalStore(reqlog.subscribe, reqlog.get);
   return trafficShare();
@@ -130,7 +166,7 @@ function Hero() {
   return (
     <section className="S-hero">
       <div className="S-wrap S-hero-copy">
-        <motion.h1 className="S-h1" {...enter(0)}>Follow the whales.<br />Leave no trace.</motion.h1>
+        <motion.div {...enter(0)}><RotatingHeadline /></motion.div>
         <motion.p className="S-lead" {...enter(0.08)}>Copy-trade alerts and balances, without telling any RPC provider who you watch.</motion.p>
         <motion.div className="S-ctas" {...enter(0.14)}>
           <a className="S-btn dark" href="#/portfolio">Launch the app <Icon name="arrow" /></a>

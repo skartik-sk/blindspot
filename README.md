@@ -55,7 +55,8 @@ What this does **not** give you (we never claim "100% private"):
 | Spy panel | Three columns from real requests: normal RPC (your IP + addresses), Anon-RPC alone (addresses), ours (block numbers) | — |
 | Network | Traffic share: % of requests sent through Anon-RPC, live | — |
 
-It's a PWA: one codebase for phone and desktop, installable from the browser.
+It's a PWA: one codebase for phone and desktop, installable from the browser. The landing page's headline rotates through six lines every 4 s
+(one fixed-size box, so nothing below moves); with reduced motion on, it shows the first line only.
 
 ## Layout
 
