@@ -3,7 +3,7 @@ import { ETH_LOGGER } from "@bina/sdk";
 import { formatUnits, isAddress, parseUnits, type Address, type Hex } from "viem";
 import Icon from "../components/Icon";
 import { deviceAccount } from "../lib/device";
-import { fmtAmount, short } from "../lib/format";
+import { decimalsOf, fmtAmount, short } from "../lib/format";
 import { setState, useStore } from "../lib/store";
 import { DECIMALS, TOKEN, execute, quote, swapPlan, transferPlan, type Asset, type Route } from "../lib/trade";
 import { Source, loadBalance } from "./Portfolio";
@@ -110,7 +110,11 @@ export default function Send({ query }: { query: URLSearchParams }) {
       {copy && (
         <section className="callout copy-callout">
           <strong>Copying {copy.title.replace(" swapped", "")}</strong>
-          <span className="muted">{copy.detail} in block {copy.block}. Pick your own size.</span>
+          <span className="muted">
+            {copy.sold && copy.bought
+              ? `${fmtAmount(copy.sold.value, decimalsOf(copy.sold.token))} ${assetOf(copy.sold.token) ?? "?"} → ${fmtAmount(copy.bought.value, decimalsOf(copy.bought.token))} ${assetOf(copy.bought.token) ?? "?"}`
+              : copy.detail} in block {copy.block}. Pick your own size.
+          </span>
         </section>
       )}
 
@@ -188,7 +192,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
         <div className="dock">
           {step && <span className="small dock-step" aria-live="polite">{step}</span>}
           <button className="btn primary dock-btn" disabled={!canSend} aria-busy={!!step}>
-            <Icon name="send" />{step ? "Working…" : mode === "Swap" ? `Trade ${asset} for ${toAsset}` : `Send ${asset} privately`}
+            <Icon name="send" />{step ? "Working…" : mode === "Swap" ? `Trade ${asset} for ${toAsset}` : route === "private" ? `Send ${asset} privately` : `Send ${asset}`}
           </button>
         </div>
       </form>
