@@ -27,15 +27,15 @@ function Leg({ leg }: { leg?: { token: `0x${string}`; value: bigint } }) {
 
 const tradable = new Set<string>([TOKEN.USDC, TOKEN.WETH, ETH_LOGGER]);
 
-function AlertRow({ a, fresh }: { a: Alert; fresh: boolean }) {
+function AlertRow({ a, fresh, own }: { a: Alert; fresh: boolean; own: boolean }) {
   const legs = a.sold && a.bought;
-  const canCopy = a.kind === "swap" && !!legs && tradable.has(a.sold!.token) && tradable.has(a.bought!.token);
+  const canCopy = !own && a.kind === "swap" && !!legs && tradable.has(a.sold!.token) && tradable.has(a.bought!.token);
   return (
     <li className="alert-row" data-new={fresh}>
       <span className="alert-icon" data-kind={a.kind}><Icon name={a.kind} /></span>
       <div style={{ minWidth: 0, display: "grid", gap: 2 }}>
         <span className="row-title"><span>{a.title}</span></span>
-        <span className="row-sub">{legs ? <><Leg leg={a.sold} /><span aria-label="for">→</span><Leg leg={a.bought} /></> : <span>{a.detail}</span>}</span>
+        <span className="row-sub">{legs ? <><Leg leg={a.sold} /><span aria-label="for">→</span><Leg leg={a.bought} /></> : <span>{a.detail.replace(short(ETH_LOGGER), "ETH")}</span>}</span>
       </div>
       <div className="row-end small">
         <span className="muted">{ago(a.t)}</span>
@@ -92,16 +92,16 @@ export default function Watch() {
         </header>
         {alerts.length === 0 ? (
           <div className="empty">
-            <span>{watch.length ? "No trades from your wallets yet. Alerts appear here within a block of the trade landing." : "Watch a wallet to get alerts when it trades."}</span>
+            <span>{watch.length ? "No trades yet from wallets you watch. Alerts appear here within a block of the trade landing." : "Watch a wallet to get alerts when it trades."}</span>
             {!watch.length && <button className="btn primary small" onClick={() => setTab("trending")}>Find active traders</button>}
           </div>
         ) : (
-          <ul className="rows">{alerts.slice(0, 30).map((a) => <AlertRow key={a.id} a={a} fresh={unreadIds.has(a.id)} />)}</ul>
+          <ul className="rows">{alerts.slice(0, 30).map((a) => <AlertRow key={a.id} a={a} fresh={unreadIds.has(a.id)} own={!watch.some((w) => w.address.toLowerCase() === a.address.toLowerCase())} />)}</ul>
         )}
       </section>}
 
       {tab === "watching" && <section className="panel flush" id="tab-watching" role="tabpanel">
-        <header><h2>Watching</h2><span className="small muted">{watch.length} wallets</span></header>
+        <header><h2>Watching</h2><span className="small muted">{watch.length} {watch.length === 1 ? "wallet" : "wallets"}</span></header>
         <ul className="rows">
           {watch.map((w) => (
             <li key={w.address}>

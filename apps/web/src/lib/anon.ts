@@ -6,6 +6,8 @@ import { logRequest } from "./reqlog";
 
 interface Network {
   label: string;
+  /** Short name for tight spots. */
+  short: string;
   /** Specifier contract address. */
   address: string;
   /** Chain the specifier contract lives on. */
@@ -18,6 +20,7 @@ interface Network {
 export const NETWORKS: Record<NetworkName, Network> = {
   tor: {
     label: "Tor",
+    short: "Tor",
     address: "0x700dA3193D35fA54Cd3fBf29B66f2a2A0385659e",
     chain: "mainnet",
     config: {
@@ -28,12 +31,14 @@ export const NETWORKS: Record<NetworkName, Network> = {
   },
   sphinx: {
     label: "Nox (Sphinx mixnet, Sepolia)",
+    short: "Nox",
     address: "0x35133267A8F7EC35046a83DCA0f4Ca8A6e1b7A9A",
     chain: "sepolia",
     anonymous: true,
   },
   passthrough: {
     label: "Passthrough (NOT anonymous, dev only)",
+    short: "Passthrough",
     address: "0x4fd77be300f31c5fe6ab266d35d27750a3478d27",
     chain: "mainnet",
     anonymous: false,

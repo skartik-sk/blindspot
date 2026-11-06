@@ -32,7 +32,7 @@ export default function Network() {
     return () => ac.abort();
   }, []);
 
-  const route = (u?: string) => (u && isLocal(u) ? "Direct (relay on this machine)" : network().label);
+  const route = (u?: string) => (u && isLocal(u) ? "Direct (relay on this machine)" : `via ${network().short}`);
 
   return (
     <>
@@ -48,10 +48,10 @@ export default function Network() {
           <dt>Privacy network</dt><dd>{network().label}{!network().anonymous && <strong className="down"> · not anonymous</strong>}</dd>
           <dt>Traffic share</dt>
           <dd>
-            {share.total ? `${share.pct.toFixed(1)}% through ${network().label}` : "–"}
+            <span className="spy-score up">{share.total ? `${share.pct.toFixed(1)}%` : "–"}</span>
             <br />
             <span className="small muted">
-              {share.mixnet} of {share.total} requests since this page loaded. Not through it: {share.bootstrap} bootstrap reads of the
+              {share.mixnet} of {share.total} requests since this page loaded went through {network().short}. Not through it: {share.bootstrap} bootstrap reads of the
               public network contract{share.direct ? `, ${share.direct} to a relay on this machine` : ""}.
               {share.demo ? ` Not counted: ${share.demo} requests from the Spy panel's normal-wallet demo, sent directly on purpose.` : ""}
             </span>
@@ -67,7 +67,7 @@ export default function Network() {
           <dt>Second opinion</dt><dd>{host(config.anchorUrl)} · {route(config.anchorUrl)}<br /><span className="small muted">Confirms every block hash</span></dd>
           <dt>Private lookup</dt><dd>{config.relayUrl ? `${host(config.relayUrl)} · ${route(config.relayUrl)}` : "No relay set (VITE_RELAY_URL)"}</dd>
           <dt>One-off reads</dt><dd>{host(config.readUrl)} · {route(config.readUrl)}<br /><span className="small muted">Fresh route each time; used for sends and addresses outside the directory</span></dd>
-          <dt>Sending</dt><dd>{config.privateSendUrl ? `${host(config.privateSendUrl)} · ${route(config.privateSendUrl)}` : `Public mempool via ${host(config.readUrl)} · ${network().label} (no private builder on Sepolia)`}</dd>
+          <dt>Sending</dt><dd>{config.privateSendUrl ? `${host(config.privateSendUrl)} · ${route(config.privateSendUrl)}` : `Public mempool via ${host(config.readUrl)} · via ${network().short} (no private builder on Sepolia)`}</dd>
         </dl>
       </section>
 

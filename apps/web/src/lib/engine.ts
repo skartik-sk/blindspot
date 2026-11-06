@@ -74,7 +74,7 @@ function describe(a: Activity, b: VerifiedBlock): Alert[] {
     if (i.kind !== "transfer" || a.sent.includes(i.tx)) continue;
     if (i.to === a.address)
       out.push({ ...base, id: `${block}-${i.tx}-in-${a.address}`, kind: "in", tx: i.tx, title: `${who} received`,
-        detail: `${fmtToken(i.value, i.token)} ${SEPOLIA_TOKENS.find((x) => x.token === i.token)?.symbol ?? short(i.token)} from ${short(i.from)}` });
+        detail: `${fmtToken(i.value, i.token)} ${i.token === ETH_LOGGER ? "ETH" : SEPOLIA_TOKENS.find((x) => x.token === i.token)?.symbol ?? short(i.token)} from ${short(i.from)}` });
   }
   return out;
 }
