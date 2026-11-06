@@ -122,8 +122,13 @@ relay's own server-side log (`GET /log`) next to it.
 
 **Traffic share** (Network screen) = requests sent through Anon-RPC ÷ every request the app made since load,
 counting the worker's bootstrap reads and any direct relay calls in the denominator. Measured against the
-deployed relay: **97.6%** (82 of 84 requests over ~4 minutes of live blocks, Nov 6). The 2 direct requests
-were the worker's bootstrap reads at startup, so the share rises the longer the app runs.
+deployed site: **97.3%** (109 of 112, Nov 6). The 3 direct requests were Anon-RPC's own bootstrap at startup
+(2 reads of the public network contract, 1 download of the network's code bundle, addressed by hash), so the
+share rises the longer the app runs. A resource observer counts any direct request the app didn't log itself.
+
+**IP check (Nov 6):** with the relay's spy stream open, one deliberate direct call marked our IP's salted tag;
+the app then made 84 relay requests, **0 from our IP**, spread over 3 mixnet exits. A browser network capture
+showed no direct request to the relay, Tenderly or publicnode reads, only the bootstrap above.
 
 Exceptions (all counted in the denominator above):
 
