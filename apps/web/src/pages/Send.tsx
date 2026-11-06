@@ -87,7 +87,10 @@ export default function Send({ query }: { query: URLSearchParams }) {
         label: plan.at(-1)!.label, sentAt: Date.now() } }));
       setAmount("");
     } catch (e) {
-      setErr((e as Error).message.split("\n")[0]);
+      const m = (e as Error).message;
+      setErr(route === "private" && /DnsFailed|Tunnel|fetch|network/i.test(m)
+        ? "The private route (Flashbots Protect on Sepolia) isn't reachable right now. Switch Route to Public: it still goes through the mixnet, so your IP stays hidden, but bots can see it before it lands."
+        : m.split("\n")[0]);
     } finally {
       setStep(undefined);
     }
@@ -151,7 +154,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
               <Seg label="Route" value={route === "private" ? "Private" : "Public"} options={["Private", "Public"] as const}
                 onChange={(v) => setRoute(v === "Private" ? "private" : "public")} />
               <span className="small muted">
-                {route === "private" ? "Flashbots Protect: skips the public mempool, can't be front-run." : "Public mempool: visible to bots before it lands."}
+                {route === "private" ? "Flashbots Protect: skips the public mempool, can't be front-run." : "Public mempool, still through the mixnet: your IP stays hidden, but bots see it before it lands."}
               </span>
             </div>
           </div>
