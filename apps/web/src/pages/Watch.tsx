@@ -59,7 +59,13 @@ export default function Watch() {
   }, [alerts]);
 
   const watching = new Set(watch.map((w) => w.address));
-  const suggestions = traders.filter((t) => !watching.has(t.address)).slice(0, 6);
+  const suggestions = [...new Map(traders.filter((t) => !watching.has(t.address)).map((t) => [t.address, t])).values()].slice(0, 8);
+  const [tab, setTab] = useState<"alerts" | "watching" | "trending">(watch.length ? "alerts" : "trending");
+  const TABS = [
+    { id: "alerts", label: "Alerts", count: unreadIds.size },
+    { id: "watching", label: "Watching", count: 0 },
+    { id: "trending", label: "Trending", count: 0 },
+  ] as const;
 
   return (
     <>
@@ -68,7 +74,15 @@ export default function Watch() {
         <p>Follow any wallet and get told the moment it trades. Nobody, not even our relay, learns who you follow.</p>
       </header>
 
-      <section className="panel flush">
+      <div className="segtabs" role="tablist" aria-label="Watch sections">
+        {TABS.map((t) => (
+          <button key={t.id} role="tab" aria-selected={tab === t.id} aria-controls={`tab-${t.id}`} onClick={() => setTab(t.id)}>
+            {t.label}{t.count > 0 && <span className="count">{t.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {tab === "alerts" && <section className="panel flush" id="tab-alerts" role="tabpanel">
         <header>
           <h2>Alerts</h2>
           {perm === "default" && (
@@ -77,14 +91,15 @@ export default function Watch() {
         </header>
         {alerts.length === 0 ? (
           <div className="empty">
-            <span>No trades from your wallets yet. Alerts appear here within a block of the trade landing.</span>
+            <span>{watch.length ? "No trades from your wallets yet. Alerts appear here within a block of the trade landing." : "Watch a wallet to get alerts when it trades."}</span>
+            {!watch.length && <button className="btn primary small" onClick={() => setTab("trending")}>Find active traders</button>}
           </div>
         ) : (
           <ul className="rows">{alerts.slice(0, 30).map((a) => <AlertRow key={a.id} a={a} fresh={unreadIds.has(a.id)} />)}</ul>
         )}
-      </section>
+      </section>}
 
-      <section className="panel flush">
+      {tab === "watching" && <section className="panel flush" id="tab-watching" role="tabpanel">
         <header><h2>Watching</h2><span className="small muted">{watch.length} wallets</span></header>
         <ul className="rows">
           {watch.map((w) => (
@@ -97,10 +112,11 @@ export default function Watch() {
             </li>
           ))}
         </ul>
+        {watch.length === 0 && <div className="empty">You're not watching anyone yet. Paste an address below or pick from Trending.</div>}
         <div style={{ padding: "8px 18px 18px" }}><AddWallet kind="watch" /></div>
-      </section>
+      </section>}
 
-      <section className="panel flush">
+      {tab === "trending" && <section className="panel flush" id="tab-trending" role="tabpanel">
         <header>
           <h2>Trading right now</h2>
           <span className="small muted">From verified blocks</span>
@@ -120,7 +136,7 @@ export default function Watch() {
             ))}
           </ul>
         )}
-      </section>
+      </section>}
     </>
   );
 }

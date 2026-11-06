@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isAddress, type Address } from "viem";
 import Icon from "../components/Icon";
 import { fmtAmount, short } from "../lib/format";
@@ -20,6 +20,9 @@ export async function loadBalance(a: Address) {
   return r;
 }
 
+const AVATAR = ["#4c6ef5", "#e8590c", "#0ca678", "#ae3ec9", "#1098ad", "#d6336c"];
+const avatarColor = (a: string) => AVATAR[parseInt(a.slice(2, 6), 16) % AVATAR.length];
+
 function WalletRow({ w }: { w: Wallet }) {
   const b = useStore((s) => s.balances[w.address]);
   const [busy, setBusy] = useState(false);
@@ -30,13 +33,14 @@ function WalletRow({ w }: { w: Wallet }) {
     try {
       await loadBalance(w.address);
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(`Couldn't load: ${(e as Error).message}. Try again.`);
     } finally {
       setBusy(false);
     }
   };
   return (
-    <li>
+    <li className="wallet-row">
+      <span className="wallet-ic" style={{ background: avatarColor(w.address) }} aria-hidden>{w.label.replace(/^0x/, "").slice(0, 1).toUpperCase()}</span>
       <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
         <div className="row-title">
           <span>{w.label}</span>
@@ -49,12 +53,12 @@ function WalletRow({ w }: { w: Wallet }) {
         {err && <span className="error-text">{err}</span>}
       </div>
       <div className="row-end">
-        <span><strong>{b?.eth !== undefined ? fmtAmount(b.eth, 18) : "–"}</strong> <span className="muted small">ETH</span></span>
+        <span><strong>{b?.eth !== undefined ? fmtAmount(b.eth, 18) : busy ? <span className="skeleton" /> : "–"}</strong> <span className="muted small">ETH</span></span>
         <span className="small muted">
           {b?.usdc !== undefined ? fmtAmount(b.usdc, 6, 2) : "–"} USDC · {b?.weth !== undefined ? fmtAmount(b.weth, 18) : "–"} WETH
         </span>
         <span className="actions">
-          <button className="btn ghost small" onClick={refresh} disabled={busy}>{busy ? "Looking up…" : b ? "Refresh" : "Load"}</button>
+          <button className="btn ghost small" onClick={refresh} disabled={busy} aria-busy={busy}>{busy ? "Looking up…" : b ? "Refresh" : "Load"}</button>
           {w.kind !== "device" && (
             <button className="btn ghost small" onClick={() => removeWallet(w.address)} aria-label={`Remove ${w.label}`}><Icon name="trash" /></button>
           )}
@@ -100,12 +104,43 @@ export function AddWallet({ kind, onDone }: { kind: "mine" | "watch"; onDone?: (
   );
 }
 
+function LiveStrip() {
+  const tape = useStore((s) => s.tape);
+  const status = useStore((s) => s.status);
+  const ref = useRef<HTMLDivElement>(null);
+  // New blocks arrive at the front; keep the newest in view unless the user has scrolled away.
+  useEffect(() => {
+    const el = ref.current;
+    if (el && el.scrollLeft < 160) el.scrollTo({ left: 0 });
+  }, [tape[0]?.number]); // eslint-disable-line
+  return (
+    <section style={{ display: "grid", gap: 10 }} aria-label="Verified blocks">
+      <div className="sec-title"><h2>Verified blocks</h2><a href="#/network">Details</a></div>
+      <div className="strip" ref={ref}>
+        {tape.length === 0
+          ? Array.from({ length: 3 }, (_, i) => (
+              <div className="strip-item" key={i}><b><span className="skeleton" style={{ width: "9ch" }} /></b><span className="faint">{status.phase === "error" ? "Retrying route" : "Connecting"}</span></div>
+            ))
+          : tape.slice(0, 12).map((b) => (
+              <div className="strip-item" key={b.number} data-hit={b.hits > 0}>
+                <b>#{Number(b.number).toLocaleString("en-US")}</b>
+                <span className="ok">{b.anchored ? "Verified ✓" : "Checked"}</span>
+                <span className="faint">{b.hits ? `${b.hits} for you` : `${b.swaps} swaps · ${b.txs} txs`}</span>
+              </div>
+            ))}
+      </div>
+    </section>
+  );
+}
+
 export default function Portfolio() {
   const wallets = useStore((s) => s.wallets);
   const balances = useStore((s) => s.balances);
+  const status = useStore((s) => s.status);
   const mine = useMemo(() => wallets.filter((w) => w.kind !== "watch"), [wallets]);
   const [adding, setAdding] = useState(false);
   const total = (k: "eth" | "usdc" | "weth") => mine.reduce((a, w) => a + (balances[w.address]?.[k] ?? 0n), 0n);
+  const loaded = mine.some((w) => balances[w.address]);
 
   return (
     <>
@@ -114,16 +149,31 @@ export default function Portfolio() {
         <p>Your balances, kept current from verified blocks. No provider learns which addresses are yours.</p>
       </header>
 
-      <section className="holdings" aria-label="Total holdings">
-        <div className="holding"><span className="sym">ETH</span><span className="qty">{fmtAmount(total("eth"), 18)}</span></div>
-        <div className="holding"><span className="sym">USDC</span><span className="qty">{fmtAmount(total("usdc"), 6, 2)}</span></div>
-        <div className="holding"><span className="sym">WETH</span><span className="qty">{fmtAmount(total("weth"), 18)}</span></div>
+      <section className="hero-card" aria-label="Total holdings">
+        <div className="hc-top">
+          <span className="hc-label">Across {mine.length} wallet{mine.length === 1 ? "" : "s"}</span>
+          <span className="hc-chip"><span className="dot" style={{ background: status.phase === "live" ? "#3ddc97" : "#f5b53d" }} aria-hidden />{status.phase === "live" ? "Private · live" : "Connecting"}</span>
+        </div>
+        <div className="hc-big">{loaded ? fmtAmount(total("eth"), 18) : <span className="skeleton" style={{ width: "4ch", height: "0.8em" }} />}<small>ETH</small></div>
+        <div className="hc-row">
+          <span className="hc-pill">{fmtAmount(total("usdc"), 6, 2)} USDC</span>
+          <span className="hc-pill">{fmtAmount(total("weth"), 18)} WETH</span>
+        </div>
       </section>
+
+      <nav className="quick" aria-label="Quick actions">
+        <a href="#/send" className="primary"><span className="q-ic"><Icon name="swap" /></span>Trade</a>
+        <a href="#/watch"><span className="q-ic"><Icon name="watch" /></span>Watch</a>
+        <a href="#/lookup"><span className="q-ic"><Icon name="lookup" /></span>Lookup</a>
+        <a href="#/spy"><span className="q-ic"><Icon name="spy" /></span>Spy</a>
+      </nav>
+
+      <LiveStrip />
 
       <section className="panel flush">
         <header>
           <h2>Wallets</h2>
-          <button className="btn small" onClick={() => setAdding((v) => !v)}>{adding ? "Cancel" : "Add wallet"}</button>
+          <button className="btn small" onClick={() => setAdding((v) => !v)} aria-expanded={adding}>{adding ? "Cancel" : <><Icon name="plus" />Add</>}</button>
         </header>
         {adding && <div style={{ padding: "4px 18px 18px" }}><AddWallet kind="mine" onDone={() => setAdding(false)} /></div>}
         <ul className="rows">

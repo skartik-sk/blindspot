@@ -73,6 +73,7 @@ export default function Shell({ route, children }: { route: string; children: Re
           <a key={n.href} href={n.href} aria-current={current(n.href)}>
             <Icon name={n.icon} />
             {n.label === "Spy panel" ? "Spy" : n.label}
+            {n.href === "#/watch" && unread > 0 && <span className="badge" aria-label={`${unread} new alerts`}>{unread > 9 ? "9+" : unread}</span>}
           </a>
         ))}
       </nav>

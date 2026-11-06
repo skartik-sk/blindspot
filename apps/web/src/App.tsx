@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Onboarding, { needsOnboarding } from "./components/Onboarding";
 import Shell from "./components/Shell";
 import { ensureDeviceWallet } from "./lib/device";
 import { startEngine } from "./lib/engine";
@@ -25,6 +26,7 @@ function parse(hash: string) {
 
 export default function App() {
   const [hash, setHash] = useState(location.hash);
+  const [onboard, setOnboard] = useState(needsOnboarding);
   useEffect(() => {
     const on = () => (setHash(location.hash), window.scrollTo(0, 0));
     addEventListener("hashchange", on);
@@ -40,5 +42,10 @@ export default function App() {
     path === "#/spy" ? <Spy /> :
     path === "#/network" ? <Network /> :
     <Portfolio />;
-  return <Shell route={path}>{page}</Shell>;
+  return (
+    <>
+      <Shell route={path}>{page}</Shell>
+      {onboard && <Onboarding onClose={() => setOnboard(false)} />}
+    </>
+  );
 }
