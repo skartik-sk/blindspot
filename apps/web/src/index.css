@@ -1,4 +1,4 @@
-/* Bina Pooche — near-black, neon green→cyan, redaction as the signature. Same language as the landing page.
+/* Bina Pooche — indigo night with a marigold-to-rani dusk gradient. Verified stays green, leaks stay red. Same language as the landing page.
    Fonts are self-hosted: a privacy app doesn't call Google. */
 @import "@fontsource-variable/public-sans";
 @import "@fontsource-variable/archivo/wdth.css";
@@ -6,21 +6,22 @@
 @import "@fontsource/ibm-plex-mono/500.css";
 
 :root {
-  --paper: #f7f8f7;
+  --paper: #f6f5fb;
   --surface: #ffffff;
-  --sunk: #eff2f0;
-  --ink: #0a0f0d;
-  --ink-2: #4a5550;
-  --ink-3: #7a857f;
-  --line: #e4e9e6;
-  --signal: #15a34a;
+  --sunk: #eeecf6;
+  --ink: #17142e;
+  --ink-2: #4f4a6b;
+  --ink-3: #7d7899;
+  --line: #e3e0ef;
+  /* Brand: Mumbai dusk, marigold to rani pink. Verified (up) and leaks (down) keep their own colours. */
+  --signal: #c2410c;
   --signal-ink: #ffffff;
-  --signal-wash: #dcf5e6;
-  --signal-grad: linear-gradient(180deg, #232d29, #0a0f0d);
-  --grad: linear-gradient(100deg, #16a34a 0%, #0d9488 45%, #2563eb 100%);
-  --up: #0f9d58;
+  --signal-wash: #ffede2;
+  --signal-grad: linear-gradient(180deg, #2a2547, #17142e);
+  --grad: linear-gradient(100deg, #e8890c 0%, #e8501f 48%, #d61f69 100%);
+  --up: #15803d;
   --down: #d93a3a;
-  --focus: #0f9d58;
+  --focus: #c2410c;
   --radius-lg: 22px;
   --radius: 14px;
   --radius-sm: 10px;
@@ -31,21 +32,21 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #050807;
-    --surface: #0c110f;
-    --sunk: #080c0a;
-    --ink: #eef4f0;
-    --ink-2: #a3b0aa;
-    --ink-3: #6e7a74;
-    --line: #19221e;
-    --signal: #7cf29a;
-    --signal-ink: #03140b;
-    --signal-wash: #10251a;
-    --signal-grad: linear-gradient(180deg, #a8f9b4, #6ef08d);
-    --grad: linear-gradient(100deg, #9cf7a0 0%, #4fe6b9 45%, #45b8ff 100%);
-    --up: #7cf29a;
+    --paper: #0b0a17;
+    --surface: #13112a;
+    --sunk: #0e0c1f;
+    --ink: #f5f3ff;
+    --ink-2: #aca7c9;
+    --ink-3: #7a759c;
+    --line: #241f40;
+    --signal: #ff8a3d;
+    --signal-ink: #1f0d03;
+    --signal-wash: #2d1a24;
+    --signal-grad: linear-gradient(180deg, #ffc65a, #ff8a3d);
+    --grad: linear-gradient(100deg, #ffc24a 0%, #ff7a45 48%, #f0397e 100%);
+    --up: #4ade9a;
     --down: #ff6b6b;
-    --focus: #7cf29a;
+    --focus: #ff8a3d;
     color-scheme: dark;
   }
 }
@@ -84,9 +85,9 @@ p { margin: 0; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; position: sticky; top: 0; z-index: 5;
   background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.02em; text-decoration: none; }
-.brand-mark { width: 32px; height: 32px; border-radius: 10px; position: relative; flex: none; background: radial-gradient(circle at 50% 120%, rgb(124 242 154 / 0.5), transparent 60%), #0b100e;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 0 0 1px rgb(124 242 154 / 0.2), 0 0 18px -4px rgb(124 242 154 / 0.6); }
-.brand-mark::after { content: ""; position: absolute; left: 8px; right: 8px; top: 13px; height: 6px; border-radius: 3px; background: linear-gradient(100deg, #9cf7a0, #4fe6b9 45%, #45b8ff); box-shadow: 0 0 10px rgb(124 242 154 / 0.9); }
+.brand-mark { width: 32px; height: 32px; border-radius: 10px; position: relative; flex: none; background: radial-gradient(circle at 50% 120%, rgb(255 138 61 / 0.5), transparent 60%), #141130;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 0 0 1px rgb(255 138 61 / 0.2), 0 0 18px -4px rgb(255 138 61 / 0.6); }
+.brand-mark::after { content: ""; position: absolute; left: 8px; right: 8px; top: 13px; height: 6px; border-radius: 3px; background: linear-gradient(100deg, #ffc24a, #ff7a45 45%, #f0397e); box-shadow: 0 0 10px rgb(255 138 61 / 0.9); }
 .brand { font-family: var(--display); }
 
 .tabs { position: fixed; inset: auto 0 0 0; z-index: 10; display: grid; grid-template-columns: repeat(5, 1fr);
@@ -382,15 +383,15 @@ mark.leak { background: color-mix(in srgb, var(--down) 22%, transparent); color:
 .tabs .badge { position: absolute; top: 2px; left: calc(50% + 8px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--down); color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
 
 /* Home hero card */
-.hero-card { position: relative; overflow: hidden; border-radius: 26px; padding: 22px; color: #eef1f7; display: grid; gap: 16px;
-  background: radial-gradient(ellipse 80% 90% at 100% 0%, rgb(47 224 194 / 0.32), transparent 55%), radial-gradient(ellipse 70% 80% at 0% 110%, rgb(124 242 154 / 0.3), transparent 60%), #0a100d;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(124 242 154 / 0.12), 0 30px 60px -30px rgb(15 157 88 / 0.5); }
+.hero-card { position: relative; overflow: hidden; border-radius: 26px; padding: 22px; color: #f5f3ff; display: grid; gap: 16px;
+  background: radial-gradient(ellipse 80% 90% at 100% 0%, rgb(240 57 126 / 0.32), transparent 55%), radial-gradient(ellipse 70% 80% at 0% 110%, rgb(255 138 61 / 0.3), transparent 60%), #120f26;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(255 138 61 / 0.12), 0 30px 60px -30px rgb(21 128 61 / 0.5); }
 .hero-card .hc-big { font-family: var(--display); font-stretch: 110%; }
 .hero-card .hc-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.hero-card .hc-label { font-size: 13px; color: rgb(238 241 247 / 0.72); font-weight: 600; }
+.hero-card .hc-label { font-size: 13px; color: rgb(245 243 255 / 0.72); font-weight: 600; }
 .hero-card .hc-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 650; padding: 5px 10px; border-radius: 999px; background: rgb(255 255 255 / 0.1); }
 .hero-card .hc-big { font-size: clamp(36px, 10vw, 48px); font-weight: 720; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
-.hero-card .hc-big small { font-size: 0.42em; font-weight: 600; color: rgb(238 241 247 / 0.7); margin-left: 6px; letter-spacing: 0; }
+.hero-card .hc-big small { font-size: 0.42em; font-weight: 600; color: rgb(245 243 255 / 0.7); margin-left: 6px; letter-spacing: 0; }
 .hero-card .hc-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .hero-card .hc-pill { font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 10px; background: rgb(255 255 255 / 0.08); font-variant-numeric: tabular-nums; }
 .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -417,7 +418,7 @@ mark.leak { background: color-mix(in srgb, var(--down) 22%, transparent); color:
 .segtabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--sunk); border-radius: 14px; padding: 4px; gap: 4px; position: sticky; top: 64px; z-index: 4; }
 @media (min-width: 960px) { .segtabs { top: 12px; } }
 .segtabs button { border: 0; background: transparent; min-height: 38px; border-radius: 10px; font-weight: 650; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background-color 100ms ease-out, color 100ms ease-out; }
-.segtabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(19 32 58 / 0.12); }
+.segtabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(23 20 46 / 0.12); }
 @media (prefers-color-scheme: dark) { .segtabs button[aria-selected="true"] { background: color-mix(in srgb, var(--ink) 10%, var(--surface)); } }
 .segtabs button:not([aria-selected="true"]):hover { color: var(--ink); }
 .segtabs .count { font-size: 11px; min-width: 18px; padding: 1px 6px; border-radius: 9px; background: var(--signal); color: var(--signal-ink); }
@@ -451,7 +452,7 @@ output.amount { display: block; overflow: hidden; text-overflow: ellipsis; white
 .toks button { border: 0; background: transparent; color: var(--ink-2); font-weight: 700; font-size: 13px; min-height: 34px; padding: 0 11px; border-radius: 999px; cursor: pointer; transition: background-color 100ms ease-out, color 100ms ease-out; }
 .toks button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / 0.18), inset 0 0 0 1px var(--line); }
 .max { margin-left: 8px; border: 0; background: var(--signal-wash); color: var(--signal); font-weight: 700; font-size: 12px; padding: 4px 9px; border-radius: 999px; cursor: pointer; min-height: 26px; }
-@media (prefers-color-scheme: light) { .max { color: #0b7a43; } }
+@media (prefers-color-scheme: light) { .max { color: #c2410c; } }
 .flip { justify-self: center; margin: -22px 0; z-index: 1; width: 44px; height: 44px; border-radius: 14px; border: 4px solid var(--paper); background: var(--surface); color: var(--ink);
   display: grid; place-items: center; cursor: pointer; transition: transform 150ms ease-out; box-shadow: 0 0 0 1px var(--line); }
 .flip svg { width: 18px; height: 18px; transform: rotate(90deg); }
@@ -479,9 +480,9 @@ html, body { overflow-x: clip; }
 
 /* Light: black primary actions (matches the landing), green stays the accent. */
 @media (prefers-color-scheme: light) {
-  .btn.primary { box-shadow: 0 8px 22px -12px rgb(10 15 13 / 0.6), 0 0 0 3px rgb(22 163 74 / 0.1); }
-  .quick a.primary span.q-ic, .btn.primary.ob-cta { background: #0a0f0d; border-color: #0a0f0d; color: #fff; }
-  .panel, .tcard, .route, .strip-item, .quick a span.q-ic { box-shadow: 0 1px 2px rgb(10 20 15 / 0.04); }
+  .btn.primary { box-shadow: 0 8px 22px -12px rgb(23 20 46 / 0.6), 0 0 0 3px rgb(194 65 12 / 0.1); }
+  .quick a.primary span.q-ic, .btn.primary.ob-cta { background: #17142e; border-color: #17142e; color: #fff; }
+  .panel, .tcard, .route, .strip-item, .quick a span.q-ic { box-shadow: 0 1px 2px rgb(23 20 46 / 0.04); }
 }
 .route[data-disabled="true"] { cursor: not-allowed; opacity: 0.7; }
 .route[data-disabled="true"] strong { color: var(--ink-2); }
