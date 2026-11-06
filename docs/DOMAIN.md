@@ -36,7 +36,7 @@ domain that doesn't answer, and the site goes down.
 
 1. Add `apps/web/public/CNAME` containing `useblindspot.xyz`.
 2. Build with base `/`:
-   `VITE_RELAY_URL=https://api.useblindspot.xyz bun run build -- --base /`
+   `VITE_RELAY_URL=https://bina-relay.13-53-45-89.sslip.io bun run build -- --base /`
 3. Publish `apps/web/dist` to `gh-pages`, keeping `.nojekyll`.
 4. Set the domain:
    `gh api -X PUT repos/skartik-sk/blindspot/pages -f cname=useblindspot.xyz`
@@ -57,5 +57,7 @@ The relay doesn't change: it allows any origin and serves only public, address-f
 - Caddy: `api.useblindspot.xyz` was added to the existing relay site block, next to the sslip.io name. Both names
   serve the same relay. Backup: `~/backups/Caddyfile.20261106-221623.pre-api.bak`. The config was validated, then
   reloaded (no restart, so the other service on the box was untouched).
-- The site is built with `VITE_RELAY_URL=https://api.useblindspot.xyz`. The sslip.io name keeps working for any
-  copy of the app still cached with it.
+- **The site still uses the sslip.io name.** Tested Nov 7: with `api.useblindspot.xyz`, blocks loaded, but every
+  private lookup through Nox failed with `NoTunnelExitError: No exit offers TLS tunnels`, three times in a row. The
+  same lookup through the sslip.io name worked (10.1 s), so we rolled back. A likely cause is mixnet exits caching
+  the name as non-existent from before the record was added. Retry later; switching is one build variable.

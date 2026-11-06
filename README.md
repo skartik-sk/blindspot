@@ -45,7 +45,7 @@ What this does **not** give you (we never claim "100% private"):
 ## Live
 
 - App: https://useblindspot.xyz/ (GitHub Pages; landing at `/`, app at `#/portfolio`)
-- Relay: https://api.useblindspot.xyz/health
+- Relay: https://bina-relay.13-53-45-89.sslip.io/health
 
 ## What it does
 
@@ -196,7 +196,7 @@ Checked Nov 6. Everything the app fetches goes through `anonFetch` (Anon-RPC), e
 | Who | Sees your IP | Learns | Notes |
 | --- | --- | --- | --- |
 | Mixnet entry node | yes | that you use the mixnet; not destinations or content | inherent to any mixnet |
-| GitHub Pages, when you **load the website** | yes | that you opened the site | the static app is hosted on GitHub Pages (moved off our server on Nov 6); GitHub's own logging applies. Our server no longer serves any page: the old site address doesn't answer. |
+| GitHub Pages and Cloudflare (DNS and HTTPS for useblindspot.xyz), when you **load the website** | yes | that you opened the site | the static app is hosted on GitHub Pages (moved off our server on Nov 6); GitHub's own logging applies. Our server no longer serves any page: the old site address doesn't answer. |
 | Our server's error log | only for a request that fails | | Caddy keeps no access log. Its error log records the client IP of a failed proxied request (an aborted stream, or the relay restarting). Since the website moved, the requests our server receives come from mixnet exits (plus the opt-in Spy demo lane), so what it can record are mixnet-exit IPs. That log can only be filtered globally, and the server is shared with another team's service, so we left it as is rather than change their logging. |
 | Anon-RPC bootstrap | yes | that someone is starting Anon-RPC | 2 `eth_call`s to the public network contract (publicnode, with fallbacks) and the client code from `raw.githubusercontent.com`. No address. Counted in the traffic share. |
 | Spy panel "Run the comparison" | yes (opt-in) | 2 public demo contract addresses | the "Normal RPC" column sends directly to our relay's demo lane on purpose. The lane is off by default (`ENABLE_NAIVE`), and when on it answers only about the demo addresses (`NAIVE_ALLOW`). |
