@@ -1,179 +1,213 @@
-// Landing page. One moment of motion: a normal wallet request gets its address redacted and becomes ours.
+// Landing page.
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
-import Icon from "../components/Icon";
-import Tape from "../components/Tape";
-import { network } from "../lib/anon";
+import Bento from "../landing/Bento";
+import MixnetRoute from "../landing/MixnetRoute";
+import Phone from "../landing/Phone";
+import Reveal from "../landing/Reveal";
+import SpyWindow from "../landing/SpyWindow";
+import "../landing/landing.css";
 import { useStore } from "../lib/store";
 
 const REPO = import.meta.env.VITE_REPO_URL as string | undefined;
 const VIDEO = import.meta.env.VITE_VIDEO_URL as string | undefined;
-const SAMPLE = "0x8d48be79d5be14bfec88dfd1276601e9b5ac25dc";
+const ease = [0.22, 1, 0.36, 1] as const;
 
-function Redaction() {
-  const head = useStore((s) => s.status.head);
-  const [phase, setPhase] = useState<"leak" | "cover" | "ours">("leak");
-  const [run, setRun] = useState(0);
+const PROOF = [
+  { t: "The header is real", d: "Its fields hash to the block hash. A second, independent provider confirms that hash.", c: <>keccak(rlp(header)) <em>== hash ✓</em></> },
+  { t: "No balance change is missing", d: "The block's access list hashes to the value the header commits to (EIP-7928).", c: <>keccak(rlp(bal)) <em>== header.balHash ✓</em></> },
+  { t: "No trade is hidden or invented", d: "Every receipt goes back into a trie that must rebuild the header's receipts root.", c: <>trieRoot(receipts) <em>== receiptsRoot ✓</em></> },
+  { t: "It's one chain", d: "Each block links to the one before it. Only then does your phone filter it, locally.", c: <>block.parentHash <em>== prev.hash ✓</em></> },
+];
+
+const FAQ = [
+  ["Is this a wallet?", "It's a trading companion with a wallet built in. It tracks your wallets and any wallet you watch, alerts you on trades, and can swap or send from a key kept on your device."],
+  ["What does the RPC provider actually see?", "Block numbers, from a mixnet exit. Every user asks for the same blocks, so your requests look like everyone else's. The Spy panel in the app shows every request it sent, exactly as the server got it."],
+  ["Why is it a few seconds slower than MetaMask?", "Requests hop through a mixnet, and your phone downloads whole blocks instead of asking a question. For swing and copy trading that's a fair price; for high-frequency trading it isn't."],
+  ["Can the relay lie to me?", "Not without being caught. Every block is checked against its header three ways and confirmed by a second provider. A lie fails a hash check before your phone uses it."],
+  ["Does it work on mainnet?", "It runs on Sepolia today, because block access lists (EIP-7928) arrive on mainnet with the Glamsterdam upgrade. The code doesn't change."],
+  ["Is it open source?", "Yes, MIT. The private core is a separate SDK any wallet can use."],
+];
+
+function Nav() {
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    setPhase("leak");
-    const a = setTimeout(() => setPhase("cover"), 1600);
-    const b = setTimeout(() => setPhase("ours"), 2600);
-    return () => (clearTimeout(a), clearTimeout(b));
-  }, [run]);
-  const block = head ? Number(head).toLocaleString("en-US") : "12,074,105";
+    const on = () => setScrolled(window.scrollY > 8);
+    on();
+    addEventListener("scroll", on, { passive: true });
+    return () => removeEventListener("scroll", on);
+  }, []);
+  const go = (id: string) => (e: React.MouseEvent) => (e.preventDefault(), document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }));
   return (
-    <figure className="lp-req" data-phase={phase} aria-label="A wallet request, before and after">
-      <figcaption className="lp-req-who">
-        {phase === "ours" ? "What Bina Pooche sends" : "What your wallet sends today"}
-      </figcaption>
-      <div className="lp-req-line mono" aria-live="polite">
-        {phase === "ours" ? (
-          <span className="lp-req-ours">eth_getBlockAccessList(<b>{block}</b>)</span>
-        ) : (
-          <span>
-            eth_getBalance(<span className="lp-req-addr"><span className="lp-req-text">{SAMPLE}</span><span className="lp-req-bar" aria-hidden /></span>)
-          </span>
-        )}
+    <header className="L-nav" data-scrolled={scrolled}>
+      <div className="L-wrap">
+        <a className="L-brand" href="#/"><span className="L-mark" aria-hidden />Bina Pooche</a>
+        <nav className="L-links" aria-label="Sections">
+          <a href="#leak" onClick={go("leak")}>The leak</a>
+          <a href="#features" onClick={go("features")}>Features</a>
+          <a href="#proof" onClick={go("proof")}>Security</a>
+          <a href="#faq" onClick={go("faq")}>FAQ</a>
+          {REPO && <a href={REPO} target="_blank" rel="noreferrer">GitHub</a>}
+        </nav>
+        <a className="L-btn sm primary" href="#/portfolio">Launch app</a>
       </div>
-      <div className="lp-req-meta">
-        {phase === "ours"
-          ? <>From a mixnet exit. A block number everyone asks for. <span className="up">Nothing about you.</span></>
-          : <>From your IP, every 12 seconds. <span className="down">Your address, your balance, your habits.</span></>}
-      </div>
-      <button className="btn ghost small lp-replay" onClick={() => setRun((r) => r + 1)}>Replay</button>
-    </figure>
+    </header>
   );
 }
 
-const FEATURES = [
-  { icon: "watch", title: "Watch any wallet", body: "Follow whales and get an alert the moment they swap, with what they sold and bought.", learns: "Nobody learns who you follow." },
-  { icon: "swap", title: "Copy the trade", body: "One tap fills a Uniswap swap in the same direction, at your size, signed on your phone.", learns: "Sent privately, never in the public mempool first." },
-  { icon: "portfolio", title: "Private portfolio", body: "Balances for all your wallets, updated from every verified block.", learns: "No provider can tie your wallets together." },
-  { icon: "lookup", title: "Look up any address", body: "Check a balance with private information retrieval: the server does the same work for every address.", learns: "The server can't tell which one you asked about." },
-];
-
-const LEAKS = [
-  ["Your balances", "eth_getBalance(you)", "Block 12,074,105, same bytes as everyone"],
-  ["Who you copy", "eth_getLogs(whale)", "Filtered on your phone"],
-  ["Your next trade", "Public mempool, visible to bots", "Private builder via the mixnet"],
-  ["Who you are", "Your IP on every request", "A mixnet exit, a fresh route per task"],
-];
-
-const PROOF = [
-  ["The header is real", "Its fields hash to the block hash, and a second provider agrees on that hash."],
-  ["The balance changes are complete", "The block's access list hashes to the value committed in the header (EIP-7928)."],
-  ["The trades are all there", "Every receipt rebuilds the header's receipts root. Nothing invented, edited or hidden."],
-  ["It's one chain", "Each block links to the one before it. Then your phone filters it, locally."],
-];
+function Hero() {
+  const reduce = useReducedMotion();
+  const status = useStore((s) => s.status);
+  const tape = useStore((s) => s.tape);
+  const kb = tape.length ? Math.round(tape.reduce((a, b) => a + b.bytes, 0) / tape.length / 1000) : null;
+  const up = (d: number) => (reduce ? {} : { initial: { opacity: 0, y: 18 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4, delay: d, ease } });
+  return (
+    <section className="L-hero">
+      <span className="L-glow a" aria-hidden /><span className="L-glow b" aria-hidden />
+      <div className="L-wrap L-hero-grid">
+        <div>
+          <motion.a className="L-pill" href="#/network" {...up(0)}>
+            <span className="L-live-dot" aria-hidden />
+            {status.phase === "live" ? `Live on Sepolia · block ${Number(status.head).toLocaleString("en-US")}` : "Connecting through the mixnet"}
+            <b>Anon-RPC</b>
+          </motion.a>
+          <motion.h1 className="L-h1" {...up(0.05)}>
+            Watch whales.<br />Copy trades.<br /><span className="hot">Ask nobody.</span>
+          </motion.h1>
+          <motion.p className="L-lede" {...up(0.1)}>
+            Your wallet tells its RPC provider what you hold, who you follow and what you're about to trade.
+            Bina Pooche never asks about an address. It reads whole blocks through a mixnet, proves them,
+            and finds your trades on your phone.
+          </motion.p>
+          <motion.div className="L-cta" {...up(0.15)}>
+            <a className="L-btn primary" href="#/portfolio">Launch app</a>
+            <a className="L-btn" href="#leak" onClick={(e) => (e.preventDefault(), document.getElementById("leak")?.scrollIntoView({ behavior: "smooth" }))}>See what leaks</a>
+            {VIDEO && <a className="L-btn" href={VIDEO} target="_blank" rel="noreferrer">Watch demo</a>}
+          </motion.div>
+          <motion.div className="L-stats" {...up(0.2)}>
+            <div className="L-stat"><strong className="L-ok">0</strong><span>addresses sent to any provider</span></div>
+            <div className="L-stat"><strong>4</strong><span>proofs checked per block</span></div>
+            <div className="L-stat"><strong>~12s</strong><span>from whale trade to your alert</span></div>
+            <div className="L-stat"><strong>{kb ? `${kb} KB` : "1.2s"}</strong><span>{kb ? "per block, live average" : "private balance lookup"}</span></div>
+          </motion.div>
+          <p className="L-meaning">बिना पूछे · bina pooche · Hindi for “without asking”</p>
+        </div>
+        <Phone />
+      </div>
+    </section>
+  );
+}
 
 export default function Landing() {
-  const status = useStore((s) => s.status);
   return (
-    <div className="lp">
-      <header className="lp-nav">
-        <a className="brand" href="#/"><span className="brand-mark" aria-hidden />Bina Pooche</a>
-        <nav aria-label="Sections">
-          <a href="#how" onClick={(e) => (e.preventDefault(), document.getElementById("how")?.scrollIntoView({ behavior: "smooth" }))}>How it works</a>
-          <a href="#/spy">Spy panel</a>
-          {REPO && <a href={REPO} target="_blank" rel="noreferrer">Code</a>}
-        </nav>
-        <a className="btn primary small" href="#/portfolio">Open the app</a>
-      </header>
+    <div className="L">
+      <Nav />
+      <main>
+        <Hero />
 
-      <section className="lp-hero">
-        <div className="lp-hero-copy">
-          <h1 className="lp-title">Watch whales. Copy trades. Ask nobody.</h1>
-          <p className="lp-lede">
-            Every wallet you use tells its RPC provider what you hold, who you follow and what you're about to trade.
-            Bina Pooche never asks about an address. It reads whole blocks through a mixnet, proves them, and finds
-            what matters to you on your own phone.
-          </p>
-          <div className="actions">
-            <a className="btn primary" href="#/portfolio">Open the app</a>
-            <a className="btn" href="#/spy">See what leaks</a>
-            {VIDEO && <a className="btn ghost" href={VIDEO} target="_blank" rel="noreferrer">Watch the demo</a>}
-          </div>
-          <p className="small faint lp-meaning">बिना पूछे (bina pooche): Hindi for “without asking”.</p>
-        </div>
-        <div className="lp-hero-side">
-          <Redaction />
-          <div className="lp-live">
-            <div className="lp-live-head">
-              <span className="status" data-phase={status.phase}><span className="dot" aria-hidden />
-                {status.phase === "live" ? "Live on Sepolia, right now" : "Connecting through the mixnet"}</span>
+        <div className="L-strip">
+          <div className="L-wrap">
+            <div className="L-strip-row">
+              <span>Anon-RPC</span><span>Sphinx mixnet</span><span className="mono">EIP-7928</span><span>Uniswap v3</span><span>Flashbots Protect</span><span>Paillier PIR</span><span>Ethereum</span>
             </div>
-            <Tape limit={5} />
+            <p>Built on open infrastructure. Every request goes through Anon-RPC by default.</p>
           </div>
         </div>
-      </section>
 
-      <section className="lp-section">
-        <h2 className="lp-h2">What leaks today, and what we send instead</h2>
-        <div className="lp-table" role="table" aria-label="Normal wallet compared with Bina Pooche">
-          <div className="lp-row lp-row-head" role="row">
-            <span role="columnheader">What's at stake</span>
-            <span role="columnheader">A normal wallet sends</span>
-            <span role="columnheader">Bina Pooche sends</span>
+        <section className="L-sec" id="leak">
+          <div className="L-wrap">
+            <Reveal>
+              <div className="L-kicker">The leak</div>
+              <p className="L-statement">
+                Every wallet polls its provider about your addresses. <span>Twelve seconds at a time, your provider learns your
+                portfolio, your copy-trade list and where you live.</span>
+              </p>
+            </Reveal>
+            <Reveal delay={0.05}><SpyWindow /></Reveal>
           </div>
-          {LEAKS.map(([what, theirs, ours]) => (
-            <div className="lp-row" role="row" key={what}>
-              <span role="cell" className="lp-what">{what}</span>
-              <span role="cell" className="mono lp-theirs">{theirs}</span>
-              <span role="cell" className="mono lp-ours">{ours}</span>
+        </section>
+
+        <section className="L-sec" id="features">
+          <div className="L-wrap">
+            <Reveal>
+              <div className="L-kicker">Features</div>
+              <h2 className="L-h2">Everything a trader checks. None of it watched.</h2>
+            </Reveal>
+            <Bento />
+          </div>
+        </section>
+
+        <section className="L-sec">
+          <div className="L-wrap">
+            <Reveal>
+              <div className="L-kicker">The route</div>
+              <h2 className="L-h2">Five hops between you and the node.</h2>
+              <p className="L-sub">Anon-RPC wraps every request in layers of encryption and sends it through a Sphinx mixnet. No single hop knows both who you are and what you asked.</p>
+            </Reveal>
+            <Reveal delay={0.05}><MixnetRoute /></Reveal>
+          </div>
+        </section>
+
+        <section className="L-sec" id="proof">
+          <div className="L-wrap">
+            <Reveal>
+              <div className="L-kicker">Security</div>
+              <h2 className="L-h2">Don't trust the relay. Verify every block.</h2>
+              <p className="L-sub">Your phone uses a block only after four checks pass. Change one byte anywhere and a hash stops matching.</p>
+            </Reveal>
+            <div className="L-proof">
+              {PROOF.map((p, i) => (
+                <Reveal className="L-step" key={p.t} delay={i * 0.05}>
+                  <span className="L-step-n">{i + 1}</span>
+                  <h3>{p.t}</h3>
+                  <p>{p.d}</p>
+                  <code>{p.c}</code>
+                </Reveal>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <section className="lp-section">
-        <h2 className="lp-h2">Everything a trader checks, without being watched</h2>
-        <ul className="lp-features">
-          {FEATURES.map((f) => (
-            <li key={f.title}>
-              <span className="alert-icon"><Icon name={f.icon} /></span>
-              <div>
-                <h3>{f.title}</h3>
-                <p className="muted">{f.body}</p>
-                <p className="small lp-learns">{f.learns}</p>
+        <section className="L-sec" id="faq">
+          <div className="L-wrap L-two">
+            <Reveal>
+              <div className="L-kicker">Straight answers</div>
+              <h2 className="L-h2">What it doesn't hide.</h2>
+              <ul className="L-honest">
+                <li>Your trade is public once it lands. We hide your reading and your intent, not settled money.</li>
+                <li>The mixnet adds a few seconds per request.</li>
+                <li>Your phone downloads a few hundred kilobytes per block.</li>
+                <li>Testnet until block access lists reach mainnet.</li>
+              </ul>
+            </Reveal>
+            <Reveal className="L-faq" delay={0.05}>
+              {FAQ.map(([q, a]) => (
+                <details key={q}><summary>{q}</summary><p>{a}</p></details>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="L-sec">
+          <div className="L-wrap">
+            <Reveal className="L-final">
+              <div className="L-kicker">Start now</div>
+              <h2>Your watchlist is your edge. Keep it yours.</h2>
+              <p className="L-sub" style={{ marginTop: 0 }}>Runs in your browser on phone or desktop. Nothing to install, no account.</p>
+              <div className="L-cta" style={{ marginTop: 4 }}>
+                <a className="L-btn primary" href="#/portfolio">Launch app</a>
+                <a className="L-btn" href="#/spy">Open the Spy panel</a>
               </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+            </Reveal>
+          </div>
+        </section>
+      </main>
 
-      <section className="lp-section" id="how">
-        <h2 className="lp-h2">Why the relay can't lie to you</h2>
-        <p className="muted lp-sub">Before your phone uses a block, it checks four things. Each one fails loudly if anything was changed.</p>
-        <ol className="lp-proof">
-          {PROOF.map(([t, d]) => (
-            <li key={t}><h3>{t}</h3><p className="muted">{d}</p></li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="lp-section lp-honest">
-        <div>
-          <h2 className="lp-h2">What it doesn't hide</h2>
-          <p className="muted lp-sub">We'd rather you hear it from us.</p>
+      <footer className="L-foot">
+        <div className="L-wrap">
+          <span>© 2026 Bina Pooche · MIT licensed · Built at ETHGlobal Mumbai</span>
+          <span>{REPO ? <a href={REPO} target="_blank" rel="noreferrer">Source on GitHub</a> : "Every request through Anon-RPC"}</span>
         </div>
-        <ul>
-          <li>Your trade is public once it lands on-chain. We hide your reading and your intent, not settled money.</li>
-          <li>The mixnet adds a few seconds. Good for swing and copy trading, not for high-frequency trading.</li>
-          <li>Your phone downloads whole blocks, a few hundred kilobytes every 12 seconds.</li>
-          <li>Testnet for now: block access lists arrive on mainnet with the Glamsterdam upgrade.</li>
-        </ul>
-      </section>
-
-      <section className="lp-cta">
-        <h2 className="lp-title lp-title-sm">Your wallet list stays on your phone.</h2>
-        <div className="actions">
-          <a className="btn signal" href="#/portfolio">Open the app</a>
-          <a className="btn" href="#/watch">Start watching a wallet</a>
-        </div>
-      </section>
-
-      <footer className="lp-foot small muted">
-        <span>Every request goes through Anon-RPC on the {network().label.replace(" (Sepolia)", "")}. Open source, MIT.</span>
-        <span>Built at ETHGlobal Mumbai 2026{REPO ? <> · <a href={REPO} target="_blank" rel="noreferrer">Source</a></> : null}</span>
       </footer>
     </div>
   );
