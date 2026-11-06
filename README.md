@@ -48,10 +48,10 @@ What this does **not** give you (we never claim "100% private"):
 
 | Screen | What you get | What the provider learns |
 | --- | --- | --- |
-| Portfolio | Balances of your wallets, updated every block | Nothing: block numbers only |
+| Portfolio | Balances of your wallets, updated every block | Block numbers only; a wallet's first balance comes from PIR (or a one-off mixnet read if it isn't in the directory) |
 | Watch | Alerts the moment a watched wallet swaps, with what it sold and bought; pending (mempool) alerts seconds earlier, marked unverified | Nothing: block numbers and a parameterless mempool snapshot |
-| Lookup | Any address's ETH/USDC/WETH balance and recent activity, via PIR | An encrypted query; then blocks matching 4 addresses equally |
-| Trade / Send | Uniswap swap or transfer, signed on device, sent through the mixnet | The tx, from a mixnet exit (not your IP). On mainnet a private builder (Flashbots Protect) keeps it out of the public mempool |
+| Lookup | Any address's ETH/USDC/WETH balance and recent activity, via PIR | An encrypted query; then blocks that fit up to 8 wallets equally |
+| Trade / Send | Uniswap swap or transfer, signed on device, sent through Anon-RPC | The tx, from a mixnet exit (not your IP). On Sepolia it goes to the public mempool |
 | Spy panel | Three columns from real requests: normal RPC (your IP + addresses), Anon-RPC alone (addresses), ours (block numbers) | — |
 | Network | Traffic share: % of requests sent through Anon-RPC, live | — |
 
@@ -66,7 +66,8 @@ watch a wallet, first alert, private lookup, Spy panel), each derived from real 
 says "Reconnecting" with a plain reason (raw error under Network → Details), Lookup says the private directory is
 unreachable and falls back to a one-off mixnet read (labelled as such), and history is skipped rather than guessed.
 
-Demo: `docs/DEMO.md` (script) and `docs/DEMO-CHECKLIST.md` (exact steps, timings, fallbacks).
+Demo: `docs/DEMO.md` (script) and `docs/DEMO-CHECKLIST.md` (exact steps, timings, fallbacks). Submission text and checklist:
+`docs/SUBMISSION.md`.
 
 ## Layout
 
@@ -80,7 +81,7 @@ Demo: `docs/DEMO.md` (script) and `docs/DEMO-CHECKLIST.md` (exact steps, timings
 
 ```bash
 bun install
-bun test                      # 66 tests, real Sepolia block fixtures
+bun test                      # 81 tests, real Sepolia block fixtures
 bun run relay                 # relay on :8787
 cd apps/web && VITE_RELAY_URL=http://localhost:8787 bunx vite    # app on :5173
 ```
@@ -149,7 +150,7 @@ with the platform CSPRNG, capped at 48 blocks, in random order, each block on it
 block like any other. It also checks the server's claims: every listed wallet must show activity in each listed
 verified block, or the app flags the relay. If no cover exists, the app asks first.
 
-Measured on Nov 6 (live relay, ~330 KB per block): crowd 4: 10 blocks, 14 s; crowd 8: 5–17 blocks, 9–21 s, ~1.4 MB;
+Measured on Nov 6 (live relay, ~330 KB per block): crowd 4: 10 blocks, 14 s; crowd 8: 5–19 blocks, 9–37 s, 1.4–6 MB;
 crowd 16: 24 blocks, 28 s, 8 MB. In steady state (6 blocks per wallet) crowd 16 could reach 96 blocks (~32 MB, ~2 min)
 and ~300 upstream calls on the relay, which would compete with the block feed's rate limit; crowd 32 needs a full
 1,024-row directory and ~192 blocks. So the default is 8 with a 48-block cap (~16 MB, ~1 min worst case).
@@ -188,7 +189,7 @@ Checked Nov 6. Everything the app fetches goes through `anonFetch` (Anon-RPC), e
 | --- | --- | --- | --- |
 | Mixnet entry node | yes | that you use the mixnet; not destinations or content | inherent to any mixnet |
 | GitHub Pages, when you **load the website** | yes | that you opened the site | the static app is hosted on GitHub Pages (moved off our server on Nov 6); GitHub's own logging applies. Our server no longer serves any page: the old site address doesn't answer. |
-| Our server's error log | only for a request that fails | | Caddy keeps no access log. Its shared error log records the IP of a failed proxied request (so far only mixnet exits). That log can't be filtered per site, only globally, and the box is shared with another service, so it's left as is and disclosed. |
+| Our server's error log | only for a request that fails | | Caddy keeps no access log. Its error log records the client IP of a failed proxied request (an aborted stream, or the relay restarting). Since the website moved, the requests our server receives come from mixnet exits (plus the opt-in Spy demo lane), so what it can record are mixnet-exit IPs. That log can only be filtered globally, and the server is shared with another team's service, so we left it as is rather than change their logging. |
 | Anon-RPC bootstrap | yes | that someone is starting Anon-RPC | 2 `eth_call`s to the public network contract (publicnode, with fallbacks) and the client code from `raw.githubusercontent.com`. No address. Counted in the traffic share. |
 | Spy panel "Run the comparison" | yes (opt-in) | 2 public demo contract addresses | the "Normal RPC" column sends directly to our relay's demo lane on purpose. The lane is off by default (`ENABLE_NAIVE`), and when on it answers only about the demo addresses (`NAIVE_ALLOW`). |
 | A relay on `localhost` | n/a | | dev only |
@@ -237,7 +238,6 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 - **Copy trades can link you to the whale.** Your trade is public on-chain once it lands; trading the same pair
   right after a watched wallet can reveal that you follow it. Use a separate wallet for copy trading (the app says so
   on the copy screen).
-
 - **The trade is public once it lands.** We hide reading and intent, not settled money.
 - **Latency.** The mixnet adds seconds. Fine for swing and copy traders, not for millisecond trading.
 - **Bandwidth.** The phone downloads whole blocks: ~250 KB to ~1 MB per Sepolia block from publicnode.
@@ -250,12 +250,13 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 - **PIR hides, it doesn't prove.** A lying PIR server could return a wrong balance; the next verified block
   that touches the address corrects it. Next step: proof-checked rows (`eth_getProof` against a verified header).
 - **PIR scale.** Paillier PIR is slow on big tables, so the demo indexes ~1k active addresses. 1024-bit keys.
-- **No private builder on Sepolia.** Flashbots removed the DNS for its Sepolia Protect RPC and relay (checked Nov 6,
-  2026, and re-checked that evening: `rpc-sepolia.flashbots.net` and `relay-sepolia.flashbots.net` still resolve to
-  nothing, so no Sepolia private-send test or Spy-panel "private vs public send" proof was possible), and the builders producing Sepolia blocks today (builder.nflaig.eth, MigaLabs rbuilder) publish no
-  private-tx endpoint. The app checks the configured builder through the mixnet before offering the private route;
-  on Sepolia it sends to the public mempool via the mixnet (IP hidden, tx visible before it lands). Set
-  `VITE_SEND_URL=https://rpc.flashbots.net/fast` on mainnet.
+- **Sends.** On Sepolia, sends are signed on the device and go through Anon-RPC to the public mempool: the node
+  doesn't see your IP, but the tx is visible before it lands. There is no private builder on Sepolia: Flashbots
+  removed the DNS for its Sepolia Protect RPC and relay (`rpc-sepolia.flashbots.net` and `relay-sepolia.flashbots.net`
+  resolved to nothing when checked twice on Nov 6), and the builders producing Sepolia blocks (builder.nflaig.eth,
+  MigaLabs rbuilder) publish no private-tx endpoint, so no Sepolia private-send test or Spy-panel proof was possible.
+  On mainnet, Flashbots Protect and MEV Blocker were tested and accepted transactions through Anon-RPC (details
+  below), but they're not built into the app, because the app is Sepolia-only.
 - **Polling, not streaming.** We tried streaming new blocks (the relay's `/stream` SSE) through the Anon-RPC worker
   on Nov 6: the worker returns only complete responses, so an open stream times out after 25 s. The app polls by
   block number instead; alerts still arrive within a block (~12 s).
@@ -280,8 +281,8 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 
 - **C**ensorship resistance: the relay is optional and untrusted; any node serving `eth_getBlockAccessList` works.
 - **O**pen source: MIT.
-- **P**rivacy: reads are address-free; transport is Anon-RPC; lookups via PIR; sends leave from a mixnet exit
-  (and skip the public mempool where a private builder exists, i.e. mainnet).
+- **P**rivacy: reads are address-free; transport is Anon-RPC; lookups via PIR; sends leave from a mixnet exit (on
+  Sepolia they reach the public mempool).
 - **S**ecurity: every block is hash-checked three ways and anchored; keys never leave the device.
 
 ## After the hackathon
@@ -296,6 +297,8 @@ Not built, by choice (assessed Nov 6; each was too large or risky to finish prop
   support and its consensus reads through Anon-RPC; 4–8 hours, high risk.
 - **Our own Tor gateway**, so Tor works when the EF demo gateway is down: ~1–2 hours; the gateway would see users'
   IPs (as any Tor entry does), not destinations or content.
+- **Tor with a second provider that accepts Tor exits.** The temporary EF gateway worked, but Tenderly's public
+  gateway (our block anchor) returns HTTP 403 to Tor exits; Tor needs an anchor operator that serves them.
 - Proof-checked PIR rows (`eth_getProof` against a verified header); a mainnet mode after Glamsterdam, with the
   Flashbots Protect / MEV Blocker send route already tested; merchant payments on the same core (an earlier
   prototype is tagged `payments-v1`).
