@@ -33,6 +33,9 @@ export interface Alert {
   sold?: { token: Address; value: bigint };
   bought?: { token: Address; value: bigint };
   read?: boolean;
+  /** Seen in the mempool only: unverified until a block confirms it (then replaced by the verified alert). */
+  pending?: boolean;
+  hash?: `0x${string}`;
 }
 
 export interface TapeBlock {
@@ -63,6 +66,8 @@ export interface State {
   wallets: Wallet[];
   balances: Record<string, Bal>;
   alerts: Alert[];
+  /** Pending, unverified alerts from the shared mempool feed. Never persisted. */
+  pendingAlerts: Alert[];
   tape: TapeBlock[];
   traders: Trader[];
   status: Status;
@@ -74,7 +79,7 @@ const big = (_k: string, v: unknown) => (typeof v === "bigint" ? { $b: v.toStrin
 const unbig = (_k: string, v: any) => (v && typeof v === "object" && "$b" in v ? BigInt(v.$b) : v);
 
 function load(): State {
-  const empty: State = { wallets: [], balances: {}, alerts: [], tape: [], traders: [], status: { phase: "idle" } };
+  const empty: State = { wallets: [], balances: {}, alerts: [], pendingAlerts: [], tape: [], traders: [], status: { phase: "idle" } };
   try {
     const s = localStorage.getItem(KEY);
     if (!s) return empty;

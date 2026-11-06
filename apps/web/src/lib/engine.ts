@@ -1,6 +1,6 @@
 // The live loop: follow the chain through Anon-RPC, verify every block, filter it here on the device.
 // Requests name block numbers only. Which wallets you hold or watch never leaves this tab.
-import { ETH_LOGGER, RpcClient, SEPOLIA_TOKENS, follow, newIsolationKey, scanBlock, type Activity, type VerifiedBlock } from "@bina/sdk";
+import { ETH_LOGGER, RpcClient, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scanBlock, type Activity, type PendingTx, type VerifiedBlock } from "@bina/sdk";
 import type { Address } from "viem";
 import { anonFetch } from "./anon";
 import { config } from "./config";
@@ -34,6 +34,52 @@ export function startEngine() {
       setState((s) => ({ status: { ...s.status, phase: s.status.phase === "live" ? "live" : "error", message: `Block ${n}: ${msg}` } }));
     },
   }).catch((e) => setState(() => ({ status: { phase: "error", message: String(e) } })));
+  if (config.relayUrl) pollPending(ac.signal);
+}
+
+const PENDING_POLL_MS = 2000;
+const PENDING_TTL_MS = 5 * 60_000;
+
+/**
+ * Mempool alerts: every client downloads the same pending snapshot from the relay (no parameters) through
+ * Anon-RPC and matches watched wallets locally. Unverified; replaced by the verified alert when the block lands.
+ */
+async function pollPending(signal: AbortSignal) {
+  const url = new URL("/pending", config.relayUrl!).toString();
+  const key = newIsolationKey();
+  while (!signal.aborted) {
+    const watched = new Set(getState().wallets.filter((w) => w.kind === "watch").map((w) => w.address.toLowerCase()));
+    if (watched.size) {
+      try {
+        const r = await anonFetch(url, { method: "GET", anonOptions: { isolationKey: key } });
+        const { txs } = (await r.json()) as { txs?: PendingTx[] };
+        const found = (txs ?? []).filter((t) => watched.has(t.from)).map(describePending);
+        const now = Date.now();
+        setState((st) => {
+          const fresh = found.filter((a) => !st.pendingAlerts.some((x) => x.id === a.id));
+          if (fresh.length) notify(fresh);
+          return { pendingAlerts: [...fresh, ...st.pendingAlerts].filter((a) => now - a.t < PENDING_TTL_MS).slice(0, 50) };
+        });
+      } catch {
+        // The feed is best-effort; verified alerts still arrive with the block.
+      }
+    }
+    await new Promise((ok) => setTimeout(ok, PENDING_POLL_MS));
+  }
+}
+
+function describePending(t: PendingTx): Alert {
+  const who = labelOf(t.from) ?? short(t.from);
+  const value = BigInt(t.value);
+  const base = { id: `p-${t.hash}`, hash: t.hash, pending: true, block: "pending", t: Date.now(), address: t.from, anchored: false };
+  if (t.swap) {
+    const tokenIn = t.swap.tokenIn === SEPOLIA_WETH.token && value > 0n ? ETH_LOGGER : t.swap.tokenIn;
+    const sym = (a: Address) => (a === ETH_LOGGER ? "ETH" : SEPOLIA_TOKENS.find((x) => x.token === a)?.symbol ?? short(a));
+    return { ...base, kind: "swap", title: `${who} is swapping`, detail: `${fmtToken(BigInt(t.swap.amountIn), tokenIn)} ${sym(tokenIn)} → ${sym(t.swap.tokenOut)}`,
+      sold: { token: tokenIn, value: BigInt(t.swap.amountIn) }, bought: { token: t.swap.tokenOut, value: 0n } };
+  }
+  return { ...base, kind: "out", title: `${who} sent a transaction`,
+    detail: value > 0n ? `${fmtToken(value, ETH_LOGGER)} ETH to ${t.to ? short(t.to) : "a new contract"}` : `Call to ${t.to ? short(t.to) : "a new contract"}` };
 }
 
 export function stopEngine() {
@@ -124,8 +170,11 @@ async function onBlock(b: VerifiedBlock) {
   const pending = s.pendingTx;
   const landed = pending && !pending.landed && acts.some((a) => a.sent.length && s.wallets.find((w) => w.kind === "device")?.address === a.address);
 
+  // A wallet that sent in this verified block: its pending entries are settled (the verified alert replaces them).
+  const settled = new Set(acts.filter((a) => a.sent.length).map((a) => a.address.toLowerCase()));
   setState((st) => ({
     status: { phase: "live", head: block, message: undefined },
+    pendingAlerts: st.pendingAlerts.filter((p) => !settled.has(p.address.toLowerCase())),
     alerts: [...alerts.filter((a) => !st.alerts.some((x) => x.id === a.id)), ...st.alerts].slice(0, 200),
     tape: [{ number: block, txs: b.receipts.length, accounts: b.bal.length, swaps: b.feed.filter((f) => f.kind === "swap").length,
       bytes: b.bytes, ms: Math.round(b.ms), anchored: b.anchored, hits: acts.length }, ...st.tape].slice(0, 60),

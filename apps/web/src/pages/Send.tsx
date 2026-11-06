@@ -17,7 +17,8 @@ export default function Send({ query }: { query: URLSearchParams }) {
   const bal = useStore((s) => s.balances[me]);
   const alerts = useStore((s) => s.alerts);
   const pending = useStore((s) => s.pendingTx);
-  const copy = useMemo(() => alerts.find((a) => a.id === query.get("copy")), [alerts, query]);
+  const pendingAlerts = useStore((s) => s.pendingAlerts);
+  const copy = useMemo(() => [...alerts, ...pendingAlerts].find((a) => a.id === query.get("copy")), [alerts, pendingAlerts, query]);
 
   const [mode, setMode] = useState<"Swap" | "Send">(copy ? "Swap" : "Send");
   const [asset, setAsset] = useState<Asset>("ETH");
@@ -122,9 +123,9 @@ export default function Send({ query }: { query: URLSearchParams }) {
         <section className="callout copy-callout">
           <strong>Copying {copy.title.replace(" swapped", "")}</strong>
           <span className="muted">
-            {copy.sold && copy.bought
+            {copy.sold && copy.bought && !copy.pending
               ? `${fmtAmount(copy.sold.value, decimalsOf(copy.sold.token))} ${assetOf(copy.sold.token) ?? "?"} → ${fmtAmount(copy.bought.value, decimalsOf(copy.bought.token))} ${assetOf(copy.bought.token) ?? "?"}`
-              : copy.detail} in block {copy.block}. Pick your own size.
+              : copy.detail}{copy.pending ? " · pending, unverified: it may never land." : ` in block ${copy.block}.`} Pick your own size.
           </span>
         </section>
       )}

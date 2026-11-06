@@ -15,6 +15,12 @@ const raw = (rcpts as CompactReceipt[]).map((r) => ({
   logs: r.logs.map(([address, topics, data]) => ({ address, topics, data })),
 }));
 
+const PENDING = [
+  { hash: "0x" + "ab".repeat(32), from: "0x00000000000000000000000000000000000000aa", to: "0x00000000000000000000000000000000000000bb", nonce: "0x1", value: "0x5", input: "0x" },
+  { hash: "0x" + "cd".repeat(32), from: "0x00000000000000000000000000000000000000cc", to: null, nonce: "0x2", value: "0x0", input: "0x6080" },
+  { junk: true },
+];
+
 function setup(over: Partial<AppOptions> = {}, tamper: boolean | "receipts" = false) {
   const upstreamCalls: string[] = [];
   const upstream = new RpcClient("http://up", async (_u, init) => {
@@ -22,6 +28,7 @@ function setup(over: Partial<AppOptions> = {}, tamper: boolean | "receipts" = fa
     upstreamCalls.push(method);
     const result =
       method === "eth_blockNumber" ? fx.header.number
+      : method === "eth_getBlockByNumber" && params[0] === "pending" ? { number: "0x1", transactions: PENDING }
       : BigInt(params[0]) !== N ? null
       : method === "eth_getBlockByNumber" ? fx.header
       : method === "eth_getBlockAccessList" ? (tamper === true ? fx.bal.slice(1) : fx.bal)
@@ -131,6 +138,42 @@ describe("relay", () => {
     expect(bucket("2001:DB8:0:1::5%eth0")).toBe(a);
     expect(bucket("2001:db8:0:2::1")).not.toBe(a);
     expect(bucket("::ffff:203.0.113.9")).toBe("203.0.113.9");
+  });
+});
+
+describe("pending feed", () => {
+  test("serves the same compact mempool snapshot to everyone, fetched upstream at most once per second", async () => {
+    const { app, upstreamCalls } = setup();
+    const get = (ip: string) => app(new Request("http://r/pending"), { requestIP: () => ({ address: ip }) }).then((r) => r.json() as any);
+    const a = await get("203.0.113.1");
+    const b = await get("198.51.100.7");
+    expect(a).toEqual(b);
+    expect(a.txs.map((t: any) => t.from)).toEqual(["0x00000000000000000000000000000000000000aa", "0x00000000000000000000000000000000000000cc"]);
+    expect(upstreamCalls.filter((m) => m === "eth_getBlockByNumber").length).toBe(1);
+  });
+
+  test("keeps serving the last snapshot when the pending source fails, and can use its own upstream", async () => {
+    let fail = false;
+    let calls = 0;
+    const pendingUpstream = new RpcClient("http://pending", async () => {
+      calls++;
+      if (fail) return new Response("down", { status: 502 });
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: { transactions: PENDING } }));
+    });
+    const { app, upstreamCalls } = setup({ pendingUpstream });
+    const first = await app(new Request("http://r/pending")).then((r) => r.json() as any);
+    fail = true;
+    await new Promise((ok) => setTimeout(ok, 2600)); // past the cache TTL
+    const second = await app(new Request("http://r/pending")).then((r) => r.json() as any);
+    expect(second.txs).toEqual(first.txs);
+    expect(calls).toBe(2);
+    expect(upstreamCalls.filter((m) => m === "eth_getBlockByNumber").length).toBe(0); // block upstream untouched
+  });
+
+  test("takes no parameters, so a request can't say which wallets matter", async () => {
+    const { app } = setup();
+    const r = await app(new Request("http://r/pending?addr=0x00000000000000000000000000000000000000aa"));
+    expect((await r.json() as any).txs.length).toBe(2);
   });
 });
 

@@ -501,3 +501,8 @@ html, body { overflow-x: clip; }
 .spy-bad { border-top: 3px solid var(--down); }
 .spy-mid { border-top: 3px solid var(--signal); }
 .spy-good { border-top: 3px solid var(--up); }
+
+/* Pending (mempool) alerts: clearly not verified */
+.pending-chip { background: color-mix(in srgb, var(--signal) 12%, transparent); color: var(--signal); font-weight: 600; }
+.pending-rows { border-bottom: 1px dashed var(--line); }
+.pending-rows .alert-icon { outline: 1.5px dashed color-mix(in srgb, var(--signal) 60%, transparent); outline-offset: 2px; }

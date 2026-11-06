@@ -40,6 +40,8 @@ const pir = new PirStore(readBalances, { seeds, max: Number(process.env.PIR_MAX 
 
 const app = createApp({
   cache, spy, upstream, chainId,
+  // Mempool feed source; set to a different provider so pending polling can't rate-limit block fetches.
+  pendingUpstream: process.env.PENDING_RPC ? new RpcClient(process.env.PENDING_RPC) : undefined,
   spyToken: process.env.SPY_TOKEN || undefined,
   enableNaive: process.env.ENABLE_NAIVE === "1",
   rateLimit: Number(process.env.RATE_LIMIT ?? 600),

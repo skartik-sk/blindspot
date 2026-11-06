@@ -5,9 +5,10 @@
 //   POST /naive   "normal wallet" passthrough to upstream, read-only allowlist; logged for the Spy Panel
 //   GET  /spy     SSE: spy log (what a provider sees from each lane)
 //   GET  /log     public: recent bina-lane requests as this relay saw them (block numbers only, no token)
+//   GET  /pending mempool snapshot (unverified), the same for every client; no parameters, cached ~1 s
 //   GET  /pir     PIR table: public address directory + layout (no balances)
 //   POST /pir     PIR query: encrypted selectors in, encrypted rows out; the index never leaves the client
-import { RpcClient, toHex } from "@bina/sdk";
+import { RpcClient, compactPending, toHex, type PendingTx } from "@bina/sdk";
 import type { PirStore } from "./pirstore";
 import type { BlockCache, CachedBlock } from "./relay";
 import type { SpyLog } from "./spy";
@@ -56,6 +57,8 @@ export const maskIp = (ip: string) =>
 const SAFE_PARAM = (p: unknown) =>
   typeof p === "boolean" || (typeof p === "string" && (BLOCK_RE.test(p) || p === "latest" || /^(epoch \d+|\d+ ciphertexts)$/.test(p)));
 export const MAX_PUBLIC_LOG = 100;
+export const MAX_PENDING = 400;
+const PENDING_TTL_MS = 2500;
 
 async function readBody(req: Request, max = MAX_BODY): Promise<any> {
   const len = Number(req.headers.get("content-length") ?? 0);
@@ -69,6 +72,8 @@ export interface AppOptions {
   cache: BlockCache;
   spy: SpyLog;
   upstream: RpcClient;
+  /** Where the mempool snapshot comes from (defaults to upstream). Separate so it can't eat the block-fetch rate limit. */
+  pendingUpstream?: RpcClient;
   chainId: string;
   /** Required to read /spy (?token=). If unset, /spy is disabled. */
   spyToken?: string;
@@ -99,7 +104,7 @@ export function bucket(ip: string): string {
 const MAX_TRACKED = 10_000;
 
 export function createApp(opts: AppOptions) {
-  const { cache, spy, upstream, chainId, spyToken, enableNaive = false, rateLimit = 600, trustProxy = false, pir } = opts;
+  const { cache, spy, upstream, pendingUpstream = upstream, chainId, spyToken, enableNaive = false, rateLimit = 600, trustProxy = false, pir } = opts;
   // PIR answers cost ~1-2 s of CPU each (synchronous, so they run one at a time): own, much lower limit.
   const pirHits = new Map<string, number[]>();
   const pirLimited = (key: string, perMin = 10) => {
@@ -140,6 +145,26 @@ export function createApp(opts: AppOptions) {
     while (hits.size >= MAX_TRACKED) hits.delete(hits.keys().next().value!);
     hits.set(key, { n: 1, reset: now + 60_000 });
     return false;
+  };
+
+  // One shared mempool snapshot: fetched upstream on demand, at most once per TTL, identical for every client.
+  let pendingCache: { at: number; body: { at: number; txs: PendingTx[] } } | undefined;
+  let pendingInflight: Promise<{ at: number; txs: PendingTx[] }> | undefined;
+  const pendingSnapshot = async () => {
+    if (pendingCache && Date.now() - pendingCache.at < PENDING_TTL_MS) return pendingCache.body;
+    pendingInflight ??= pendingUpstream.call<{ transactions?: unknown[] } | null>("eth_getBlockByNumber", ["pending", true])
+      .then((b) => {
+        const txs = (Array.isArray(b?.transactions) ? b!.transactions : []).map(compactPending).filter((t): t is PendingTx => !!t).slice(0, MAX_PENDING);
+        const body = { at: Date.now(), txs };
+        pendingCache = { at: Date.now(), body };
+        return body;
+      })
+      .catch((e) => {
+        if (pendingCache) return pendingCache.body; // upstream hiccup: keep serving the last snapshot
+        throw e;
+      })
+      .finally(() => { pendingInflight = undefined; });
+    return pendingInflight;
   };
 
   const spyAllowed = (req: Request) => !!spyToken && new URL(req.url).searchParams.get("token") === spyToken;
@@ -194,6 +219,14 @@ export function createApp(opts: AppOptions) {
     if (req.method === "GET" && url.pathname === "/stream")
       // Tiny "new block" signal, identical for everyone; clients then fetch and verify the block itself.
       return sse((send) => cache.onBlock((b) => send({ number: b.number, hash: b.header.hash, txs: b.receipts.length })));
+    if (req.method === "GET" && url.pathname === "/pending") {
+      if (limited(bucket(ip))) return json({ error: "rate limited" }, 429);
+      try {
+        return json(await pendingSnapshot());
+      } catch (e) {
+        return json({ error: `upstream: ${(e as Error).message}` }, 502);
+      }
+    }
     if (req.method === "GET" && url.pathname === "/log") {
       const entries = spy.recent().filter((e) => e.lane === "bina").slice(-MAX_PUBLIC_LOG).map((e) => ({
         // No client tag and second-level time: the public can't group requests by client.

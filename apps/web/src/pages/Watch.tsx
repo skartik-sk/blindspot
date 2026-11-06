@@ -13,13 +13,13 @@ export function watchWallet(w: Wallet) {
   rescan(w.address);
 }
 
-function Leg({ leg }: { leg?: { token: `0x${string}`; value: bigint } }) {
+function Leg({ leg, noAmount }: { leg?: { token: `0x${string}`; value: bigint }; noAmount?: boolean }) {
   const m = useToken(leg?.token);
   if (!leg) return null;
   const known = isKnown(leg.token);
   return (
     <span title={known ? undefined : `Unverified token ${leg.token}: anyone can name a token anything`}>
-      {m ? fmtAmount(leg.value, m.decimals) : "…"}{" "}
+      {noAmount ? "" : <>{m ? fmtAmount(leg.value, m.decimals) : "…"}{" "}</>}
       {known ? m?.symbol : <span className="faint">{m?.symbol ?? short(leg.token)}<sup>?</sup></span>}
     </span>
   );
@@ -35,11 +35,13 @@ function AlertRow({ a, fresh, own }: { a: Alert; fresh: boolean; own: boolean })
       <span className="alert-icon" data-kind={a.kind}><Icon name={a.kind} /></span>
       <div style={{ minWidth: 0, display: "grid", gap: 2 }}>
         <span className="row-title"><span>{a.title}</span></span>
-        <span className="row-sub">{legs ? <><Leg leg={a.sold} /><span aria-label="for">→</span><Leg leg={a.bought} /></> : <span>{a.detail.replace(short(ETH_LOGGER), "ETH")}</span>}</span>
+        <span className="row-sub">{legs ? <><Leg leg={a.sold} /><span aria-label="for">→</span><Leg leg={a.bought} noAmount={a.pending} /></> : <span>{a.detail.replace(short(ETH_LOGGER), "ETH")}</span>}</span>
       </div>
       <div className="row-end small">
         <span className="muted">{ago(a.t)}</span>
-        <span className={a.anchored ? "up" : "faint"}>block {a.block}{a.anchored ? " ✓" : ""}</span>
+        {a.pending
+          ? <span className="chip pending-chip" title="Seen in the mempool only. Not in a block yet, so nothing is verified.">Pending · unverified</span>
+          : <span className={a.anchored ? "up" : "faint"}>block {a.block}{a.anchored ? " ✓" : ""}</span>}
         {canCopy && <a className="btn small" href={`#/send?copy=${encodeURIComponent(a.id)}`}>Copy trade</a>}
       </div>
     </li>
@@ -49,6 +51,7 @@ function AlertRow({ a, fresh, own }: { a: Alert; fresh: boolean; own: boolean })
 export default function Watch() {
   const wallets = useStore((s) => s.wallets);
   const alerts = useStore((s) => s.alerts);
+  const pendingAlerts = useStore((s) => s.pendingAlerts);
   const traders = useStore((s) => s.traders);
   const watch = useMemo(() => wallets.filter((w) => w.kind === "watch"), [wallets]);
   const unreadIds = useMemo(() => new Set(alerts.filter((a) => !a.read).map((a) => a.id)), []); // eslint-disable-line
@@ -90,6 +93,11 @@ export default function Watch() {
             <button className="btn small" onClick={() => Notification.requestPermission().then(setPerm)}><Icon name="bell" />Turn on notifications</button>
           )}
         </header>
+        {pendingAlerts.length > 0 && (
+          <ul className="rows pending-rows" aria-label="Pending, unverified">
+            {pendingAlerts.slice(0, 10).map((a) => <AlertRow key={a.id} a={a} fresh own={!watch.some((w) => w.address.toLowerCase() === a.address.toLowerCase())} />)}
+          </ul>
+        )}
         {alerts.length === 0 ? (
           <div className="empty">
             <span>{watch.length ? "No trades yet from wallets you watch. Alerts appear here within a block of the trade landing." : "Watch a wallet to get alerts when it trades."}</span>
