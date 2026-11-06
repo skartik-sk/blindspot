@@ -231,9 +231,6 @@ span.S-mini { cursor: default; color: var(--ink-2); }
 .S-step-n { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--dark); color: var(--dark-ink); font: 650 15px var(--display); }
 .S-step h3 { margin: 18px 0 6px; font: 650 19px/1.25 var(--display); letter-spacing: -0.02em; }
 .S-step p { margin: 0; color: var(--ink-2); font-size: 15px; }
-.S-proofs { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.S-proofs code { font: 500 12.5px var(--mono); padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink-2); }
-.S-proofs code::after { content: " ✓"; color: var(--good); }
 
 /* Limits + FAQ */
 .S-two { display: grid; gap: 40px; }
@@ -242,14 +239,6 @@ span.S-mini { cursor: default; color: var(--ink-2); }
 .S-limits li { position: relative; padding-left: 26px; color: var(--ink-2); }
 .S-limits li::before { content: ""; position: absolute; left: 0; top: 9px; width: 12px; height: 5px; border-radius: 3px; background: var(--ink); }
 .S-faq { display: grid; gap: 10px; align-content: start; }
-.S-faq details { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 0 20px; box-shadow: 0 1px 2px rgb(20 18 42 / 0.04); }
-.S-faq summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 60px; font-weight: 600; cursor: pointer; }
-.S-faq summary::-webkit-details-marker { display: none; }
-.S-faq summary span { width: 12px; height: 12px; flex: none; position: relative; }
-.S-faq summary span::before, .S-faq summary span::after { content: ""; position: absolute; left: 0; right: 0; top: 5px; height: 2px; border-radius: 1px; background: var(--ink-2); transition: transform 180ms ease-out; }
-.S-faq summary span::after { transform: rotate(90deg); }
-.S-faq details[open] summary span::after { transform: rotate(0deg); }
-.S-faq details p { margin: 0 0 18px; color: var(--ink-2); }
 
 /* CTA */
 .S-cta { position: relative; isolation: isolate; overflow: hidden; border-radius: 32px; border: 1px solid var(--line); padding: 72px 24px; display: grid; justify-items: center; text-align: center; gap: 18px; }
@@ -269,10 +258,10 @@ span.S-mini { cursor: default; color: var(--ink-2); }
 .S-nav-end { display: inline-flex; align-items: center; gap: 8px; }
 @media (hover: hover) {
   /* Cards respond to the pointer: a small lift, never a layout shift. */
-  .S-tile, .S-step, .S-leak-col, .S-float, .S-faq details { transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out; }
-  .S-tile:hover, .S-step:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--line-2); }
+  .S-tile, .S-step, .S-leak-col, .S-float { transition: translate 220ms ease-out, box-shadow 220ms ease-out, border-color 220ms ease-out; }
+  /* translate (not transform): the scroll-in animation owns transform, so hover must use its own property */
+  .S-tile:hover { translate: 0 -4px; box-shadow: 0 2px 4px rgb(20 18 42 / 0.04), 0 18px 40px -18px rgb(20 18 42 / 0.25); border-color: var(--line-2); }
   .S-float:hover { box-shadow: var(--shadow-lg); }
-  .S-faq details:hover { border-color: var(--line-2); }
   .S-rows li { transition: border-color 150ms ease-out, background-color 150ms ease-out; }
   .S-rows li:hover { border-color: var(--line-2); background: var(--sunk); }
 }
@@ -303,13 +292,6 @@ span.S-mini { cursor: default; color: var(--ink-2); }
   @keyframes S-pkt { 0% { left: -12px; } 60%, 100% { left: 100%; } }
 }
 
-/* PIR tile: the server sweeps every row; only your row is yours */
-@media (prefers-reduced-motion: no-preference) {
-  .S-pir i { animation: S-scan 3.6s ease-in-out infinite; animation-delay: calc(var(--i) * 45ms); }
-  .S-pir i[data-on="true"] { animation: none; }
-  @keyframes S-scan { 0%, 12%, 100% { filter: none; } 6% { filter: brightness(0.82) saturate(1.6); } }
-}
-
 /* Chain tile is a list */
 ul.S-chain { list-style: none; margin: 0; }
 .S-chain li { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); }
@@ -320,34 +302,12 @@ ul.S-chain { list-style: none; margin: 0; }
   @keyframes S-shim { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 }
 
-/* How it works: a packet travels across the three steps */
-.S-flow { display: none; }
-@media (min-width: 900px) {
-  .S-flow { display: block; position: relative; height: 2px; margin: 0 16.6% 28px; background: repeating-linear-gradient(90deg, var(--line-2) 0 6px, transparent 6px 12px); }
-  .S-flow b { position: absolute; top: -4px; left: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); }
-}
-@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
-  .S-flow b { animation: S-flow 4s ease-in-out infinite; }
-  @keyframes S-flow { 0% { left: 0; } 45%, 55% { left: 50%; } 100% { left: calc(100% - 10px); } }
-}
 
 /* Footer: links, then the illustrated Sea Link at dusk running into the bottom edge. */
 .S-foot { margin-top: 120px; padding-top: 56px; overflow: hidden;
   --sky-1: #e6e0ff; --sky-2: #ffd3e2; --sky-3: #ffe3cc; --sea-1: #f6cfdc; --sea-2: #e4defa;
-  --sun-1: #ffe6a8; --sun-2: #ff9a6b; --city: #c9b8dc; --link: #5f5280; --glint: #fff4e6; }
+  --sun-1: #ffe6a8; --sun-2: #ff9a6b; --city: #c9b8dc; --city-far: #ddd0ea; --link: #4f4470; --glint: #fff4e6; --win: #ffd27a; }
 .S-skyline { display: block; width: 100%; height: clamp(200px, 26vw, 360px); margin-top: 40px; }
-.S-skyline .sk-city rect { fill: var(--city); }
-.S-skyline .sk-link, .S-skyline .sk-link path { stroke: var(--link); }
-.S-skyline .sk-piers rect { fill: var(--link); opacity: 0.5; }
-.S-skyline .sk-glint rect { fill: var(--glint); opacity: 0.85; }
-.S-skyline .sk-waves path { stroke: var(--glint); }
-@media (prefers-reduced-motion: no-preference) {
-  .S-skyline .sk-glint rect { animation: S-glint 3.2s ease-in-out infinite alternate; }
-  .S-skyline .sk-glint rect:nth-child(2n) { animation-delay: -1.6s; }
-  @keyframes S-glint { from { opacity: 0.35; } to { opacity: 0.95; } }
-  .S-skyline .sk-waves path { animation: S-wave 9s ease-in-out infinite alternate; }
-  @keyframes S-wave { to { transform: translateX(-24px); } }
-}
 .S-foot-base { background: var(--sea-2); margin-top: -1px; }
 .S-foot-base .S-wrap { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; padding-top: 14px; padding-bottom: 22px; font-size: 13px; color: var(--ink-3); }
 .S-leak-note { margin: 14px 2px 0; font-size: 12.5px; color: var(--ink-3); }
@@ -360,3 +320,106 @@ ul.S-chain { list-style: none; margin: 0; }
 .S-ghost { visibility: hidden; }
 .S-rotate-line > span { display: block; }
 .S-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Bento: every picture the same height, so titles line up across a row */
+.S-bento .S-vis { height: 172px; min-height: 0; overflow: hidden; align-content: center; }
+@media (min-width: 760px) { .S-bento .S-tile.w2 .S-vis { height: 196px; } }
+.S-pirwrap { position: relative; align-content: center; }
+.S-bento .S-chain { align-content: start; padding-top: 18px; }
+.S-pir { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; }
+.S-pir i { aspect-ratio: 1; border-radius: 4px; background: color-mix(in srgb, #7c6cff 20%, var(--card)); }
+.S-pir i[data-on="true"] { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.S-vis-cap { justify-self: center; margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+@media (prefers-reduced-motion: no-preference) {
+  /* the server multiplies through one row after another; your cell pulses once its row is done */
+  .S-pir i { animation: S-row 2.4s linear infinite; animation-delay: calc(var(--r) * 0.6s); }
+  .S-pir i[data-on="true"] { animation: S-mine 2.4s ease-in-out infinite; animation-delay: 1.2s; }
+  @keyframes S-row { 0%, 18%, 100% { background: color-mix(in srgb, #7c6cff 20%, var(--card)); } 6% { background: color-mix(in srgb, #7c6cff 55%, var(--card)); } }
+  @keyframes S-mine { 0%, 60%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); } 30% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 10%, transparent); } }
+  .S-wallet i { background: linear-gradient(90deg, var(--ink) 35%, #8f88b8 50%, var(--ink) 65%); background-size: 300% 100%; animation: S-shim 2.6s linear infinite; }
+  .S-wallet:nth-child(2) i { animation-delay: -0.9s; } .S-wallet:nth-child(3) i { animation-delay: -1.8s; }
+}
+
+/* How it works: steps light up in turn, each with its own small animation */
+.S-flow { display: none; }
+@media (min-width: 900px) {
+  .S-flow { display: block; position: relative; height: 2px; margin: 0 0 26px; background: repeating-linear-gradient(90deg, var(--line-2) 0 6px, transparent 6px 12px); }
+  .S-flow b { position: absolute; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent); transition: left 700ms cubic-bezier(0.22, 1, 0.36, 1); }
+}
+.S-step { height: 100%; transition: border-color 300ms ease-out, box-shadow 300ms ease-out, translate 300ms ease-out; }
+.S-step[data-on="true"] { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); box-shadow: 0 2px 4px rgb(20 18 42 / 0.04), 0 18px 40px -20px color-mix(in srgb, var(--accent) 45%, transparent); }
+.S-step-n { transition: background-color 300ms ease-out; }
+.S-step[data-on="true"] .S-step-n { background: var(--accent); }
+.S-hw { height: 112px; margin: -8px -8px 18px; border-radius: 16px; background: var(--sunk); display: grid; place-items: center; overflow: hidden; padding: 12px; }
+.S-hw-req { display: flex; align-items: center; gap: 10px; }
+.S-hw-req code { font: 500 13px var(--mono); padding: 8px 12px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); color: var(--ink); }
+.S-hw-phone { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--dark); color: var(--dark-ink); }
+.S-hw-phone svg { width: 18px; height: 18px; }
+.S-step[data-on="true"] .S-hw-req code { border-color: var(--accent); }
+.S-hw-mix { position: relative; width: 100%; max-width: 240px; height: 40px; display: flex; justify-content: space-between; align-items: center; }
+.S-hw-mix::before { content: ""; position: absolute; left: 12px; right: 12px; top: 50%; height: 2px; background: var(--line-2); }
+.S-hw-node { position: relative; z-index: 1; width: 26px; height: 26px; border-radius: 50%; background: var(--card); border: 2px solid var(--line-2); transition: border-color 250ms, background-color 250ms; }
+.S-hw-node[data-on="true"] { border-color: #7c6cff; background: color-mix(in srgb, #7c6cff 18%, var(--card)); }
+.S-hw-pkt { position: absolute; z-index: 2; left: 4px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%;
+  background: radial-gradient(circle, var(--accent) 35%, color-mix(in srgb, var(--accent) 30%, transparent) 36% 60%, color-mix(in srgb, var(--accent) 12%, transparent) 61%); opacity: 0; }
+.S-hw-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+.S-hw-checks span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  color: var(--ink-3); background: var(--card); border: 1px solid var(--line); transition: color 200ms, background-color 200ms, border-color 200ms; }
+.S-hw-checks svg { width: 12px; height: 12px; opacity: 0.35; }
+.S-hw-checks span[data-on="true"] { color: var(--good); border-color: color-mix(in srgb, var(--good) 35%, transparent); background: color-mix(in srgb, var(--good) 9%, var(--card)); }
+.S-hw-checks span[data-on="true"] svg { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .S-hw-pkt[data-on="true"] { opacity: 1; animation: S-hop 3.25s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+  @keyframes S-hop { 0% { left: 4px; transform: scale(1.5); } 33% { transform: scale(1.15); } 66% { transform: scale(0.85); } 100% { left: calc(100% - 20px); transform: scale(0.6); } }
+}
+@media (prefers-reduced-motion: reduce) { .S-hw-node { border-color: #7c6cff; } }
+
+/* FAQ: accordion, one answer at a time */
+.S-faq { display: grid; gap: 10px; align-content: start; }
+.S-faq-item { background: var(--card); border: 1px solid var(--line); border-radius: 18px; transition: border-color 200ms ease-out, box-shadow 200ms ease-out; }
+.S-faq-item[data-open="true"] { border-color: var(--line-2); box-shadow: 0 2px 4px rgb(20 18 42 / 0.04), 0 14px 30px -18px rgb(20 18 42 / 0.25); }
+.S-faq-q { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 60px; padding: 14px 20px; border: 0; background: none;
+  font: 600 16px/1.4 var(--body); color: var(--ink); text-align: left; cursor: pointer; border-radius: 18px; }
+.S-faq-icon { width: 28px; height: 28px; flex: none; border-radius: 50%; background: var(--sunk); position: relative; transition: background-color 200ms ease-out, rotate 250ms ease-out; }
+.S-faq-icon::before, .S-faq-icon::after { content: ""; position: absolute; left: 8px; right: 8px; top: 13px; height: 2px; border-radius: 1px; background: var(--ink-2); }
+.S-faq-icon::after { rotate: 90deg; transition: rotate 250ms ease-out; }
+.S-faq-item[data-open="true"] .S-faq-icon { background: var(--dark); }
+.S-faq-item[data-open="true"] .S-faq-icon::before, .S-faq-item[data-open="true"] .S-faq-icon::after { background: var(--dark-ink); }
+.S-faq-item[data-open="true"] .S-faq-icon::after { rotate: 0deg; }
+@media (hover: hover) { .S-faq-q:hover .S-faq-icon { background: var(--line-2); } .S-faq-item[data-open="true"] .S-faq-q:hover .S-faq-icon { background: var(--dark); } }
+.S-faq-a { overflow: hidden; }
+.S-faq-a p { margin: 0; padding: 0 20px 20px; color: var(--ink-2); max-width: 62ch; }
+#faq .S-sub { margin-top: 14px; }
+#faq .S-btn.sm { margin-top: 24px; }
+
+/* Footer illustration */
+.S-skyline .sk-far rect { fill: var(--city-far); }
+.S-skyline .sk-near rect { fill: var(--city); }
+.S-skyline .sk-win rect { fill: var(--win); opacity: 0.75; }
+.S-skyline .sk-clouds ellipse { fill: #fff; opacity: 0.55; }
+.S-skyline .sk-birds path { fill: none; stroke: var(--link); stroke-width: 1.4; stroke-linecap: round; opacity: 0.6; }
+.S-skyline .sk-deck { fill: none; stroke: var(--link); stroke-width: 5; stroke-linecap: round; }
+.S-skyline .sk-pylon { fill: none; stroke: var(--link); stroke-width: 4.5; stroke-linejoin: round; stroke-linecap: round; }
+.S-skyline .sk-stay { fill: none; stroke: var(--link); stroke-width: 0.8; opacity: 0.55; }
+.S-skyline .sk-piers rect { fill: var(--link); opacity: 0.4; }
+.S-skyline .sk-glint rect { fill: var(--glint); opacity: 0.85; }
+.S-skyline .sk-waves path { fill: none; stroke: var(--glint); stroke-width: 1.2; }
+.S-skyline .sk-boat path { fill: var(--link); opacity: 0.7; }
+@media (prefers-reduced-motion: no-preference) {
+  .S-skyline .sk-glint rect { animation: S-glint 3.2s ease-in-out infinite alternate; }
+  .S-skyline .sk-glint rect:nth-child(2n) { animation-delay: -1.6s; }
+  @keyframes S-glint { from { opacity: 0.3; } to { opacity: 0.95; } }
+  .S-skyline .sk-waves path { animation: S-wave 9s ease-in-out infinite alternate; }
+  @keyframes S-wave { to { transform: translateX(-36px); } }
+  .S-skyline .sk-win rect { animation: S-win 6s ease-in-out infinite; }
+  @keyframes S-win { 0%, 70%, 100% { opacity: 0.75; } 80% { opacity: 0.2; } }
+  .S-skyline .sk-clouds { animation: S-cloud 40s linear infinite alternate; }
+  @keyframes S-cloud { to { transform: translateX(60px); } }
+  .S-skyline .sk-birds { animation: S-birds 22s linear infinite; }
+  @keyframes S-birds { from { transform: translate(-260px, 18px); } to { transform: translate(520px, -14px); } }
+  .S-skyline .sk-boat { animation: S-boat 30s ease-in-out infinite alternate; }
+  @keyframes S-boat { from { transform: translateX(0); } to { transform: translateX(140px); } }
+  .S-skyline .sk-sun { animation: S-sun 6s ease-in-out infinite alternate; transform-origin: 1030px 288px; }
+  @keyframes S-sun { to { transform: scale(1.04); } }
+}
+.S-chain-wait { opacity: 0.55; } .S-chain-wait b { font-weight: 500; color: var(--ink-3); font-size: 12.5px; }

@@ -289,7 +289,10 @@ function Features() {
             <p>Live Sepolia quote. Signed on your device, sent without your IP.</p>
           </Reveal>
           <Reveal className="S-tile w2">
-            <div className="S-vis S-pir" aria-hidden>{Array.from({ length: 48 }, (_, i) => <i key={i} data-on={i === 29} style={{ "--i": i } as React.CSSProperties} />)}</div>
+            <div className="S-vis S-pirwrap" aria-hidden>
+              <div className="S-pir">{Array.from({ length: 48 }, (_, i) => <i key={i} data-on={i === 29} style={{ "--r": Math.floor(i / 12) } as React.CSSProperties} />)}</div>
+              <span className="S-vis-cap">Server reads every row · you decrypt one</span>
+            </div>
             <h3>Look up any balance</h3>
             <p>The server can't tell which row you read.</p>
           </Reveal>
@@ -302,13 +305,14 @@ function Features() {
           </Reveal>
           <Reveal className="S-tile w2" delay={0.1}>
             <ul className="S-vis S-chain">
-              <AnimatePresence initial={false}>
+              <AnimatePresence initial={false} mode="popLayout">
                 {blocks.map((n) => (
                   <motion.li key={n} layout initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, ease }}>
                     <b className="mono">#{fmtBlock(n)}</b><em><Icon name="check" />verified</em>
                   </motion.li>
                 ))}
               </AnimatePresence>
+              {Array.from({ length: Math.max(0, 4 - tape.length) }, (_, i) => <li key={`w${i}`} className="S-chain-wait"><b>verifying next block…</b></li>)}
             </ul>
             <h3>Every block proven</h3>
             <p>Four hash checks, live, every 12 seconds.</p>
@@ -319,11 +323,29 @@ function Features() {
   );
 }
 
+const CHECKS = ["header hash", "access list", "receipts root", "2nd provider"];
+
+/** Three steps that light up in turn; each has its own small live animation. Static and all-on under reduced motion. */
 function How() {
+  const reduce = useReducedMotion();
+  const head = useStore((s) => s.status.head);
+  const [active, setActive] = useState(0);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setTick((x) => x + 1), 650);
+    return () => clearInterval(t);
+  }, [reduce]);
+  useEffect(() => { if (!reduce && tick % 5 === 0) setActive((a) => (tick === 0 ? 0 : (a + 1) % 3)); }, [tick, reduce]);
+  const on = (i: number) => reduce || active === i;
+  const checks = reduce ? 4 : active === 2 ? Math.min(4, (tick % 5) + 1) : 0;
   const steps = [
-    { t: "Ask for the block", d: "Block N, the same request everyone makes. Never an address." },
-    { t: "Through the Nox mixnet", d: "Layered encryption. No hop knows who asked what." },
-    { t: "Prove it, filter locally", d: "Four hash checks, then your phone finds your wallets." },
+    { t: "Ask for the block", d: "Block N: the same request everyone makes. Never an address.",
+      vis: <div className="S-hw-req"><span className="S-hw-phone"><Icon name="portfolio" /></span><code>getBlock(#{fmtBlock(head)})</code></div> },
+    { t: "Through the Nox mixnet", d: "Layered encryption. No hop knows who asked what.",
+      vis: <div className="S-hw-mix">{[0, 1, 2].map((k) => <span key={k} className="S-hw-node" data-on={on(1) && tick % 5 >= k + 1} />)}<i className="S-hw-pkt" data-on={on(1)} /></div> },
+    { t: "Prove it, filter locally", d: "Four hash checks, then your phone finds your wallets.",
+      vis: <div className="S-hw-checks">{CHECKS.map((c, k) => <span key={c} data-on={k < checks}><Icon name="check" />{c}</span>)}</div> },
   ];
   return (
     <section className="S-sec" id="how">
@@ -332,24 +354,49 @@ function How() {
           <span className="S-eyebrow">How it works</span>
           <h2 className="S-h2">Don't ask. Download, prove, filter.</h2>
         </Reveal>
-        <div className="S-flow" aria-hidden><i /><b /></div>
+        <div className="S-flow" aria-hidden><b style={{ left: `calc(${[16.6, 50, 83.3][active]}% - 5px)` }} /></div>
         <div className="S-steps">
           {steps.map((s, i) => (
-            <Reveal className="S-step" key={s.t} delay={i * 0.08}>
-              <span className="S-step-n">{i + 1}</span>
-              <h3>{s.t}</h3>
-              <p>{s.d}</p>
+            <Reveal key={s.t} delay={i * 0.08}>
+              <div className="S-step" data-on={on(i)}>
+                <div className="S-hw">{s.vis}</div>
+                <span className="S-step-n">{i + 1}</span>
+                <h3>{s.t}</h3>
+                <p>{s.d}</p>
+              </div>
             </Reveal>
           ))}
         </div>
-        <Reveal className="S-proofs" delay={0.1}>
-          <code>keccak(rlp(header)) == hash</code>
-          <code>keccak(rlp(accessList)) == blockAccessListHash</code>
-          <code>trie(receipts) == receiptsRoot</code>
-          <code>anchor.hash == hash</code>
-        </Reveal>
       </div>
     </section>
+  );
+}
+
+function Faq() {
+  const [open, setOpen] = useState(0);
+  const reduce = useReducedMotion();
+  return (
+    <div className="S-faq">
+      {FAQ.map(([q, a], i) => {
+        const isOpen = open === i;
+        return (
+          <div key={q} className="S-faq-item" data-open={isOpen}>
+            <button type="button" className="S-faq-q" aria-expanded={isOpen} aria-controls={`faq-${i}`} id={`faq-q-${i}`} onClick={() => setOpen(isOpen ? -1 : i)}>
+              <span>{q}</span><span className="S-faq-icon" aria-hidden />
+            </button>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <motion.div id={`faq-${i}`} role="region" aria-labelledby={`faq-q-${i}`} className="S-faq-a"
+                  initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={reduce ? undefined : { height: 0, opacity: 0 }}
+                  transition={{ duration: 0.28, ease }}>
+                  <p>{a}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -379,11 +426,11 @@ export default function Landing() {
             <Reveal>
               <span className="S-eyebrow">Straight answers</span>
               <h2 className="S-h2">What it doesn't hide.</h2>
+              <p className="S-sub">No privacy tool hides everything. Here is exactly what this one doesn't.</p>
               <ul className="S-limits">{LIMITS.map((l) => <li key={l}>{l}</li>)}</ul>
+              <a className="S-btn sm" href="#/spy">See it for yourself in the Spy panel <Icon name="arrow" /></a>
             </Reveal>
-            <Reveal className="S-faq" delay={0.05}>
-              {FAQ.map(([q, a]) => <details key={q}><summary>{q}<span aria-hidden /></summary><p>{a}</p></details>)}
-            </Reveal>
+            <Reveal delay={0.05}><Faq /></Reveal>
           </div>
         </section>
 
