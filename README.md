@@ -206,8 +206,10 @@ Exceptions (all counted in the denominator above):
   addresses, never yours) from your IP to our relay; that's the point of the demo.
 - **Mainnet private send: tested, not built.** On Nov 6, through Anon-RPC: Flashbots Protect (`rpc.flashbots.net/fast`)
   and MEV Blocker (`rpc.mevblocker.io`) both answered `eth_chainId = 0x1`, rejected a malformed tx, and accepted a
-  signed tx from an unfunded throwaway key (hash returned in ~1–2 s; it can never land). Wiring a mainnet config is
-  next; the app today targets Sepolia.
+  signed tx from an unfunded throwaway key (hash returned in ~1–2 s; it can never land). Not built as a setting:
+  the whole app (tokens, Uniswap addresses, signing chain id, block feed) is Sepolia-only, and a mainnet-only send
+  switch inside a Sepolia app could never be exercised end to end, so it would be untested code. It becomes a real
+  setting when the app gets a mainnet mode, after Glamsterdam.
 - **Testnet only** until Glamsterdam (block access lists) reaches mainnet.
 
 ## CROPS
