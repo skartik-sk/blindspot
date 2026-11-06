@@ -4,9 +4,9 @@
 // full histories of other directory addresses from the same PIR reply (k-anonymity): every one of them fits the
 // request pattern equally. Each block goes on its own mixnet route, in random order, and is verified before use.
 // Disclosed limits: anonymity is k (default 8, capped at 48 blocks), not the whole directory; the relay sees the burst.
-import { RpcClient, SEPOLIA_TOKENS, confirmWithAnchor, newIsolationKey, scanBlock, ETH_LOGGER, type VerifiedBlock, verifiedBlock } from "@bina/sdk";
+import { SEPOLIA_TOKENS, confirmWithAnchor, newIsolationKey, scanBlock, ETH_LOGGER, type VerifiedBlock, verifiedBlock } from "@bina/sdk";
 import type { Address } from "viem";
-import { anonFetch } from "./anon";
+import { anonRpc } from "./anon";
 import { config } from "./config";
 import { describe } from "./engine";
 import { fmtToken, short } from "./format";
@@ -42,9 +42,9 @@ const shuffle = <T,>(xs: T[]) => {
 };
 
 async function fetchVerified(n: number): Promise<VerifiedBlock | null> {
-  const b = await verifiedBlock(new RpcClient(config.feedUrl, anonFetch, newIsolationKey()), BigInt(n), config.feedCompact);
+  const b = await verifiedBlock(anonRpc(config.feedUrl, newIsolationKey()), BigInt(n), config.feedCompact);
   if (!b) return null;
-  await confirmWithAnchor(new RpcClient(config.anchorUrl, anonFetch, newIsolationKey()), b.number, b.hash);
+  await confirmWithAnchor(anonRpc(config.anchorUrl, newIsolationKey()), b.number, b.hash);
   return { ...b, anchored: true };
 }
 

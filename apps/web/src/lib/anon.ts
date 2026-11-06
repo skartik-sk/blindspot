@@ -1,7 +1,8 @@
 // One long-lived Anon-RPC worker for the whole app. Every network call in the app goes through `anonFetch`.
 import { AnonRpcWorker } from "@anon-rpc/browser-harness";
-import type { AnonFetch } from "@bina/sdk";
-import { config, isLocal, type NetworkName } from "./config";
+import { RpcClient, type AnonFetch } from "@bina/sdk";
+import { NETWORK_KEY, config, isLocal, type NetworkName } from "./config";
+import { FALLBACK_TO, initialBoot, onFailure, onSuccess, type BootState } from "./fallback";
 import { logRequest } from "./reqlog";
 
 interface Network {
@@ -14,6 +15,8 @@ interface Network {
   chain: "mainnet" | "sepolia";
   config?: unknown;
   anonymous: boolean;
+  /** How long one request may take before we give up and retry (Nym reads take 10–35 s per EF). */
+  timeoutMs: number;
 }
 
 // From https://ethereum.github.io/anon-rpc/wallets/ (Nov 2026).
@@ -28,6 +31,7 @@ export const NETWORKS: Record<NetworkName, Network> = {
       logLevel: import.meta.env.VITE_TOR_LOG ?? "info",
     },
     anonymous: true,
+    timeoutMs: 60_000,
   },
   sphinx: {
     label: "Nox (Sphinx mixnet, Sepolia)",
@@ -35,6 +39,7 @@ export const NETWORKS: Record<NetworkName, Network> = {
     address: "0x35133267A8F7EC35046a83DCA0f4Ca8A6e1b7A9A",
     chain: "sepolia",
     anonymous: true,
+    timeoutMs: 25_000,
   },
   nym: {
     label: "Nym mixnet (Ethereum mainnet specifier)",
@@ -42,6 +47,7 @@ export const NETWORKS: Record<NetworkName, Network> = {
     address: "0x3aCD9742C68F6d993066Ae25533e09b9e1f60eD0",
     chain: "mainnet",
     anonymous: true,
+    timeoutMs: 60_000,
   },
   passthrough: {
     label: "Passthrough (NOT anonymous, dev only)",
@@ -49,6 +55,7 @@ export const NETWORKS: Record<NetworkName, Network> = {
     address: "0x4fd77be300f31c5fe6ab266d35d27750a3478d27",
     chain: "mainnet",
     anonymous: false,
+    timeoutMs: 25_000,
   },
 };
 
@@ -106,7 +113,18 @@ function countUnloggedDirectRequests() {
   }).observe({ type: "resource", buffered: true });
 }
 
-export function getWorker(name: NetworkName = config.network) {
+// Which network this tab is really using: the configured one, unless Nox couldn't boot here (see fallback.ts).
+const FALLBACK_KEY = "bp.fallback";
+const read = (store: () => Storage, k: string) => { try { return store().getItem(k); } catch { return null; } };
+let boot: BootState = initialBoot(config.network, !!read(() => localStorage, NETWORK_KEY), read(() => sessionStorage, FALLBACK_KEY) === FALLBACK_TO);
+const bootSubs = new Set<() => void>();
+/** Observable boot state, for the "using Nym" banner. */
+export const bootState = {
+  get: () => boot,
+  subscribe: (f: () => void) => (bootSubs.add(f), () => bootSubs.delete(f)),
+};
+
+export function getWorker(name: NetworkName = boot.network) {
   if (worker) return worker;
   countUnloggedDirectRequests();
   const n = NETWORKS[name];
@@ -118,7 +136,14 @@ export function getWorker(name: NetworkName = config.network) {
   return worker;
 }
 
-export const network = () => NETWORKS[config.network];
+export const network = () => NETWORKS[boot.network];
+
+/** An RpcClient on the anonymous path whose time limit follows the network in use, even after a fallback switch. */
+export function anonRpc(url: string, isolationKey: string): RpcClient {
+  const c = new RpcClient(url, anonFetch, isolationKey);
+  Object.defineProperty(c, "timeoutMs", { get: () => network().timeoutMs });
+  return c;
+}
 
 /**
  * The app's only network path. Every request is recorded for the Spy Panel exactly as the server receives it.
@@ -131,7 +156,28 @@ export const anonFetch: AnonFetch = (url, init) => {
     const { anonOptions: _, ...rest } = init;
     return fetch(url, rest);
   }
-  return getWorker().fetch(url, init);
+  const w = getWorker();
+  // Dev-only: ?simulate-nox-fail reproduces the iPhone Safari boot error, to exercise the fallback on desktop.
+  const simulated = import.meta.env.DEV && boot.network === "sphinx" && location.search.includes("simulate-nox-fail")
+    ? Promise.reject(new Error("NoxWorkerError: kps.exchange.failed /topology: TOPOLOGY_FETCH_FAILED (simulated)")) : undefined;
+  return (simulated ?? w.fetch(url, init)).then(
+    (r) => {
+      if (worker === w && boot.successes === 0) boot = onSuccess(boot);
+      return r;
+    },
+    (e) => {
+      if (worker !== w) throw e; // a request from a worker we already replaced
+      const { state, switchTo } = onFailure(boot, String((e as Error)?.message ?? e), (n) => NETWORKS[n].anonymous);
+      boot = state;
+      if (!switchTo) throw e;
+      // One Anon-RPC worker per page: remember the switch for this tab and restart cleanly on the fallback network.
+      // After the reload this tab starts on Nym (fellBack), so it can't loop. Nothing is ever retried directly.
+      try { sessionStorage.setItem(FALLBACK_KEY, switchTo); } catch {}
+      bootSubs.forEach((f) => f());
+      location.reload();
+      throw e;
+    },
+  );
 };
 
 export function resetWorker() {

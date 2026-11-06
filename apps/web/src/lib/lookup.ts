@@ -2,9 +2,9 @@
 //   1. PIR against the relay's table: the relay computes over every row and never learns which one you read.
 //   2. Fallback for addresses not in the table: ask a public node through the mixnet on a fresh route.
 //      The node learns the address, but not who asked, and two such lookups can't be linked.
-import { PirClient, RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey, unpackRecord, type PirTable } from "@bina/sdk";
+import { PirClient, SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey, unpackRecord, type PirTable } from "@bina/sdk";
 import { encodeFunctionData, erc20Abi, type Address, type Hex } from "viem";
-import { anonFetch } from "./anon";
+import { anonFetch, anonRpc } from "./anon";
 import { config } from "./config";
 
 export interface LookupResult {
@@ -69,7 +69,7 @@ export async function pirLookup(address: Address, onStep?: (s: string) => void):
 
 export async function mixnetLookup(address: Address): Promise<LookupResult> {
   const t0 = performance.now();
-  const rpc = new RpcClient(config.readUrl, anonFetch, newIsolationKey()); // fresh route per lookup
+  const rpc = anonRpc(config.readUrl, newIsolationKey()); // fresh route per lookup
   const call = (token: Address) =>
     rpc.call<Hex>("eth_call", [{ to: token, data: encodeFunctionData({ abi: erc20Abi, functionName: "balanceOf", args: [address] }) }, "latest"]);
   const [eth, usdc, weth, head] = await Promise.all([

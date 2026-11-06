@@ -203,6 +203,21 @@ the second-provider check each use one key for the session (address-free, identi
 has its own; every PIR directory fetch, PIR query, history block, one-off balance read, quote, token-name read and
 relay-log poll gets a fresh key; a trade's preparation reads share one key and its send uses another.
 
+## When Nox can't start: automatic fallback to Nym
+
+EF (Andrew Morris, Anon-RPC track, Nov 6): Nox fails on iPhone Safari with harness 0.4.0. The KPS dial succeeds,
+then `kps.exchange.failed` on `/topology` -> `TOPOLOGY_FETCH_FAILED` on all anchors, and it likely can't be fixed
+during the hackathon; Nym works there (boot ~11 s, reads ~10–35 s).
+
+So if Nox can't boot, the app switches to Nym by itself. It decides from the failure, never the browser name: the
+topology boot error, or 3 failures in a row before Nox has ever answered. It only switches before Nox has worked in
+this tab, never overrides a network you picked, and only to another anonymous network, never to a direct
+connection. The switch restarts the tab once on Nym (one Anon-RPC worker per page) and is remembered for that tab; a
+banner says "Nox isn't available in this browser, using Nym (slower alerts)". Request time limits follow the network
+(25 s on Nox, 60 s on Nym and Tor), because Nym reads can take over 30 s. Logic: `apps/web/src/lib/fallback.ts`, with
+tests in `apps/web/test/fallback.test.ts`. Tested on desktop by simulating the exact error (`?simulate-nox-fail`,
+development builds only): live on Nym in 41 s; not yet tested on a real iPhone.
+
 ## Choice of network
 
 Nox (Sphinx) is the default; the Network page offers others, saved per device. Measured Nov 6 from the browser

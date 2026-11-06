@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { network } from "../lib/anon";
 import { friendly } from "../lib/errors";
+import FallbackBanner from "./FallbackBanner";
 import { useStore } from "../lib/store";
 import Icon from "./Icon";
 import Tape from "./Tape";
@@ -63,7 +64,7 @@ export default function Shell({ route, children }: { route: string; children: Re
         <Status />
       </header>
 
-      <main className="main" id="main">{children}</main>
+      <main className="main" id="main"><FallbackBanner />{children}</main>
 
       <aside className="rail" aria-label="Verified blocks">
         <Tape />

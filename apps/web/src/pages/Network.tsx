@@ -1,7 +1,7 @@
 // Where every request goes, and how the privacy route is doing.
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Tape from "../components/Tape";
-import { getWorker, network } from "../lib/anon";
+import { bootState, getWorker, network } from "../lib/anon";
 import { NETWORK_KEY, config, isLocal, type NetworkName } from "../lib/config";
 import { fmtBytes } from "../lib/format";
 import { reqlog, trafficShare } from "../lib/reqlog";
@@ -18,17 +18,19 @@ const CHOICES: { id: NetworkName; name: string; note: string; disabled?: string 
 ];
 
 function NetworkPicker() {
+  const boot = useSyncExternalStore(bootState.subscribe, bootState.get);
+  const active = boot.network;
   const pick = (id: NetworkName) => {
-    if (id === config.network) return;
-    try { localStorage.setItem(NETWORK_KEY, id); } catch {}
+    if (id === active) return;
+    try { localStorage.setItem(NETWORK_KEY, id); sessionStorage.removeItem("bp.fallback"); } catch {}
     location.reload(); // one Anon-RPC worker per page: switching networks starts a fresh one
   };
   return (
     <fieldset className="routes net-pick">
       <legend className="small muted">Your choice is saved on this device. Switching reloads the app.</legend>
       {CHOICES.map((c) => (
-        <label key={c.id} className="route" data-on={config.network === c.id} data-disabled={!!c.disabled}>
-          <input type="radio" name="net" checked={config.network === c.id} disabled={!!c.disabled} onChange={() => pick(c.id)} />
+        <label key={c.id} className="route" data-on={active === c.id} data-disabled={!!c.disabled}>
+          <input type="radio" name="net" checked={active === c.id} disabled={!!c.disabled} onChange={() => pick(c.id)} />
           <span><strong>{c.name}</strong><span className="small muted">{c.disabled ?? c.note}</span></span>
         </label>
       ))}

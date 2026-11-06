@@ -2,12 +2,12 @@
 // IP is never attached to it. With a private builder configured (Flashbots Protect on mainnet) it also skips the
 // public mempool; Sepolia has no such builder today, so there it goes to the public mempool.
 // Disclosed: preparing a tx (nonce, gas) names your address to a read node, on a fresh one-off mixnet route.
-import { RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey } from "@bina/sdk";
+import { SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey } from "@bina/sdk";
 import {
   createPublicClient, encodeFunctionData, erc20Abi, http, parseAbi, type Address, type Hex,
 } from "viem";
 import { sepolia } from "viem/chains";
-import { anonFetch } from "./anon";
+import { anonFetch, anonRpc } from "./anon";
 import { config } from "./config";
 import { deviceAccount } from "./device";
 
@@ -81,7 +81,7 @@ export async function execute(plan: TxPlan[], route: Route, onStep?: (s: string)
   const key = newIsolationKey(); // one route for this trade's prep reads; unlinkable from anything else
   const reader = createPublicClient({ chain: sepolia, transport: anonTransport(config.readUrl, key) });
   if (route === "private" && !config.privateSendUrl) throw new Error("No private builder is configured for this network.");
-  const sender = new RpcClient(route === "private" ? config.privateSendUrl! : config.readUrl, anonFetch, newIsolationKey());
+  const sender = anonRpc(route === "private" ? config.privateSendUrl! : config.readUrl, newIsolationKey());
   let nonce = await reader.getTransactionCount({ address: account.address, blockTag: "pending" });
   const fees = await reader.estimateFeesPerGas();
   const hashes: Hex[] = [];
@@ -106,7 +106,7 @@ export async function execute(plan: TxPlan[], route: Route, onStep?: (s: string)
 let privateCheck: Promise<boolean> | undefined;
 export function privateRouteAvailable(): Promise<boolean> {
   if (!config.privateSendUrl) return Promise.resolve(false);
-  privateCheck ??= new RpcClient(config.privateSendUrl, anonFetch, newIsolationKey())
+  privateCheck ??= anonRpc(config.privateSendUrl, newIsolationKey())
     .call<Hex>("eth_chainId")
     .then((id) => BigInt(id) === BigInt(sepolia.id))
     .catch(() => false);

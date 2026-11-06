@@ -2,10 +2,10 @@
 // A lookup names a token contract, never a wallet. Known tokens never hit the network.
 // The engine resolves every token that trades in every block (resolveAll), so which tokens get looked up
 // doesn't depend on which wallets you watch. Symbols of unknown tokens are untrusted: anyone can deploy "USDC".
-import { ETH_LOGGER, RpcClient, SEPOLIA_TOKENS, newIsolationKey } from "@bina/sdk";
+import { ETH_LOGGER, SEPOLIA_TOKENS, newIsolationKey } from "@bina/sdk";
 import { useEffect, useState } from "react";
 import { decodeFunctionResult, encodeFunctionData, erc20Abi, type Address, type Hex } from "viem";
-import { anonFetch } from "./anon";
+import { anonRpc } from "./anon";
 import { config } from "./config";
 
 export interface TokenMeta {
@@ -27,7 +27,7 @@ const inflight = new Map<string, Promise<TokenMeta>>();
 const subs = new Set<() => void>();
 
 async function fetchMeta(token: Address): Promise<TokenMeta> {
-  const rpc = new RpcClient(config.readUrl, anonFetch, newIsolationKey());
+  const rpc = anonRpc(config.readUrl, newIsolationKey());
   const call = async (fn: "symbol" | "decimals") => {
     const data = await rpc.call<Hex>("eth_call", [{ to: token, data: encodeFunctionData({ abi: erc20Abi, functionName: fn }) }, "latest"]);
     return decodeFunctionResult({ abi: erc20Abi, functionName: fn, data });

@@ -1,6 +1,7 @@
 // Landing page: light, product-first. The hero is the real app, fed by the live engine, with real cards around it.
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import FallbackBanner from "../components/FallbackBanner";
 import Icon from "../components/Icon";
 import LeakCompare from "../landing/LeakCompare";
 import Reveal from "../landing/Reveal";
@@ -404,6 +405,7 @@ export default function Landing() {
   return (
     <div className="S">
       <Nav />
+      <div className="S-wrap"><FallbackBanner className="fallback-banner S-fallback" /></div>
       <main>
         <Hero />
 

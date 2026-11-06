@@ -529,3 +529,8 @@ html, body { overflow-x: clip; }
 .guide-steps li[data-done="true"] .guide-text b { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
 .guide-text small { color: var(--ink-2); font-size: 13px; }
 .guide-hide { justify-self: start; border: 0; background: none; color: var(--ink-3); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Nox -> Nym fallback notice */
+.fallback-banner { display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; font-size: 14px; color: var(--ink);
+  background: color-mix(in srgb, var(--signal) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--signal) 35%, transparent); }
+.fallback-banner span { color: var(--ink-2); }

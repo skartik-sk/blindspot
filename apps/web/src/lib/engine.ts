@@ -1,8 +1,8 @@
 // The live loop: follow the chain through Anon-RPC, verify every block, filter it here on the device.
 // Requests name block numbers only. Which wallets you hold or watch never leaves this tab.
-import { ETH_LOGGER, RpcClient, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scanBlock, type Activity, type PendingTx, type VerifiedBlock } from "@bina/sdk";
+import { ETH_LOGGER, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scanBlock, type Activity, type PendingTx, type VerifiedBlock } from "@bina/sdk";
 import type { Address } from "viem";
-import { anonFetch } from "./anon";
+import { anonFetch, anonRpc } from "./anon";
 import { config } from "./config";
 import { fmtToken, short } from "./format";
 import { resolveAll } from "./tokens";
@@ -23,8 +23,8 @@ export function startEngine() {
   if (ac) return;
   ac = g.__bpEngine = new AbortController();
   setState(() => ({ status: { phase: "connecting", message: "Opening a route through the mixnet" } }));
-  const rpc = new RpcClient(config.feedUrl, anonFetch, newIsolationKey());
-  const anchor = new RpcClient(config.anchorUrl, anonFetch, newIsolationKey());
+  const rpc = anonRpc(config.feedUrl, newIsolationKey());
+  const anchor = anonRpc(config.anchorUrl, newIsolationKey());
   follow({
     rpc, anchor, compact: config.feedCompact, signal: ac.signal, pollMs: 3000,
     onBlock,
