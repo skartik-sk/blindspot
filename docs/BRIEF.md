@@ -186,7 +186,7 @@ done
 
 ## Submission checklist
 
-Deadline: Nov 8, 9:00 AM IST.
+Deadline: Sat Nov 7, 9:00 AM IST.
 
 - [ ] Public repo under an open-source license (MIT or Apache-2.0), steady commit history
 - [ ] README: setup, architecture, honest trade-offs, what traffic (if any) skips Anon-RPC and why
