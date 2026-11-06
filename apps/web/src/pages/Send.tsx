@@ -42,10 +42,11 @@ export default function Send({ query }: { query: URLSearchParams }) {
     const sold = assetOf(copy.sold?.token);
     const bought = assetOf(copy.bought?.token);
     setMode("Swap");
-    if (sold && bought) {
-      setAsset(sold === "WETH" ? "ETH" : sold);
-      setToAsset(bought === "WETH" && sold !== "ETH" ? "WETH" : bought);
-    }
+    // Buy what they bought (if we can trade it), paying with what they sold or ETH.
+    const target: Asset = bought ?? (sold === "USDC" ? "WETH" : "USDC");
+    const pay: Asset = sold && sold !== target ? sold : "ETH";
+    setToAsset(target);
+    setAsset(pay);
   }, [copy]);
 
   const amt = useMemo(() => {

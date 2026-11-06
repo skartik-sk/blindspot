@@ -49,7 +49,6 @@ body {
   background: var(--paper);
   color: var(--ink);
   font: 400 15px/1.5 var(--sans);
-  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
 }
 a { color: inherit; }
@@ -60,6 +59,8 @@ h1 { font-size: 30px; line-height: 1.15; }
 h2 { font-size: 19px; line-height: 1.3; }
 h3 { font-size: 15px; }
 p { margin: 0; }
+/* Tabular figures only where numbers line up; on body text they space out punctuation in this face. */
+.qty, .row-end, .tape, .spy-score, .steps, .kv dd { font-variant-numeric: tabular-nums; }
 .mono { font-family: var(--mono); font-size: 0.92em; letter-spacing: 0; }
 .muted { color: var(--ink-2); }
 .faint { color: var(--ink-3); }
@@ -70,7 +71,7 @@ p { margin: 0; }
 /* ---------- Shell ---------- */
 .shell { min-height: 100dvh; display: grid; grid-template-columns: 1fr; }
 .side { display: none; }
-.main { padding: 16px 16px 96px; max-width: 760px; width: 100%; margin: 0 auto; display: grid; gap: 20px; align-content: start; }
+.main { padding: 16px 16px 96px; max-width: 760px; width: 100%; min-width: 0; margin: 0 auto; display: grid; gap: 20px; align-content: start; }
 .rail { display: none; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; position: sticky; top: 0; z-index: 5;
   background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
@@ -119,7 +120,7 @@ p { margin: 0; }
 
 /* ---------- Panels ---------- */
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px; display: grid; gap: 14px; }
-.panel > header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.panel > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; }
 .panel.flush { padding: 0; gap: 0; overflow: hidden; }
 .panel.flush > header { padding: 16px 18px 10px; }
 
@@ -152,17 +153,20 @@ p { margin: 0; }
 input[type="text"], input[type="number"], select, textarea {
   width: 100%; padding: 11px 13px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--paper); outline: none; }
 input:focus, select:focus, textarea:focus { border-color: var(--focus); }
-input.mono { font-family: var(--mono); font-size: 14px; }
+input/* Tabular figures only where numbers line up; on body text they space out punctuation in this face. */
+.qty, .row-end, .tape, .spy-score, .steps, .kv dd { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); font-size: 14px; }
 .form { display: grid; gap: 12px; }
 .form-row { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 640px) { .form-row { grid-template-columns: 2fr 1fr; } }
 .seg { display: inline-grid; grid-auto-flow: column; background: var(--sunk); border-radius: 10px; padding: 3px; gap: 2px; }
 .seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(19 32 58 / 0.12); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: var(--radius); border: 1px solid var(--line);
   background: var(--surface); font-weight: 600; cursor: pointer; text-decoration: none; }
 .btn:hover { border-color: var(--ink-3); }
+.btn svg { width: 17px; height: 17px; flex: none; }
 .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .btn.primary:hover { background: color-mix(in srgb, var(--ink) 88%, var(--signal)); }
 .btn.signal { background: var(--signal); color: var(--signal-ink); border-color: var(--signal); }
@@ -176,9 +180,9 @@ input.mono { font-family: var(--mono); font-size: 14px; }
 .alert-icon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--sunk); flex: none; }
 .alert-icon[data-kind="swap"] { background: var(--signal-wash); }
 .alert-icon svg { width: 18px; height: 18px; }
-.alert-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 13px 18px; border-top: 1px solid var(--line); }
-.alert-row:first-child { border-top: 0; }
-.alert-row[data-new="true"] { background: color-mix(in srgb, var(--signal-wash) 55%, transparent); }
+.rows > li.alert-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 13px 18px; border-top: 1px solid var(--line); }
+.rows > li.alert-row:first-child { border-top: 0; }
+.rows > li.alert-row[data-new="true"] { background: color-mix(in srgb, var(--signal-wash) 55%, transparent); }
 
 /* ---------- Block tape ---------- */
 .tape { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }

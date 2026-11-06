@@ -8,6 +8,9 @@ import { fmtToken, short } from "./format";
 import { getState, labelOf, setBalance, setState, type Alert, type Trader } from "./store";
 
 let ac: AbortController | undefined;
+/** Recent verified blocks, kept in memory so a newly watched wallet's recent trades show up without any request. */
+const recent: VerifiedBlock[] = [];
+const KEEP = 30;
 
 const USDC = SEPOLIA_TOKENS[0].token;
 const WETH = SEPOLIA_TOKENS[1].token;
@@ -43,7 +46,7 @@ function senders(b: VerifiedBlock) {
 
 function describe(a: Activity, b: VerifiedBlock): Alert[] {
   const block = b.number.toString();
-  const base = { block, t: Date.now(), address: a.address, anchored: b.anchored };
+  const base = { block, t: Number(b.header.timestamp) * 1000, address: a.address, anchored: b.anchored };
   const who = labelOf(a.address) ?? short(a.address);
   const out: Alert[] = [];
   for (const tx of a.sent) {
@@ -72,7 +75,21 @@ function describe(a: Activity, b: VerifiedBlock): Alert[] {
   return out;
 }
 
+/** Replay recent verified blocks for one address (all local). */
+export function rescan(address: Address) {
+  const alerts = recent.flatMap((b) => scanBlock(b.bal, b.feed, [address], SEPOLIA_TOKENS).flatMap((a) => describe(a, b)));
+  if (!alerts.length) return 0;
+  setState((st) => {
+    const have = new Set(st.alerts.map((a) => a.id));
+    const fresh = alerts.filter((a) => !have.has(a.id));
+    return { alerts: [...fresh, ...st.alerts].sort((x, y) => Number(y.block) - Number(x.block)).slice(0, 200) };
+  });
+  return alerts.length;
+}
+
 async function onBlock(b: VerifiedBlock) {
+  recent.push(b);
+  if (recent.length > KEEP) recent.shift();
   const s = getState();
   const watched = s.wallets.map((w) => w.address);
   const acts = scanBlock(b.bal, b.feed, watched, SEPOLIA_TOKENS);
@@ -95,7 +112,7 @@ async function onBlock(b: VerifiedBlock) {
   const from = senders(b);
   const traders: Trader[] = [];
   for (const f of b.feed)
-    if (f.kind === "swap" && from.has(f.tx)) traders.push({ address: from.get(f.tx)!, block, pool: f.pool, dex: f.dex });
+    if (f.kind === "swap" && from.has(f.tx) && !traders.some((t) => t.address === from.get(f.tx))) traders.push({ address: from.get(f.tx)!, block, pool: f.pool, dex: f.dex });
 
   const pending = s.pendingTx;
   const landed = pending && !pending.landed && acts.some((a) => a.sent.length && s.wallets.find((w) => w.kind === "device")?.address === a.address);

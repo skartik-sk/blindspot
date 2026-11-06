@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { isAddress, type Address } from "viem";
 import Icon from "../components/Icon";
 import { fmtAmount, short } from "../lib/format";
+import { rescan } from "../lib/engine";
 import { privateBalance } from "../lib/lookup";
 import { addWallet, removeWallet, setBalance, useStore, type Bal, type Wallet } from "../lib/store";
 
@@ -73,6 +74,7 @@ export function AddWallet({ kind, onDone }: { kind: "mine" | "watch"; onDone?: (
     const a = addr.trim().toLowerCase() as Address;
     addWallet({ address: a, label: label.trim() || short(a), kind });
     if (kind === "mine") loadBalance(a).catch(() => {});
+    rescan(a);
     setAddr("");
     setLabel("");
     onDone?.();

@@ -1,21 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icon";
-import { ago, short } from "../lib/format";
-import { addWallet, removeWallet, setState, useStore, type Alert } from "../lib/store";
+import { ago, fmtAmount, short } from "../lib/format";
+import { useToken } from "../lib/tokens";
+import { TOKEN } from "../lib/trade";
+import { rescan } from "../lib/engine";
+import { addWallet, removeWallet, setState, useStore, type Alert, type Wallet } from "../lib/store";
 import { AddWallet } from "./Portfolio";
 
+export function watchWallet(w: Wallet) {
+  addWallet(w);
+  rescan(w.address);
+}
+
+function Leg({ leg }: { leg?: { token: `0x${string}`; value: bigint } }) {
+  const m = useToken(leg?.token);
+  if (!leg) return null;
+  return <span>{m ? fmtAmount(leg.value, m.decimals) : "…"} {m?.symbol ?? short(leg.token)}</span>;
+}
+
+const tradable = new Set<string>([TOKEN.USDC, TOKEN.WETH]);
+
 function AlertRow({ a, fresh }: { a: Alert; fresh: boolean }) {
+  const legs = a.sold && a.bought;
+  const canCopy = a.kind === "swap" && !!legs && (tradable.has(a.sold!.token) || tradable.has(a.bought!.token));
   return (
     <li className="alert-row" data-new={fresh}>
       <span className="alert-icon" data-kind={a.kind}><Icon name={a.kind} /></span>
       <div style={{ minWidth: 0, display: "grid", gap: 2 }}>
         <span className="row-title"><span>{a.title}</span></span>
-        <span className="row-sub"><span>{a.detail}</span></span>
+        <span className="row-sub">{legs ? <><Leg leg={a.sold} /><span aria-label="for">→</span><Leg leg={a.bought} /></> : <span>{a.detail}</span>}</span>
       </div>
       <div className="row-end small">
         <span className="muted">{ago(a.t)}</span>
         <span className={a.anchored ? "up" : "faint"}>block {a.block}{a.anchored ? " ✓" : ""}</span>
-        {a.kind === "swap" && <a className="btn small" href={`#/send?copy=${encodeURIComponent(a.id)}`}>Copy trade</a>}
+        {canCopy && <a className="btn small" href={`#/send?copy=${encodeURIComponent(a.id)}`}>Copy trade</a>}
       </div>
     </li>
   );
@@ -91,7 +109,7 @@ export default function Watch() {
                   <span className="row-title mono"><span>{short(t.address)}</span></span>
                   <span className="row-sub">Uniswap {t.dex} · pool {short(t.pool)} · block {t.block}</span>
                 </div>
-                <button className="btn small" onClick={() => addWallet({ address: t.address, label: `Trader ${short(t.address)}`, kind: "watch" })}>Watch</button>
+                <button className="btn small" onClick={() => watchWallet({ address: t.address, label: `Trader ${short(t.address)}`, kind: "watch" })}>Watch</button>
               </li>
             ))}
           </ul>
