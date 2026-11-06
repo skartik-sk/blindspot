@@ -16,7 +16,7 @@ export interface LookupResult {
   /** Recent active blocks (newest first), from the PIR record. Only for directory addresses. */
   history?: number[];
   /** Other directory addresses' histories from the same PIR reply: cover for fetching this one's blocks. */
-  cover?: number[][];
+  cover?: { address: Address; history: number[] }[];
   /** What the answering server received. */
   serverSaw: string;
   ms: number;
@@ -61,7 +61,7 @@ export async function pirLookup(address: Address, onStep?: (s: string) => void):
   const at0 = parseInt(t.block, 16);
   const b = unpackRecord(c.decode(t, index, j.answers), at0);
   const cover = c.decodeColumn(t, index, j.answers).filter((x) => x.index !== index)
-    .map((x) => unpackRecord(x.record, at0).history).filter((h) => h.length > 0);
+    .map((x) => ({ address: t.addresses[x.index], history: unpackRecord(x.record, at0).history })).filter((x) => x.history.length > 0);
   mark("Decrypted one row on this device", at);
   return { ...b, cover, block: t.block, via: "pir", ms: Math.round(performance.now() - t0), steps,
     serverSaw: `epoch ${t.epoch} and ${q.q.length} ciphertexts. No address, no row number.` };

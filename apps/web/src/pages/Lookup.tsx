@@ -161,6 +161,12 @@ export default function Lookup() {
                 </ul>
               ) : <p className="small muted">Active in those blocks, but no swaps or token transfers to show (for example, contract calls).</p>}
               {hist.r.failed > 0 && <p className="small muted">{hist.r.failed} block(s) couldn't be verified and were left out.</p>}
+              {hist.r.mismatches > 0 && (
+                <div className="callout">
+                  <strong className="down">The relay's index didn't match the chain</strong>
+                  <span>{hist.r.mismatches} listed activity entr{hist.r.mismatches === 1 ? "y" : "ies"} had no matching activity in the verified blocks. Treat this relay as untrusted.</span>
+                </div>
+              )}
               <div className="callout">
                 <strong>What the relay saw</strong>
                 <span>

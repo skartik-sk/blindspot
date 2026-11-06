@@ -23,6 +23,8 @@ export interface HistoryResult {
   crowd: number;
   /** Blocks that couldn't be fetched or verified (never shown as data). */
   failed: number;
+  /** Index entries the verified blocks contradict (an address listed as active in a block where it did nothing). */
+  mismatches: number;
   ms: number;
 }
 
@@ -67,18 +69,22 @@ function rowsFor(address: Address, b: VerifiedBlock): Alert[] {
 }
 
 /** Pick the crowd: up to ANONYMITY-1 other non-empty histories, chosen at random. */
-export function crowdFor(real: number[], cover: number[][]) {
+export type Cover = { address: Address; history: number[] };
+
+export function crowdFor(real: number[], cover: Cover[]) {
   const pool = [...cover];
-  const picked: number[][] = [];
+  const picked: Cover[] = [];
   while (picked.length < ANONYMITY - 1 && pool.length) picked.push(pool.splice(rand(pool.length), 1)[0]);
-  return { picked, crowd: 1 + picked.length, blocks: [...new Set([...real, ...picked.flat()])] };
+  return { picked, crowd: 1 + picked.length, blocks: [...new Set([...real, ...picked.flatMap((c) => c.history)])] };
 }
 
-export async function privateHistory(address: Address, real: number[], cover: number[][], onProgress?: (done: number, total: number) => void): Promise<HistoryResult> {
+/** Did this address really do something in this verified block (send, or change its ETH/USDC/WETH balance)? */
+const activeIn = (address: Address, b: VerifiedBlock) => scanBlock(b.bal, b.feed, [address], SEPOLIA_TOKENS).length > 0;
+
+export async function privateHistory(address: Address, real: number[], cover: Cover[], onProgress?: (done: number, total: number) => void): Promise<HistoryResult> {
   const t0 = performance.now();
-  const { crowd, blocks } = crowdFor(real, cover);
+  const { crowd, blocks, picked } = crowdFor(real, cover);
   const order = shuffle(blocks);
-  const want = new Set(real);
   const got = new Map<number, VerifiedBlock>();
   let done = 0;
   let failed = 0;
@@ -87,15 +93,20 @@ export async function privateHistory(address: Address, real: number[], cover: nu
     for (let n = queue.shift(); n !== undefined; n = queue.shift()) {
       try {
         const b = await fetchVerified(n);
-        if (b && want.has(n)) got.set(n, b);
-        else if (!b && want.has(n)) failed++;
+        if (b) got.set(n, b);
+        else failed++;
       } catch {
-        if (want.has(n)) failed++; // a block that fails verification is dropped, never shown
+        failed++; // a block that fails verification is dropped, never shown
       }
       onProgress?.(++done, order.length);
     }
   };
   await Promise.all(Array.from({ length: 4 }, worker));
-  const rows = real.flatMap((n) => (got.has(n) ? rowsFor(address.toLowerCase() as Address, got.get(n)!) : []));
-  return { rows: rows.sort((x, y) => Number(y.block) - Number(x.block)), blocks: order.length, crowd, failed, ms: Math.round(performance.now() - t0) };
+  const me = address.toLowerCase() as Address;
+  const rows = real.flatMap((n) => (got.has(n) ? rowsFor(me, got.get(n)!) : []));
+  // Hold the relay to its index: every listed (address, block) pair must show activity in the verified block.
+  // A lie (e.g. planted cover entries to probe users) shows up here instead of passing silently.
+  const claims = [...real.map((n) => [me, n] as const), ...picked.flatMap((c) => c.history.map((n) => [c.address, n] as const))];
+  const mismatches = claims.filter(([a, n]) => got.has(n) && !activeIn(a, got.get(n)!)).length;
+  return { rows: rows.sort((x, y) => Number(y.block) - Number(x.block)), blocks: order.length, crowd, failed, mismatches, ms: Math.round(performance.now() - t0) };
 }
