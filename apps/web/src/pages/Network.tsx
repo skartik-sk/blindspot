@@ -2,13 +2,39 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Tape from "../components/Tape";
 import { getWorker, network } from "../lib/anon";
-import { config, isLocal } from "../lib/config";
+import { NETWORK_KEY, config, isLocal, type NetworkName } from "../lib/config";
 import { fmtBytes } from "../lib/format";
 import { reqlog, trafficShare } from "../lib/reqlog";
 import { useStore } from "../lib/store";
 import { friendly } from "../lib/errors";
 
 const host = (u?: string) => (u ? new URL(u).host : "not set");
+
+/** Measured on Nov 6 from this app, against the live relay. Tor's demo gateway refused connections at 19:15 IST. */
+const CHOICES: { id: NetworkName; name: string; note: string; disabled?: string }[] = [
+  { id: "sphinx", name: "Nox (default)", note: "First block in ~10 s, then ~2.6 s per block. Keeps up with the chain." },
+  { id: "nym", name: "Nym", note: "First block in ~50 s (downloads a larger client), then ~16 s per block: slower than Sepolia's 12 s blocks, so alerts lag." },
+  { id: "tor", name: "Tor", note: "Needs a gateway into Tor.", disabled: "Unavailable: the public demo gateway is offline." },
+];
+
+function NetworkPicker() {
+  const pick = (id: NetworkName) => {
+    if (id === config.network) return;
+    try { localStorage.setItem(NETWORK_KEY, id); } catch {}
+    location.reload(); // one Anon-RPC worker per page: switching networks starts a fresh one
+  };
+  return (
+    <fieldset className="routes net-pick">
+      <legend className="small muted">Privacy network (saved on this device)</legend>
+      {CHOICES.map((c) => (
+        <label key={c.id} className="route" data-on={config.network === c.id} data-disabled={!!c.disabled}>
+          <input type="radio" name="net" checked={config.network === c.id} disabled={!!c.disabled} onChange={() => pick(c.id)} />
+          <span><strong>{c.name}</strong><span className="small muted">{c.disabled ?? c.note}</span></span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
 
 export default function Network() {
   const status = useStore((s) => s.status);
@@ -63,6 +89,11 @@ export default function Network() {
           </dd>
           <dt>Per block</dt><dd>{tape.length ? `${fmtBytes(avgBytes)} in ${(avgMs / 1000).toFixed(1)} s on average` : "–"}</dd>
         </dl>
+      </section>
+
+      <section className="panel">
+        <header><h2>Privacy network</h2></header>
+        <NetworkPicker />
       </section>
 
       <section className="panel">

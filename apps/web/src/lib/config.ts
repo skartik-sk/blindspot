@@ -1,13 +1,24 @@
 // Runtime config from Vite env. Nothing secret lives here: these are public endpoints.
 const env = import.meta.env;
 
-export type NetworkName = "tor" | "sphinx" | "passthrough";
+export type NetworkName = "tor" | "sphinx" | "nym" | "passthrough";
+const NAMES: NetworkName[] = ["tor", "sphinx", "nym", "passthrough"];
+/** Settings: a per-device choice of privacy network (Network page). Nox (sphinx) is the default. */
+export const NETWORK_KEY = "bp.network";
+function chosenNetwork(): NetworkName | undefined {
+  try {
+    const v = localStorage.getItem(NETWORK_KEY) as NetworkName | null;
+    return v && NAMES.includes(v) ? v : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 const relay = env.VITE_RELAY_URL as string | undefined;
 const list = (v: string | undefined, fallback: string[]) => (v ? v.split(",").map((s: string) => s.trim()).filter(Boolean) : fallback);
 
 export const config = {
-  network: (env.VITE_ANON_NETWORK ?? "sphinx") as NetworkName,
+  network: chosenNetwork() ?? ((env.VITE_ANON_NETWORK ?? "sphinx") as NetworkName),
   /**
    * Our relay (public https in production: mixnet/Tor exits only reach https hosts on :443).
    * Serves verified blocks, compact receipts and PIR. Unset: blocks come straight from publicnode.

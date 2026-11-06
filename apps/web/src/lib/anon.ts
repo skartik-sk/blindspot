@@ -36,6 +36,13 @@ export const NETWORKS: Record<NetworkName, Network> = {
     chain: "sepolia",
     anonymous: true,
   },
+  nym: {
+    label: "Nym mixnet (Ethereum mainnet specifier)",
+    short: "Nym",
+    address: "0x3aCD9742C68F6d993066Ae25533e09b9e1f60eD0",
+    chain: "mainnet",
+    anonymous: true,
+  },
   passthrough: {
     label: "Passthrough (NOT anonymous, dev only)",
     short: "Passthrough",
