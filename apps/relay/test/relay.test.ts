@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { PirClient, RpcClient, SEPOLIA_USDC, balanceSlot, toHex, unpackBalances, unpackRecord, verifyReceipts, type BalJson, type CompactReceipt, type PirTable } from "@bina/sdk";
 import type { Address } from "viem";
-import { PirStore } from "../src/pirstore";
+import { PirStore, loadPirState, savePirState } from "../src/pirstore";
 import fx from "../../../packages/sdk/test/fixtures/block.json";
 import rcpts from "../../../packages/sdk/test/fixtures/receipts.json";
 import { bucket, createApp, type AppOptions } from "../src/app";
@@ -138,6 +138,41 @@ describe("relay", () => {
     expect(bucket("2001:DB8:0:1::5%eth0")).toBe(a);
     expect(bucket("2001:db8:0:2::1")).not.toBe(a);
     expect(bucket("::ffff:203.0.113.9")).toBe("203.0.113.9");
+  });
+});
+
+describe("PIR persistence", () => {
+  const read = async (addrs: Address[]) => new Map(addrs.map((a) => [a, { eth: 1n, usdc: 2n, weth: 3n }]));
+  const acct = (address: Address) => ({ address, storageChanges: [], storageReads: [], balanceChanges: [], codeChanges: [],
+    nonceChanges: [{ index: "0x1" as const, value: "0x1" as const }] });
+  const A = "0x00000000000000000000000000000000000000aa" as Address;
+
+  test("a restarted relay serves the same directory and history from disk", async () => {
+    const dir = await import("node:fs/promises").then((fs) => fs.mkdtemp(`${process.env.TMPDIR ?? "/tmp"}/pir-`));
+    const path = `${dir}/state.json`;
+    const before = new PirStore(read);
+    await before.onBlock(100n, [acct(A)] as BalJson);
+    await before.onBlock(105n, [acct(A)] as BalJson);
+    await savePirState(path, before.dump());
+
+    // "Restart": a brand-new store and app, built only from the file.
+    const after = PirStore.restore(read, {}, await loadPirState(path));
+    const { app } = setup({ pir: after });
+    const t = (await (await app(new Request("http://r/pir"))).json()) as PirTable;
+    expect(t.addresses).toContain(A);
+    const i = t.addresses.indexOf(A);
+    const c = await PirClient.create(1024);
+    const res = await app(new Request("http://r/pir", { method: "POST", body: JSON.stringify(c.query(t, i)) }));
+    const rec = unpackRecord(c.decode(t, i, ((await res.json()) as { answers: `0x${string}`[] }).answers), parseInt(t.block, 16));
+    expect(rec.history).toEqual([105, 100]);
+    expect(rec.eth).toBe(1n);
+  });
+
+  test("a missing or corrupt state file means a fresh start, not a crash", async () => {
+    expect(await loadPirState("/nonexistent/pir-state.json")).toBeUndefined();
+    const fresh = PirStore.restore(read, {}, { v: 1, known: [["not-an-address", {}]], pending: "x" });
+    expect(fresh.table()).toBeUndefined();
+    expect(PirStore.restore(read, {}, "garbage").table()).toBeUndefined();
   });
 });
 

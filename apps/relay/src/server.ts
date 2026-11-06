@@ -2,7 +2,9 @@ import { RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, type Balances } from "@bina/sdk"
 import { createPublicClient, erc20Abi, http, isAddress, type Address } from "viem";
 import { sepolia } from "viem/chains";
 import { MAX_PIR_BODY, createApp } from "./app";
-import { PirStore } from "./pirstore";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { PirStore, loadPirState, savePirState } from "./pirstore";
 import { BlockCache } from "./relay";
 import { SpyLog } from "./spy";
 
@@ -36,7 +38,12 @@ async function readBalances(addrs: Address[]) {
   return out;
 }
 const seeds = (process.env.PIR_SEED ?? "").split(",").map((s) => s.trim()).filter((s): s is Address => isAddress(s));
-const pir = new PirStore(readBalances, { seeds, max: Number(process.env.PIR_MAX ?? 1024), newPerBlock: Number(process.env.PIR_NEW_PER_BLOCK ?? 8) });
+// Directory + history survive restarts: kept outside the code folder, which deploys replace wholesale.
+const PIR_STATE = process.env.PIR_STATE ?? join(homedir(), ".bina-relay", "pir-state.json");
+const pirOpts = { seeds, max: Number(process.env.PIR_MAX ?? 1024), newPerBlock: Number(process.env.PIR_NEW_PER_BLOCK ?? 8) };
+const pir = PirStore.restore(readBalances, pirOpts, await loadPirState(PIR_STATE));
+console.log(`pir: ${pir.table()?.addresses.length ?? 0} addresses restored from ${PIR_STATE}`);
+let saving = false;
 
 const app = createApp({
   cache, spy, upstream, chainId,
@@ -65,7 +72,13 @@ async function loop() {
 }
 cache.onBlock((b) => {
   console.log(`block ${b.number} verified: ${b.bal.length} accounts, ${b.receipts.length} receipts`);
-  pir.onBlock(b.number, b.bal).catch((e) => console.error("pir:", (e as Error).message));
+  pir.onBlock(b.number, b.bal)
+    .then(async () => {
+      if (saving) return; // one save at a time; the next block saves again
+      saving = true;
+      try { await savePirState(PIR_STATE, pir.dump()); } finally { saving = false; }
+    })
+    .catch((e) => console.error("pir:", (e as Error).message));
 });
 loop();
 console.log(`relay on :${server.port}, chain ${chainId}, upstream ${new URL(UPSTREAM).host}`);
