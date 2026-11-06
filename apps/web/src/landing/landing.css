@@ -282,42 +282,75 @@
   .L-hero-foot { margin-top: -90px; }
 }
 
-/* ================= Light theme: same cinematic layout, ink on cool white, deeper greens ================= */
+/* ================= Light theme: its own design, not an inverted dark one =================
+   White paper, near-black ink, one vivid gradient line, black primary buttons, hairline cards, soft mint/sky light. */
 @media (prefers-color-scheme: light) {
   .L {
-    --l-bg: #f4f7f5; --l-surface: #ffffff; --l-surface-2: #ffffff;
-    --l-line: rgb(10 40 25 / 0.08); --l-line-strong: rgb(10 40 25 / 0.15);
-    --l-ink: #07130d; --l-ink-2: #43524a; --l-ink-3: #6a776f;
-    --l-green: #0f9d58; --l-good: #0f9d58; --l-bad: #d93a3a;
-    --l-grad: linear-gradient(100deg, #12a65c 0%, #0fb39a 45%, #1a7fd1 100%);
+    --l-bg: #ffffff; --l-surface: #ffffff; --l-surface-2: #ffffff;
+    --l-line: rgb(10 20 15 / 0.08); --l-line-strong: rgb(10 20 15 / 0.14);
+    --l-ink: #0a0f0d; --l-ink-2: #4a5550; --l-ink-3: #7a857f;
+    --l-green: #15a34a; --l-good: #15a34a; --l-bad: #dc2626;
+    --l-grad: linear-gradient(100deg, #16a34a 0%, #0d9488 45%, #2563eb 100%);
     color-scheme: light;
   }
-  .L::after { opacity: 0.05; mix-blend-mode: multiply; }
-  .L-hero::before { background-image: linear-gradient(rgb(10 40 25 / 0.05) 1px, transparent 1px), linear-gradient(90deg, rgb(10 40 25 / 0.05) 1px, transparent 1px); }
-  .L-aura { background: radial-gradient(closest-side, rgb(47 224 194 / 0.28), rgb(124 242 154 / 0.18) 55%, transparent); }
-  .L-mega .l1 { background: linear-gradient(100deg, #0b7a43 5%, #12a65c 35%, #0fb39a 70%, #1a7fd1); -webkit-background-clip: text; background-clip: text; }
-  .L-mega .l2 { background: linear-gradient(100deg, #0f8f53 0%, #0fb39a 45%, #2b6fb3); -webkit-background-clip: text; background-clip: text; }
-  .L-live, .L-pillnav, .L-nav .L-btn { background: rgb(255 255 255 / 0.75); }
-  .L-btn { background: #fff; }
-  .L-btn.primary { color: #fff; background: linear-gradient(180deg, #19b866, #0e9452); box-shadow: 0 0 0 1px rgb(15 157 88 / 0.4), 0 10px 30px -10px rgb(15 157 88 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.3); }
-  @media (hover: hover) { .L-btn:hover { background: #f0f4f1; } .L-btn.primary:hover { background: linear-gradient(180deg, #1fc670, #10a05a); } .L-pillnav a:hover { background: rgb(10 40 25 / 0.05); } }
-  .L-logo { background: radial-gradient(circle at 50% 120%, rgb(124 242 154 / 0.55), transparent 60%), #0b100e; }
-  .L-card, .L-tile, .L-step { background: linear-gradient(180deg, #ffffff, #f8faf9); box-shadow: 0 1px 0 rgb(255 255 255 / 0.8) inset, 0 20px 50px -30px rgb(10 40 25 / 0.25); }
+  .L::after { opacity: 0.025; mix-blend-mode: multiply; }
+
+  /* Nav: frosted white bar instead of a see-through scrim */
+  .L-nav::before { inset: 0; background: rgb(255 255 255 / 0.8); backdrop-filter: saturate(160%) blur(16px); -webkit-backdrop-filter: saturate(160%) blur(16px);
+    border-bottom: 1px solid var(--l-line); height: 76px; }
+  .L-pillnav { background: rgb(10 20 15 / 0.035); border-color: transparent; backdrop-filter: none; }
+  .L-pillnav a { color: var(--l-ink-2); }
+  @media (hover: hover) { .L-pillnav a:hover { background: #fff; color: var(--l-ink); box-shadow: 0 1px 2px rgb(10 20 15 / 0.08); } }
+
+  /* Hero */
+  .L-hero::before { background-image: linear-gradient(rgb(10 20 15 / 0.05) 1px, transparent 1px), linear-gradient(90deg, rgb(10 20 15 / 0.05) 1px, transparent 1px); }
+  .L-aura { background: radial-gradient(closest-side, rgb(110 231 183 / 0.45), rgb(125 211 252 / 0.25) 55%, transparent); filter: blur(40px); }
+  .L-live { background: #fff; border-color: var(--l-line-strong); box-shadow: 0 1px 2px rgb(10 20 15 / 0.06); }
+  .L-mega .l1 { background: none; color: var(--l-ink); -webkit-text-fill-color: var(--l-ink); }
+  .L-mega .l2 { background: linear-gradient(100deg, #16a34a 0%, #0d9488 40%, #2563eb 85%); -webkit-background-clip: text; background-clip: text; opacity: 1; }
+  .L-phone-glow { background: radial-gradient(closest-side, rgb(52 211 153 / 0.45), transparent 70%); }
+  .L-phone { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14), 0 50px 90px -30px rgb(10 30 20 / 0.45), 0 20px 40px -20px rgb(10 30 20 / 0.3); }
+  .L-hero-fade { background: linear-gradient(180deg, rgb(255 255 255 / 0), #fff 72%); }
+
+  /* Buttons: black primary, white secondary */
+  .L-btn { background: #fff; border-color: var(--l-line-strong); box-shadow: 0 1px 2px rgb(10 20 15 / 0.06); }
+  .L-btn.primary { color: #fff; background: #0a0f0d; border-color: #0a0f0d;
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.15) inset, 0 8px 24px -10px rgb(10 20 15 / 0.5), 0 0 0 4px rgb(22 163 74 / 0.12); }
+  .L-nav .L-btn { background: #fff; }
+  @media (hover: hover) {
+    .L-btn:hover { background: #f6f8f7; }
+    .L-btn.primary:hover { background: #1b2420; box-shadow: 0 1px 0 rgb(255 255 255 / 0.15) inset, 0 10px 28px -10px rgb(10 20 15 / 0.55), 0 0 0 5px rgb(22 163 74 / 0.18); }
+  }
+
+  /* Surfaces: crisp white cards with hairlines */
+  .L-card, .L-tile, .L-step, .L-window, .mx {
+    background: #fff; border-color: var(--l-line);
+    box-shadow: 0 1px 2px rgb(10 20 15 / 0.04), 0 16px 40px -24px rgb(10 20 15 / 0.18);
+  }
+  .L-center, .L-final { background: radial-gradient(ellipse 50% 60% at 50% 0%, rgb(110 231 183 / 0.22), transparent 70%), #fff; }
+  .L-final { background: radial-gradient(ellipse 60% 70% at 50% 115%, rgb(110 231 183 / 0.35), transparent 70%), #fff; }
+  .L-icon-glow { background: radial-gradient(closest-side, rgb(110 231 183 / 0.4), transparent); }
+  .L-icon { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), inset 0 -2px 0 rgb(124 242 154 / 0.7), 0 0 0 1px rgb(10 20 15 / 0.1), 0 24px 50px -18px rgb(10 30 20 / 0.55); }
   .L-h2 .w { text-shadow: none; }
-  .L-icon { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), inset 0 -2px 0 rgb(124 242 154 / 0.7), 0 0 0 1px rgb(15 157 88 / 0.25), 0 24px 60px -16px rgb(15 157 88 / 0.55); }
-  .L-window { background: linear-gradient(180deg, #ffffff, #f7faf8); box-shadow: 0 50px 120px -50px rgb(10 40 25 / 0.35); }
-  .L-window-bar i { background: rgb(10 40 25 / 0.12); }
-  .L-log li, .L-swap-row, .L-wallet, .L-block, .L-tok { background: rgb(10 40 25 / 0.03); border-color: var(--l-line); }
-  .L-log mark { background: rgb(217 58 58 / 0.12); color: #b42828; }
+  .L-tile::before { background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), rgb(22 163 74 / 0.07), transparent 45%); }
+  @media (hover: hover) { .L-tile:hover { border-color: rgb(22 163 74 / 0.3); } }
+
+  .L-window-bar { background: #fafbfa; }
+  .L-window-bar i { background: rgb(10 20 15 / 0.12); }
+  .L-log li { background: #fafbfa; border-color: var(--l-line); }
+  .L-log mark { background: rgb(220 38 38 / 0.1); color: #b91c1c; }
   .L-score.bad, .L-score.good { text-shadow: none; }
-  .L-pir i { background: rgb(10 40 25 / 0.07); }
-  @keyframes L-pir { 0%, 100% { background: rgb(10 40 25 / 0.07); } 30% { background: rgb(15 157 88 / 0.6); } }
-  .L-wallet .bar, .L-honest li::before { background: #07130d; box-shadow: none; }
-  .mx { background: radial-gradient(ellipse at 50% 0%, rgb(47 224 194 / 0.12), transparent 60%), #fff; }
-  .L-step code { background: rgb(10 40 25 / 0.04); }
-  .L-final { background: radial-gradient(ellipse 60% 70% at 50% 115%, rgb(15 157 88 / 0.2), transparent 70%), #fff; }
-  .L-hero-fade { background: linear-gradient(180deg, transparent, var(--l-bg) 85%); }
-  .L-phone { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14), 0 60px 100px -40px rgb(10 40 25 / 0.6); }
+  .L-swap-row, .L-wallet, .L-block { background: #fafbfa; border-color: var(--l-line); }
+  .L-tok { background: #fff; box-shadow: 0 0 0 1px var(--l-line-strong), 0 1px 2px rgb(10 20 15 / 0.06); }
+  .L-block:first-child { border-color: rgb(22 163 74 / 0.45); box-shadow: 0 0 0 3px rgb(22 163 74 / 0.08); }
+  .L-pir i { background: rgb(10 20 15 / 0.06); }
+  @keyframes L-pir { 0%, 100% { background: rgb(10 20 15 / 0.06); } 30% { background: rgb(22 163 74 / 0.75); } }
+  .L-wallet .bar, .L-honest li::before { background: #0a0f0d; box-shadow: none; }
+  .mx { background: radial-gradient(ellipse at 50% 0%, rgb(110 231 183 / 0.18), transparent 60%), #fff; }
+  .L-step code { background: #f6f8f7; }
+  .L-step-n { color: #fff; box-shadow: none; }
+  .L-stats { border-top-color: var(--l-line); }
+  .L-foot { background: #fafbfa; }
 }
 /* The phone is a dark device in both themes. */
 .L-phone { --l-green: #7cf29a; }

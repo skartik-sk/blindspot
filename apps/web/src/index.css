@@ -6,18 +6,18 @@
 @import "@fontsource/ibm-plex-mono/500.css";
 
 :root {
-  --paper: #f3f6f4;
+  --paper: #f7f8f7;
   --surface: #ffffff;
-  --sunk: #e8eeea;
-  --ink: #07130d;
-  --ink-2: #43524a;
-  --ink-3: #6a776f;
-  --line: #dbe4de;
-  --signal: #0f9d58;
+  --sunk: #eff2f0;
+  --ink: #0a0f0d;
+  --ink-2: #4a5550;
+  --ink-3: #7a857f;
+  --line: #e4e9e6;
+  --signal: #15a34a;
   --signal-ink: #ffffff;
   --signal-wash: #dcf5e6;
-  --signal-grad: linear-gradient(180deg, #19b866, #0e9452);
-  --grad: linear-gradient(100deg, #12a65c 0%, #0fb39a 45%, #1a7fd1 100%);
+  --signal-grad: linear-gradient(180deg, #232d29, #0a0f0d);
+  --grad: linear-gradient(100deg, #16a34a 0%, #0d9488 45%, #2563eb 100%);
   --up: #0f9d58;
   --down: #d93a3a;
   --focus: #0f9d58;
@@ -473,3 +473,10 @@ output.amount { display: block; overflow: hidden; text-overflow: ellipsis; white
 html, body { overflow-x: clip; }
 .tabs { left: 0; right: 0; }
 .kv dd, .panel p { overflow-wrap: anywhere; }
+
+/* Light: black primary actions (matches the landing), green stays the accent. */
+@media (prefers-color-scheme: light) {
+  .btn.primary { box-shadow: 0 8px 22px -12px rgb(10 15 13 / 0.6), 0 0 0 3px rgb(22 163 74 / 0.1); }
+  .quick a.primary span.q-ic, .btn.primary.ob-cta { background: #0a0f0d; border-color: #0a0f0d; color: #fff; }
+  .panel, .tcard, .route, .strip-item, .quick a span.q-ic { box-shadow: 0 1px 2px rgb(10 20 15 / 0.04); }
+}
