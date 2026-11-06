@@ -196,13 +196,16 @@ export function createApp(opts: AppOptions) {
       }
       if (req.method === "POST") {
         if (pirLimited(bucket(ip))) return json({ error: "rate limited" }, 429);
-        if (pirOverBudget()) return json({ error: "busy, try again in a minute" }, 503);
         let q: any;
         try {
           q = await readBody(req, MAX_PIR_BODY);
         } catch (e) {
           return json({ error: (e as Error).message }, 400);
         }
+        // Only well-formed queries for the live table spend the shared CPU budget.
+        const live = pir.table();
+        if (!live || !Array.isArray(q?.q) || q.q.length !== live.cols) return json({ error: "stale or malformed query" }, 400);
+        if (pirOverBudget()) return json({ error: "busy, try again in a minute" }, 503);
         // What the operator sees: an epoch and a pile of ciphertexts. No address, no index.
         spy.add({ t: Date.now(), lane: "bina", client: tag(ip), method: "pir_query",
           params: [`epoch ${q?.epoch}`, `${Array.isArray(q?.q) ? q.q.length : 0} ciphertexts`] });
