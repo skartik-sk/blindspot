@@ -23,7 +23,7 @@ function Chain() {
   const blocks = Array.from({ length: 6 }, (_, i) => ({ n: top - i }));
   return (
     <div className="L-chain" aria-hidden>
-      {[...blocks].reverse().map((b) => (
+      {blocks.map((b) => (
         <div className="L-block" key={b.n}>
           <b>#{b.n.toLocaleString("en-US")}</b>
           <span>header ✓</span><span>list ✓</span><span>receipts ✓</span>
@@ -33,9 +33,18 @@ function Chain() {
   );
 }
 
+/** Cursor-following glow on tiles (CSS reads --mx/--my). */
+const glow = (e: React.PointerEvent<HTMLDivElement>) => {
+  const t = (e.target as HTMLElement).closest<HTMLElement>(".L-tile");
+  if (!t) return;
+  const r = t.getBoundingClientRect();
+  t.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  t.style.setProperty("--my", `${e.clientY - r.top}px`);
+};
+
 export default function Bento() {
   return (
-    <div className="L-bento">
+    <div className="L-bento" onPointerMove={glow}>
       <Reveal className="L-tile w4">
         <span className="L-fig">FIG 1 · Watch</span>
         <h3>Whale alerts within a block</h3>
@@ -62,9 +71,9 @@ export default function Bento() {
         <span className="L-fig">FIG 4 · Portfolio</span>
         <h3>Wallets nobody can link</h3>
         <div className="L-wallets L-vis" aria-hidden>
-          <div className="L-wallet"><span>Trading</span><span className="mono">0x8d48…25dc</span></div>
-          <div className="L-wallet"><span>Savings</span><span className="mono">0x3f9a…b91c</span></div>
-          <div className="L-wallet"><span>Hardware</span><span className="mono">0xa1e0…77f2</span></div>
+          <div className="L-wallet"><span>Trading</span><span className="bar" /></div>
+          <div className="L-wallet"><span>Savings</span><span className="bar" /></div>
+          <div className="L-wallet"><span>Hardware</span><span className="bar" /></div>
         </div>
       </Reveal>
       <Reveal className="L-tile w2" delay={0.1}>
