@@ -268,7 +268,10 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 - **Polling, not streaming.** We tried streaming new blocks (the relay's `/stream` SSE) through the Anon-RPC worker
   on Nov 6: the worker returns only complete responses, so an open stream times out after 25 s. The app polls by
   block number instead; alerts still arrive within a block (~12 s).
-- **Keys on device.** The device key lives in `localStorage`. Production would use a passkey or hardware wallet.
+- **Keys on device.** The device key lives in `localStorage`. Send → "This wallet's key" can back it up (behind a
+  warning, masked until shown, copy or download a text file) and import one (validated, shows the address it opens,
+  asks you to confirm the old key is backed up). The key is never logged or sent anywhere: checked in the browser
+  across 251 requests on Nov 7. Production would use a passkey wallet or hardware wallet.
 - **Token names are untrusted.** Unknown tokens are marked; copy-trade is offered only for known pairs.
 - **Pending alerts are unverified.** The mempool feed can't be proven against a block; the app labels it "pending,
   unverified" and replaces it with the verified alert when the block lands. A relay could show fake pending

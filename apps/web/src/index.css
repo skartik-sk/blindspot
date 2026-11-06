@@ -535,3 +535,12 @@ html, body { overflow-x: clip; }
   background: color-mix(in srgb, var(--signal) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--signal) 35%, transparent); }
 .fallback-banner span { color: var(--ink-2); }
 .install-cta { justify-self: stretch; width: 100%; }
+
+/* Device key backup / import */
+.key-box { display: grid; gap: 12px; }
+.warn-callout { border-left: 3px solid var(--down); }
+.check { display: flex; align-items: center; gap: 10px; font-size: 14px; min-height: 40px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--ink); }
+.key-text { display: block; padding: 12px; border-radius: 12px; background: var(--sunk); border: 1px solid var(--line); font-size: 12.5px; overflow-wrap: anywhere; user-select: all; }
+.key-input { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 13px; resize: vertical; }
+.file-pick input { margin-left: 8px; font-size: 13px; }

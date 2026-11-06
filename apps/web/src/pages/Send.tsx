@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ETH_LOGGER } from "@blindspot/sdk";
 import { formatUnits, isAddress, parseUnits, type Address, type Hex } from "viem";
 import Icon from "../components/Icon";
+import DeviceKey from "../components/DeviceKey";
 import { deviceAccount } from "../lib/device";
 import { decimalsOf, fmtAmount, short } from "../lib/format";
 import { setState, useStore } from "../lib/store";
@@ -245,6 +246,8 @@ export default function Send({ query }: { query: URLSearchParams }) {
           Testnet only. Send Sepolia ETH and USDC (faucet.circle.com) to <span className="mono">{me}</span>. The key stays in this browser.
         </p>
       </section>
+
+      <DeviceKey />
     </>
   );
 }
