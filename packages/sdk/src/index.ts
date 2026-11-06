@@ -7,3 +7,4 @@ export * from "./addresses";
 export * from "./receipts";
 export * from "./feed";
 export * from "./follow";
+export * from "./pir";

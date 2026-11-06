@@ -4,6 +4,7 @@
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
+    "paillier-bigint": "^3.4.3",
     "viem": "^2.57.16"
   }
 }
