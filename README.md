@@ -47,7 +47,7 @@ What this does **not** give you (we never claim "100% private"):
 | --- | --- | --- |
 | Portfolio | Balances of your wallets, updated every block | Nothing: block numbers only |
 | Watch | Alerts the moment a watched wallet swaps, with what it sold and bought | Nothing: block numbers only |
-| Lookup | Any address's ETH/USDC/WETH balance via PIR | An encrypted query; not which address |
+| Lookup | Any address's ETH/USDC/WETH balance and recent activity, via PIR | An encrypted query; then blocks matching 4 addresses equally |
 | Trade / Send | Uniswap swap or transfer, signed on device, sent through the mixnet | The tx, from a mixnet exit (not your IP). On mainnet a private builder (Flashbots Protect) keeps it out of the public mempool |
 | Spy panel | Side by side: a typical wallet's requests vs. this app's actual requests, plus our relay's own log | — |
 | Network | Traffic share: % of requests sent through Anon-RPC, live | — |
@@ -112,7 +112,15 @@ Balances come from storage slots inside the verified access list (USDC slot 9, W
 Single-server PIR (Kushilevitz–Ostrovsky over Paillier, from `paillier-bigint`) on a √N grid. The client
 downloads the public directory, finds its row locally and sends one encrypted selector per column. The server
 multiplies through every record and returns every row encrypted; only the client can read its row. 1,024
-records: ~1.2 s end to end. The table is built from accounts active in verified blocks, never from user requests.
+records: ~1.2 s end to end (3–5 s through the mixnet). The table is built from accounts active in verified blocks,
+never from user requests.
+
+**Private history.** Each record also carries the address's last 6 active blocks (it sent a tx, or its ETH, USDC or
+WETH balance changed), stored as 20-bit offsets, 440 bits per record. After the lookup the phone downloads those blocks
+by number and verifies them like any other block. The relay built that index, so fetching only one address's blocks
+would give it away. Instead the phone also fetches the full histories of 3 other addresses taken from the same PIR
+reply (a reply holds one record per row), chosen with the platform CSPRNG, in random order, each block on its own
+mixnet route. The relay sees a set of blocks that fits 4 addresses equally. If no cover exists, the app asks first.
 
 ## Traffic through Anon-RPC, and the disclosed exceptions
 
@@ -148,6 +156,9 @@ Exceptions (all counted in the denominator above):
   The relay serves receipts without blooms (about 3x smaller).
 - **No light client yet.** Each block hash is checked against a second provider. Faking data needs the relay
   and the anchor to collude. A light client (e.g. Helios) would remove this.
+- **History anonymity is 4, not 1,000.** The history download hides the address among 4, not the whole directory,
+  and the relay can see the downloads arrive together. The window covers the last 6 active blocks per address since
+  the relay started indexing; older history isn't available.
 - **PIR hides, it doesn't prove.** A lying PIR server could return a wrong balance; the next verified block
   that touches the address corrects it. Next step: proof-checked rows (`eth_getProof` against a verified header).
 - **PIR scale.** Paillier PIR is slow on big tables, so the demo indexes ~1k active addresses. 1024-bit keys.
