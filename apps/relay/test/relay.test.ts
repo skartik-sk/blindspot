@@ -176,7 +176,7 @@ describe("PIR", () => {
   const read = async (addrs: Address[]) =>
     new Map(addrs.map((a, i) => [a, { eth: BigInt(i + 1), usdc: BigInt(1000 + i), weth: 0n }]));
   test("indexes active accounts from the verified BAL and answers privately", async () => {
-    const pir = new PirStore(read);
+    const pir = new PirStore(read, { newPerBlock: 60 }); // admit a whole block's senders at once for this test
     const { app, spy } = setup({ pir });
     expect((await app(new Request("http://r/pir"))).status).toBe(503); // no table yet
     await pir.onBlock(N, fx.bal as BalJson);
