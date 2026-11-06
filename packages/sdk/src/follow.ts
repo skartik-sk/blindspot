@@ -17,10 +17,18 @@ export interface VerifiedBlock {
   /** Approximate bytes downloaded for this block (for the "cost of privacy" readout). */
   bytes: number;
   ms: number;
+  /** An independent provider confirmed this block's hash (start of chain, after a break, or on request). */
+  anchored: boolean;
 }
 
 export interface FollowOptions {
   rpc: RpcClient;
+  /**
+   * Independent provider. The first block, and the first block after any break in the chain, are only
+   * accepted if it agrees on their hash; every later block must link to an accepted one. Without an anchor,
+   * the starting point is trust-on-first-use (onError is told).
+   */
+  anchor?: RpcClient;
   /** Start here; default: current head. */
   from?: bigint;
   pollMs?: number;
@@ -47,7 +55,14 @@ export async function verifiedBlock(rpc: RpcClient, n: bigint, compact = false):
   verifyBal(bal, header);
   verifyReceipts(receipts, header);
   const bytes = JSON.stringify(header).length + JSON.stringify(bal).length + JSON.stringify(receipts).length;
-  return { number: n, hash, header, bal, receipts, feed: feedFromReceipts(receipts), bytes, ms: performance.now() - t0 };
+  return { number: n, hash, header, bal, receipts, feed: feedFromReceipts(receipts), bytes, ms: performance.now() - t0, anchored: false };
+}
+
+/** Ask an independent provider for block n's hash; throw unless it matches. */
+export async function confirmWithAnchor(anchor: RpcClient, n: bigint, hash: Hex) {
+  const ref = await anchor.header(n);
+  if (!ref || ref.hash.toLowerCase() !== hash.toLowerCase())
+    throw new HeaderInvalid(`anchor disagrees on block ${n}: got ${hash}, anchor ${ref?.hash}`);
 }
 
 export async function follow(o: FollowOptions): Promise<void> {
@@ -61,10 +76,13 @@ export async function follow(o: FollowOptions): Promise<void> {
         await sleep(pollMs, signal);
         continue;
       }
-      if (prevHash && b.header.parentHash.toLowerCase() !== prevHash) {
-        // Reorg or a lying server: restart from the new block's parent.
-        prevHash = undefined;
-        throw new HeaderInvalid(`block ${n} does not extend block ${n - 1n}; resyncing`);
+      const linked = !!prevHash && b.header.parentHash.toLowerCase() === prevHash;
+      if (!linked) {
+        // Start of chain, a reorg, or a lying server. Never accept an unlinked block on the server's word.
+        if (o.anchor) await confirmWithAnchor(o.anchor, n, b.hash);
+        else if (prevHash) throw new HeaderInvalid(`block ${n} does not extend block ${n - 1n}`);
+        else o.onError?.(new Error("no anchor: starting block is trust-on-first-use"), n);
+        b.anchored = !!o.anchor;
       }
       prevHash = b.hash;
       await o.onBlock(b);

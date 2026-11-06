@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { Address } from "viem";
 import {
   ReceiptsMismatch,
+  follow,
   RpcClient,
   feedFromReceipts,
   orderedTrieRoot,
@@ -39,6 +40,12 @@ describe("receipts root", () => {
     const bad = clone(rs);
     bad.find((x) => x.logs.length)!.logs = [];
     expect(() => verifyReceipts(bad, header)).toThrow(ReceiptsMismatch);
+  });
+  test("non-canonical hex is rejected before hashing", () => {
+    const bad = clone(rs);
+    const r = bad.find((x) => x.logs.length)!;
+    r.logs[0][1][0] = r.logs[0][1][0].toUpperCase().replace("0X", "0x") as never;
+    expect(() => verifyReceipts(bad, header)).toThrow(/non-canonical/);
   });
   test("dropping a receipt is detected", () => {
     expect(() => verifyReceipts(rs.slice(1), header)).toThrow(ReceiptsMismatch);
@@ -80,5 +87,31 @@ describe("verifiedBlock", () => {
     const bad = clone(rs);
     bad[61].logs = [];
     expect(verifiedBlock(fake(bad), BigInt(header.number), true)).rejects.toThrow(ReceiptsMismatch);
+  });
+});
+
+describe("follow", () => {
+  const n = BigInt(header.number);
+  const client = (h: typeof header) =>
+    new RpcClient("x", async (_u, init) => {
+      const { method, id, params } = JSON.parse(init.body as string);
+      const mine = params[0] === header.number;
+      const result = method === "eth_blockNumber" ? header.number
+        : !mine ? null
+        : method === "eth_getBlockByNumber" ? h
+        : method === "eth_getBlockAccessList" ? bal : rs;
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id, result }));
+    });
+  const run = (anchor: RpcClient) =>
+    new Promise<{ ok: boolean; err?: unknown }>((done) => {
+      const ac = new AbortController();
+      follow({ rpc: client(header), anchor, from: n, pollMs: 1, signal: ac.signal, compact: true,
+        onBlock: (b) => (ac.abort(), done({ ok: b.anchored })),
+        onError: (err) => (ac.abort(), done({ ok: false, err })) });
+    });
+  test("first block is accepted only when the anchor agrees", async () => {
+    expect((await run(client(header))).ok).toBe(true);
+    const r = await run(client({ ...header, hash: `0x${"ab".repeat(32)}` }));
+    expect(String(r.err)).toContain("anchor disagrees");
   });
 });

@@ -36,8 +36,10 @@ export const compactReceipts = (rs: RpcReceipt[]): CompactReceipt[] =>
   rs.map((r) => ({
     type: Number(r.type),
     status: Number(r.status) ? 1 : 0,
-    gas: r.cumulativeGasUsed,
-    logs: r.logs.map((l) => [l.address.toLowerCase() as Address, l.topics, l.data]),
+    gas: r.cumulativeGasUsed.toLowerCase() as Hex,
+    logs: r.logs.map((l) => [
+      l.address.toLowerCase() as Address, l.topics.map((t) => t.toLowerCase() as Hex), l.data.toLowerCase() as Hex,
+    ]),
   }));
 
 const int = (n: bigint | number): Hex => (BigInt(n) === 0n ? "0x" : toHex(BigInt(n)));
@@ -99,8 +101,32 @@ export function orderedTrieRoot(values: Hex[]): Hex {
 
 export const receiptsRoot = (rs: CompactReceipt[]) => orderedTrieRoot(rs.map(encodeReceipt));
 
+const HEX = /^0x([0-9a-f]{2})*$/;
+/**
+ * Reject non-canonical hex before hashing, so the trie encoder and the feed parser read the exact same bytes
+ * (an odd-length or mixed-case field could otherwise hash one way and parse another).
+ */
+function assertCanonical(rs: CompactReceipt[]) {
+  const bad = (what: string) => {
+    throw new Error(`non-canonical receipt ${what}`);
+  };
+  for (const r of rs) {
+    if (!Number.isInteger(r.type) || r.type < 0 || r.type > 0x7f) bad("type");
+    if (r.status !== 0 && r.status !== 1) bad("status");
+    if (!/^0x[0-9a-f]+$/.test(r.gas)) bad("gas");
+    if (!Array.isArray(r.logs)) bad("logs");
+    for (const l of r.logs) {
+      const [a, t, d] = l;
+      if (l.length !== 3 || !/^0x[0-9a-f]{40}$/.test(a)) bad("log address");
+      if (!Array.isArray(t) || t.length > 4 || !t.every((x) => /^0x[0-9a-f]{64}$/.test(x))) bad("topic");
+      if (typeof d !== "string" || !HEX.test(d)) bad("data");
+    }
+  }
+}
+
 /** Throws ReceiptsMismatch unless the receipts are exactly the block's receipts. */
 export function verifyReceipts(rs: CompactReceipt[], header: Pick<FullHeader, "receiptsRoot">): Hex {
+  assertCanonical(rs);
   const got = receiptsRoot(rs);
   if (got !== header.receiptsRoot.toLowerCase()) throw new ReceiptsMismatch(header.receiptsRoot, got);
   return got;
