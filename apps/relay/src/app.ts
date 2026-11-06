@@ -48,6 +48,10 @@ function sse(subscribe: (send: (data: unknown) => void) => () => void, initial: 
 }
 const big = (_k: string, v: unknown) => (typeof v === "bigint" ? toHex(v) : v);
 
+/** Enough of an IP to show "this is you" on screen without printing it whole (demo videos). */
+export const maskIp = (ip: string) =>
+  ip.includes(":") ? `${ip.split(":").slice(0, 2).join(":")}:…` : ip.split(".").map((o, i) => (i < 2 ? o : "•")).join(".");
+
 /** Public log keeps only params we know are address-free; anything else a client sent shows as "…". */
 const SAFE_PARAM = (p: unknown) =>
   typeof p === "boolean" || (typeof p === "string" && (BLOCK_RE.test(p) || p === "latest" || /^(epoch \d+|\d+ ciphertexts)$/.test(p)));
@@ -163,7 +167,7 @@ export function createApp(opts: AppOptions) {
     return json({ jsonrpc: "2.0", id, result });
   }
 
-  async function naive(body: any, client: string) {
+  async function naive(body: any, client: string, ip: string) {
     const { id, method, params = [] } = body ?? {};
     if (!NAIVE_METHODS.has(method) || !Array.isArray(params)) return rpcErr(id, -32601, `not allowed: ${method}`);
     if (method === "eth_getLogs") {
@@ -174,7 +178,8 @@ export function createApp(opts: AppOptions) {
     }
     spy.add({ t: Date.now(), lane: "naive", client, method, params });
     try {
-      return json({ jsonrpc: "2.0", id, result: await upstream.call(method, params) });
+      // `seen`: what this provider just learned, echoed to the caller (their own IP, masked) for the Spy Panel.
+      return json({ jsonrpc: "2.0", id, result: await upstream.call(method, params), seen: { ip: maskIp(ip), method, params } });
     } catch (e) {
       return rpcErr(id, -32000, (e as Error).message);
     }
@@ -241,7 +246,7 @@ export function createApp(opts: AppOptions) {
         return rpcErr(null, -32700, (e as Error).message);
       }
       if (Array.isArray(body)) return rpcErr(null, -32600, "batch requests not supported");
-      return url.pathname === "/" ? bina(body, tag(ip)) : naive(body, tag(ip));
+      return url.pathname === "/" ? bina(body, tag(ip)) : naive(body, tag(ip), ip);
     }
     return new Response("not found", { status: 404, headers: cors });
   };

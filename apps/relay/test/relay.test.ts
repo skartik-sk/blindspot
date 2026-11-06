@@ -158,6 +158,20 @@ describe("public log", () => {
   });
 });
 
+describe("naive lane", () => {
+  test("echoes what the provider saw, with the caller's IP masked", async () => {
+    const { post } = setup({ enableNaive: true });
+    const r = await post("/naive", { jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: ["0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e", "latest"] });
+    expect(r.seen).toEqual({ ip: "203.0.•.•", method: "eth_getBalance", params: ["0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e", "latest"] });
+  });
+
+  test("is off unless enabled", async () => {
+    const { app } = setup();
+    const r = await app(new Request("http://r/naive", { method: "POST", body: "{}" }), { requestIP: () => ({ address: "203.0.113.9" }) });
+    expect(r.status).toBe(404);
+  });
+});
+
 describe("PIR", () => {
   const read = async (addrs: Address[]) =>
     new Map(addrs.map((a, i) => [a, { eth: BigInt(i + 1), usdc: BigInt(1000 + i), weth: 0n }]));
