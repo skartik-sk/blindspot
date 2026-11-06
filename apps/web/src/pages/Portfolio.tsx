@@ -114,7 +114,7 @@ function LiveStrip() {
     if (el && el.scrollLeft < 160) el.scrollTo({ left: 0 });
   }, [tape[0]?.number]); // eslint-disable-line
   return (
-    <section style={{ display: "grid", gap: 10 }} aria-label="Verified blocks">
+    <section className="live-strip" style={{ display: "grid", gap: 10 }} aria-label="Verified blocks">
       <div className="sec-title"><h2>Verified blocks</h2><a href="#/network">Details</a></div>
       <div className="strip" ref={ref}>
         {tape.length === 0
