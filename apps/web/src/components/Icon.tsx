@@ -13,6 +13,9 @@ const paths: Record<string, string> = {
   plus: "M12 5v14M5 12h14",
   bell: "M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20h4",
   trash: "M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13",
+  lock: "M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3",
+  arrow: "M5 12h14M13 6l6 6-6 6",
+  shield: "M12 3 5 6v6c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6z",
 };
 
 export default function Icon({ name, label }: { name: keyof typeof paths | string; label?: string }) {

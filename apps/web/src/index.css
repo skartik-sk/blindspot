@@ -6,13 +6,13 @@
 @import "@fontsource/ibm-plex-mono/500.css";
 
 :root {
-  --paper: #f6f5fb;
+  --paper: #fbfafc;
   --surface: #ffffff;
-  --sunk: #eeecf6;
-  --ink: #17142e;
+  --sunk: #f4f2f8;
+  --ink: #14122a;
   --ink-2: #4f4a6b;
   --ink-3: #7d7899;
-  --line: #e3e0ef;
+  --line: #ebe8f1;
   /* Brand: Mumbai dusk, marigold to rani pink. Verified (up) and leaks (down) keep their own colours. */
   --signal: #c2410c;
   --signal-ink: #ffffff;
@@ -32,13 +32,13 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #0b0a17;
-    --surface: #13112a;
-    --sunk: #0e0c1f;
+    --paper: #0e0d18;
+    --surface: #17152a;
+    --sunk: #12101f;
     --ink: #f5f3ff;
     --ink-2: #aca7c9;
     --ink-3: #7a759c;
-    --line: #241f40;
+    --line: #25223b;
     --signal: #ff8a3d;
     --signal-ink: #1f0d03;
     --signal-wash: #2d1a24;
