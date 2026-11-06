@@ -227,7 +227,7 @@ against the live relay (same app, same blocks):
 | --- | --- | --- |
 | Nox | 10 s | 2.6 s, ~280 KB |
 | Nym | 50 s (larger client download) | 15.7 s, ~270 KB: slower than Sepolia's 12 s blocks, so alerts lag |
-| Tor | not available | the EF demo gateway (`152.236.3.22:12298`) refused TCP connections at 19:15 IST on Nov 6 |
+| Tor | not offered | EF demo gateway `152.236.3.22:12298`: no TCP answer at 19:15 IST (a TCP probe only; browsers reach gateways another way). Temporary EF gateway `159.89.167.167:12298`, tested in the browser at 22:37 IST: Tor booted and reached our relay over TLS (HTTP 200), but the second provider (Tenderly's public gateway) answers Tor exits with HTTP 403, so no block could be confirmed in 7 minutes. Enabling Tor needs a second provider that accepts Tor exits (a verification-config change), so it's not offered. |
 
 Running our own Tor gateway is ~1–2 hours (a WebSocket-to-Tor bridge behind Caddy). That gateway would see users'
 IPs, like any Tor entry, but not destinations or content (the Tor circuit is end to end from the browser).
