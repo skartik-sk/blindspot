@@ -48,7 +48,7 @@ function senders(b: VerifiedBlock) {
   return m;
 }
 
-function describe(a: Activity, b: VerifiedBlock): Alert[] {
+export function describe(a: Activity, b: VerifiedBlock): Alert[] {
   const block = b.number.toString();
   const base = { block, t: Number(b.header.timestamp) * 1000, address: a.address, anchored: b.anchored };
   const who = labelOf(a.address) ?? short(a.address);

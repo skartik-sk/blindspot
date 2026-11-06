@@ -1,43 +1,63 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { isAddress, type Address } from "viem";
 import Icon from "../components/Icon";
 import { config } from "../lib/config";
-import { fmtAmount, short } from "../lib/format";
+import { ago, fmtAmount, short } from "../lib/format";
+import { privateHistory, type HistoryResult } from "../lib/history";
 import { pirTable, privateBalance, type LookupResult } from "../lib/lookup";
+import { useStore } from "../lib/store";
+
+type History = { state: "idle" } | { state: "loading"; done: number; total: number } | { state: "done"; r: HistoryResult } | { state: "error"; msg: string };
 
 export default function Lookup() {
   const [addr, setAddr] = useState("");
   const [step, setStep] = useState<string>();
   const [res, setRes] = useState<LookupResult & { address: Address }>();
   const [err, setErr] = useState<string>();
-  const [dir, setDir] = useState<{ count: number; block: string }>();
+  const [dir, setDir] = useState<{ count: number; block: string; addresses: string[] }>();
+  const [hist, setHist] = useState<History>({ state: "idle" });
+  const traders = useStore((s) => s.traders);
 
   useEffect(() => {
-    pirTable().then((t) => t && setDir({ count: t.addresses.length, block: t.block })).catch(() => {});
+    pirTable().then((t) => t && setDir({ count: t.addresses.length, block: t.block, addresses: t.addresses })).catch(() => {});
   }, []);
 
+  // Suggestions: wallets trading right now that the private directory already holds (real, and private to look up).
+  const suggestions = useMemo(() => {
+    if (!dir) return [];
+    const inDir = new Set(dir.addresses);
+    const live = [...new Set(traders.map((t) => t.address.toLowerCase()))].filter((a) => inDir.has(a));
+    return (live.length ? live : dir.addresses.slice(-3)).slice(0, 3) as Address[];
+  }, [dir, traders]);
+
   const valid = isAddress(addr.trim());
-  const run = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!valid) return;
+  const lookup = async (raw: string) => {
     setErr(undefined);
     setRes(undefined);
-    const a = addr.trim().toLowerCase() as Address;
+    setHist({ state: "idle" });
+    const a = raw.trim().toLowerCase() as Address;
     try {
       const r = await privateBalance(a, setStep);
       setRes({ ...r, address: a });
+      if (r.via === "pir" && r.history?.length && r.block) {
+        setHist({ state: "loading", done: 0, total: r.history.length * 2 });
+        privateHistory(a, r.history, parseInt(r.block, 16), (done, total) => setHist({ state: "loading", done, total }))
+          .then((h) => setHist({ state: "done", r: h }))
+          .catch((e) => setHist({ state: "error", msg: (e as Error).message }));
+      }
     } catch (e) {
       setErr((e as Error).message);
     } finally {
       setStep(undefined);
     }
   };
+  const run = (e: React.FormEvent) => (e.preventDefault(), valid && lookup(addr));
 
   return (
     <>
       <header className="head">
         <h1>Private lookup</h1>
-        <p>Check any address's balance. The server does the same work for every address it knows, so it can't tell which one you asked about.</p>
+        <p>Any address's balance and recent activity. The server does the same work for every address it knows, so it can't tell which one you asked about.</p>
       </header>
 
       <section className="panel">
@@ -47,6 +67,14 @@ export default function Lookup() {
             <input id="lookup" type="text" className="mono" placeholder="0x…" value={addr} onChange={(e) => setAddr(e.target.value)}
               autoComplete="off" spellCheck={false} />
           </div>
+          {suggestions.length > 0 && (
+            <div className="suggest" aria-label="Suggestions">
+              <span className="small muted">{traders.length ? "Trading right now:" : "Try:"}</span>
+              {suggestions.map((s) => (
+                <button key={s} type="button" className="chip-btn mono" onClick={() => { setAddr(s); lookup(s); }} disabled={!!step}>{short(s)}</button>
+              ))}
+            </div>
+          )}
           <div className="actions">
             <button className="btn primary" disabled={!valid || !!step}><Icon name="lookup" />{step ? "Looking up…" : "Look up privately"}</button>
             <span className="small muted">
@@ -82,6 +110,50 @@ export default function Lookup() {
               Private, not proven: a dishonest server could return a wrong number. Add the address to Watch or Portfolio and the
               next verified block corrects it.
             </p>
+          )}
+        </section>
+      )}
+
+      {res && (
+        <section className="panel" aria-live="polite">
+          <header>
+            <h2>Recent activity</h2>
+            {hist.state === "done" && <span className="chip" data-kind="verified">{hist.r.real} blocks verified · {(hist.r.ms / 1000).toFixed(1)} s</span>}
+          </header>
+          {res.via !== "pir" && <p className="small muted">History is private only for addresses in the directory. This one isn't, so none was fetched.</p>}
+          {res.via === "pir" && !res.history?.length && <p className="small muted">No activity in the relay's recent window for this address.</p>}
+          {hist.state === "loading" && (
+            <div className="hist-progress">
+              <span className="small">Downloading {hist.total} blocks by number, each on its own mixnet route: {hist.done} of {hist.total}</span>
+              <span className="bar"><i style={{ width: `${(100 * hist.done) / Math.max(1, hist.total)}%` }} /></span>
+            </div>
+          )}
+          {hist.state === "error" && <p className="error-text">Couldn't load history: {hist.msg}</p>}
+          {hist.state === "done" && (
+            <>
+              {hist.r.rows.length ? (
+                <ul className="rows">
+                  {hist.r.rows.map((a) => (
+                    <li key={a.id} className="alert-row">
+                      <span className="alert-icon" data-kind={a.kind}><Icon name={a.kind} /></span>
+                      <div style={{ minWidth: 0, display: "grid", gap: 2 }}>
+                        <span className="row-title"><span>{a.title.replace(short(res.address), "").trim() || a.title}</span></span>
+                        <span className="row-sub">{a.detail}</span>
+                      </div>
+                      <div className="row-end small">
+                        <span className="muted">{ago(a.t)}</span>
+                        <span className="up">block {a.block} ✓</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="small muted">Active in those blocks, but no swaps or token transfers to show (for example, contract calls).</p>}
+              {hist.r.failed > 0 && <p className="small muted">{hist.r.failed} block(s) couldn't be verified and were left out.</p>}
+              <div className="callout">
+                <strong>What the relay saw</strong>
+                <span>{hist.r.real + hist.r.decoys} block numbers in random order, each from a different mixnet exit. {hist.r.decoys} were decoys. Never the address.</span>
+              </div>
+            </>
           )}
         </section>
       )}

@@ -2,7 +2,7 @@
 //   1. PIR against the relay's table: the relay computes over every row and never learns which one you read.
 //   2. Fallback for addresses not in the table: ask a public node through the mixnet on a fresh route.
 //      The node learns the address, but not who asked, and two such lookups can't be linked.
-import { PirClient, RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey, unpackBalances, type PirTable } from "@bina/sdk";
+import { PirClient, RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey, unpackRecord, type PirTable } from "@bina/sdk";
 import { encodeFunctionData, erc20Abi, type Address, type Hex } from "viem";
 import { anonFetch } from "./anon";
 import { config } from "./config";
@@ -13,6 +13,8 @@ export interface LookupResult {
   weth: bigint;
   block?: string;
   via: "pir" | "mixnet";
+  /** Recent active blocks (newest first), from the PIR record. Only for directory addresses. */
+  history?: number[];
   /** What the answering server received. */
   serverSaw: string;
   ms: number;
@@ -54,7 +56,7 @@ export async function pirLookup(address: Address, onStep?: (s: string) => void):
   const j = (await r.json()) as { answers?: Hex[]; error?: string };
   if (!j.answers) throw new Error(j.error ?? `PIR query failed (${r.status})`);
   at = mark(`Server answered ${j.answers.length} rows`, at);
-  const b = unpackBalances(c.decode(t, index, j.answers));
+  const b = unpackRecord(c.decode(t, index, j.answers), parseInt(t.block, 16));
   mark("Decrypted one row on this device", at);
   return { ...b, block: t.block, via: "pir", ms: Math.round(performance.now() - t0), steps,
     serverSaw: `epoch ${t.epoch} and ${q.q.length} ciphertexts. No address, no row number.` };

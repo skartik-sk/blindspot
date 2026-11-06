@@ -14,7 +14,7 @@ export const NAV = [
 
 function Status() {
   const s = useStore((s) => s.status);
-  const text = s.phase === "live" ? <>Live<span className="status-long"> · block</span> {s.head}</> : s.phase === "connecting" ? "Connecting" : s.phase === "error" ? "Reconnecting" : "Idle";
+  const text = s.phase === "live" ? <span>Live<span className="status-long"> · block</span> {s.head}</span> : s.phase === "connecting" ? "Connecting" : s.phase === "error" ? "Reconnecting" : "Idle";
   return (
     <a className="status" href="#/network" data-phase={s.phase} title={s.message ?? network().label}>
       <span className="dot" aria-hidden />

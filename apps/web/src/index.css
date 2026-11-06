@@ -480,3 +480,14 @@ html, body { overflow-x: clip; }
 .btn.primary { background: #14122a; color: #fff; box-shadow: 0 1px 2px rgb(20 18 42 / 0.2), 0 8px 20px -8px rgb(20 18 42 / 0.45); }
 .btn.primary:disabled { background: var(--sunk); color: var(--ink-3); box-shadow: none; opacity: 1; border: 1px solid var(--line); }
 @media (hover: hover) { .btn.primary:not(:disabled):hover { filter: none; background: #241f45; } }
+
+/* Lookup: suggested addresses and history progress */
+.suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chip-btn { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13px; cursor: pointer;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out, transform 120ms ease-out; }
+.chip-btn:active { transform: scale(0.97); }
+.chip-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (hover: hover) { .chip-btn:not(:disabled):hover { background: var(--sunk); border-color: var(--ink-3); } }
+.hist-progress { display: grid; gap: 8px; }
+.hist-progress .bar { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.hist-progress .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffc24a, #ff7a45 55%, #f0397e); transition: width 300ms ease-out; }
