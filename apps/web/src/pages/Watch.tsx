@@ -24,7 +24,8 @@ const tradable = new Set<string>([TOKEN.USDC, TOKEN.WETH, ETH_LOGGER]);
 
 function AlertRow({ a, fresh, own }: { a: Alert; fresh: boolean; own: boolean }) {
   const legs = a.sold && a.bought;
-  const canCopy = !own && a.kind === "swap" && !!legs && tradable.has(a.sold!.token) && tradable.has(a.bought!.token);
+  // Only verified swaps can be copied: a pending one is unproven and could be fake.
+  const canCopy = !own && !a.pending && a.kind === "swap" && !!legs && tradable.has(a.sold!.token) && tradable.has(a.bought!.token);
   return (
     <li className="alert-row" data-new={fresh}>
       <span className="alert-icon" data-kind={a.kind}><Icon name={a.kind} /></span>
@@ -40,7 +41,9 @@ function AlertRow({ a, fresh, own }: { a: Alert; fresh: boolean; own: boolean })
           : <span className={a.anchored ? "up" : "faint"}>block {a.block}{a.anchored ? " ✓" : ""}</span>}
         {canCopy
           ? <a className="btn small" href={`#/send?copy=${encodeURIComponent(a.id)}`}>Copy trade</a>
-          : !own && a.kind === "swap" && legs && <span className="faint" title="Copy trade works only for ETH, WETH and USDC on Sepolia.">Can't copy: unsupported token</span>}
+          : !own && a.kind === "swap" && legs && (a.pending
+            ? <span className="faint">Copy after the block confirms it</span>
+            : <span className="faint" title="Copy trade works only for ETH, WETH and USDC on Sepolia.">Can't copy: unsupported token</span>)}
       </div>
     </li>
   );

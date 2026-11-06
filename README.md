@@ -45,7 +45,7 @@ What this does **not** give you (we never claim "100% private"):
 ## Live
 
 - App: https://useblindspot.xyz/ (GitHub Pages; landing at `/`, app at `#/portfolio`)
-- Relay: https://bina-relay.13-53-45-89.sslip.io/health
+- Relay: https://api.useblindspot.xyz/health
 
 ## What it does
 
@@ -281,7 +281,8 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 - **Token names are untrusted.** Unknown tokens are marked; copy-trade is offered only for known pairs.
 - **Pending alerts are unverified.** The mempool feed can't be proven against a block; the app labels it "pending,
   unverified" and replaces it with the verified alert when the block lands. A relay could show fake pending
-  transactions; copying from a pending alert is your call, and the trade may front-run a tx that never lands.
+  transactions, so copy trade is offered only once the block verifies the swap (the pending row says "Copy after
+  the block confirms it").
 - **The mempool feed is one shared snapshot,** the same bytes for everyone with no parameters; the relay learns only
   that an app is polling it, from a mixnet exit.
 - **The Spy panel comparison is opt-in.** Its "Normal RPC" column really sends demo requests (public contract

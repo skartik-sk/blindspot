@@ -36,7 +36,7 @@ domain that doesn't answer, and the site goes down.
 
 1. Add `apps/web/public/CNAME` containing `useblindspot.xyz`.
 2. Build with base `/`:
-   `VITE_RELAY_URL=https://bina-relay.13-53-45-89.sslip.io bun run build -- --base /`
+   `VITE_RELAY_URL=https://api.useblindspot.xyz bun run build -- --base /`
 3. Publish `apps/web/dist` to `gh-pages`, keeping `.nojekyll`.
 4. Set the domain:
    `gh api -X PUT repos/skartik-sk/blindspot/pages -f cname=useblindspot.xyz`
@@ -50,16 +50,12 @@ domain that doesn't answer, and the site goes down.
 
 The relay doesn't change: it allows any origin and serves only public, address-free data.
 
-## Optional: relay at api.useblindspot.xyz (not done)
+## Relay at api.useblindspot.xyz (done Nov 7)
 
-**Steps:**
-1. Add an A record `api` → the relay server's IP.
-2. Add a Caddy site block for `api.useblindspot.xyz` that proxies to the relay, the same way the sslip.io block does.
-3. Rebuild the site with `VITE_RELAY_URL=https://api.useblindspot.xyz`.
-4. Redeploy, and keep the sslip.io name working for a while.
-
-**Risks:**
-- It's a server and Caddy change on a machine shared with another team's service, and a reload is required.
-- If certificate issuance fails, the app can't reach the relay at all.
-- An installed PWA keeps the old relay URL until it updates.
-- The gain is cosmetic. Not worth doing hours before judging.
+- DNS: A `api` → `13.53.45.89`, **DNS only** (Caddy gets its own Let's Encrypt certificate, and Cloudflare stays out of
+  the mixnet path).
+- Caddy: `api.useblindspot.xyz` was added to the existing relay site block, next to the sslip.io name. Both names
+  serve the same relay. Backup: `~/backups/Caddyfile.20261106-221623.pre-api.bak`. The config was validated, then
+  reloaded (no restart, so the other service on the box was untouched).
+- The site is built with `VITE_RELAY_URL=https://api.useblindspot.xyz`. The sslip.io name keeps working for any
+  copy of the app still cached with it.
