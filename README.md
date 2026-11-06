@@ -156,6 +156,9 @@ Exceptions (all counted in the denominator above):
   private-tx endpoint. The app checks the configured builder through the mixnet before offering the private route;
   on Sepolia it sends to the public mempool via the mixnet (IP hidden, tx visible before it lands). Set
   `VITE_SEND_URL=https://rpc.flashbots.net/fast` on mainnet.
+- **Polling, not streaming.** We tried streaming new blocks (the relay's `/stream` SSE) through the Anon-RPC worker
+  on Nov 6: the worker returns only complete responses, so an open stream times out after 25 s. The app polls by
+  block number instead; alerts still arrive within a block (~12 s).
 - **Keys on device.** The device key lives in `localStorage`. Production would use a passkey or hardware wallet.
 - **Token names are untrusted.** Unknown tokens are marked; copy-trade is offered only for known pairs.
 - **Testnet only** until Glamsterdam (block access lists) reaches mainnet.
