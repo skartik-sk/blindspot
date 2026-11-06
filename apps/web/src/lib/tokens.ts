@@ -23,6 +23,7 @@ const cache: Record<string, TokenMeta> = (() => {
 })();
 for (const t of SEPOLIA_TOKENS) cache[t.token] = { symbol: t.symbol, decimals: t.decimals };
 const inflight = new Map<string, Promise<TokenMeta>>();
+const subs = new Set<() => void>();
 
 async function fetchMeta(token: Address): Promise<TokenMeta> {
   const rpc = new RpcClient(config.readUrl, anonFetch, newIsolationKey());
@@ -33,6 +34,7 @@ async function fetchMeta(token: Address): Promise<TokenMeta> {
   const [symbol, decimals] = await Promise.all([call("symbol").catch(() => "?"), call("decimals").catch(() => 18)]);
   const m = { symbol: String(symbol).slice(0, 12), decimals: Number(decimals) };
   cache[token] = m;
+  subs.forEach((f) => f());
   try {
     localStorage.setItem(KEY, JSON.stringify(cache));
   } catch {}
@@ -61,10 +63,15 @@ export function resolveAll(tokens: Address[]) {
   })();
 }
 
+/** Read-only: never triggers a lookup itself (that would tie lookups to what's on your screen). */
 export function useToken(token?: Address): TokenMeta | undefined {
-  const [m, setM] = useState(token ? cache[token.toLowerCase()] : undefined);
+  const get = () => (token ? cache[token.toLowerCase()] : undefined);
+  const [m, setM] = useState(get);
   useEffect(() => {
-    if (token && !m) tokenMeta(token).then(setM).catch(() => {});
+    const f = () => setM(get());
+    subs.add(f);
+    f();
+    return () => void subs.delete(f);
   }, [token]); // eslint-disable-line
   return m;
 }
