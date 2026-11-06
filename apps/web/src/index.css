@@ -528,7 +528,7 @@ html, body { overflow-x: clip; }
 .guide-text b { font-weight: 600; font-size: 14.5px; }
 .guide-steps li[data-done="true"] .guide-text b { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
 .guide-text small { color: var(--ink-2); font-size: 13px; }
-.guide-hide { justify-self: start; border: 0; background: none; color: var(--ink-3); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
+.guide-hide { justify-self: start; min-height: 40px; border: 0; background: none; color: var(--ink-3); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
 
 /* Nox -> Nym fallback notice */
 .fallback-banner { display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; font-size: 14px; color: var(--ink);

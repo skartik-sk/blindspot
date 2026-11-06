@@ -58,8 +58,9 @@ What this does **not** give you (we never claim "100% private"):
 It's a PWA: one codebase for phone and desktop, installable from the browser. The landing page's headline rotates through six lines every 4 s
 (one fixed-size box, so nothing below moves); with reduced motion on, it shows the first line only. "How it works"
 lights its three steps in turn (live block request, a packet crossing three mixnet hops, four checks ticking), the
-FAQ is a one-at-a-time accordion, and the footer is an illustrated Sea Link at dusk; all motion is CSS or `motion`
-and stops under reduced motion. In the app, a "Getting started" checklist on Portfolio shows the next step (connect,
+FAQ is a one-at-a-time accordion, and the footer is a photo of the Bandra–Worli Sea Link at dusk whose sky fades into
+the page (photo by Shamoil on Unsplash, Unsplash License; self-hosted, so no request goes to Unsplash); all motion is
+CSS or `motion` and stops under reduced motion. In the app, a "Getting started" checklist on Portfolio shows the next step (connect,
 watch a wallet, first alert, private lookup, Spy panel), each derived from real app state; it can be hidden.
 
 **When something is down.** Every screen keeps working on what it can: if the relay can't be reached, the status pill

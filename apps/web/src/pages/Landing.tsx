@@ -5,7 +5,6 @@ import FallbackBanner from "../components/FallbackBanner";
 import Icon from "../components/Icon";
 import LeakCompare from "../landing/LeakCompare";
 import Reveal from "../landing/Reveal";
-import Skyline from "../landing/Skyline";
 import "../landing/site.css";
 import { short } from "../lib/format";
 import { reqlog, trafficShare } from "../lib/reqlog";
@@ -467,8 +466,13 @@ export default function Landing() {
             {REPO && <a href={REPO} target="_blank" rel="noreferrer">Source</a>}
           </nav>
         </div>
-        <Skyline />
-        <div className="S-foot-base"><div className="S-wrap"><span>© 2026 Bina Pooche · MIT</span><span>Every request through Anon-RPC</span></div></div>
+        <figure className="S-foot-photo">
+          <img src={`${import.meta.env.BASE_URL}sealink-dusk-2400.jpg`}
+            srcSet={`${import.meta.env.BASE_URL}sealink-dusk-1200.jpg 1200w, ${import.meta.env.BASE_URL}sealink-dusk-2400.jpg 2400w`}
+            sizes="100vw" loading="lazy" decoding="async" width={2400} height={1800}
+            alt="The Bandra–Worli Sea Link and Worli's skyline under a pink dusk sky, Mumbai" />
+          <figcaption className="S-wrap"><span>© 2026 Bina Pooche · MIT</span><span>Every request through Anon-RPC</span></figcaption>
+        </figure>
       </footer>
     </div>
   );

@@ -303,14 +303,18 @@ ul.S-chain { list-style: none; margin: 0; }
 }
 
 
-/* Footer: links, then the illustrated Sea Link at dusk running into the bottom edge. */
-.S-foot { margin-top: 120px; padding-top: 56px; overflow: hidden;
-  --sky-1: #e6e0ff; --sky-2: #ffd3e2; --sky-3: #ffe3cc; --sea-1: #f6cfdc; --sea-2: #e4defa;
-  --sun-1: #ffe9b0; --sun-2: #ff8f5e; --city: #a995c4; --city-mid: #c4b4da; --city-far: #ddd2ec; --link: #3f3660; --rail: #f3d9c9;
-  --glint: #fff4e6; --win: #ffd27a; }
-.S-skyline { display: block; width: 100%; height: clamp(200px, 26vw, 360px); margin-top: 40px; }
-.S-foot-base { background: var(--sea-2); margin-top: -1px; }
-.S-foot-base .S-wrap { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; padding-top: 14px; padding-bottom: 22px; font-size: 13px; color: var(--ink-3); }
+/* Footer: links, then a photo of the Sea Link at dusk whose pink sky dissolves into the page. */
+.S-foot { margin-top: 72px; padding-top: 40px; overflow: hidden; }
+/* the photo's faded sky slides up behind the links, so text and picture read as one block */
+.S-foot-grid { position: relative; z-index: 2; }
+.S-foot-photo { position: relative; z-index: 1; margin: calc(-1 * clamp(56px, 9vw, 150px)) 0 0; height: clamp(340px, 46vw, 640px); }
+.S-foot-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 30% 62%;
+  /* the photo itself fades out at the top, so its pink sky melts into the page with no seam */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 34%); mask-image: linear-gradient(180deg, transparent 0%, #000 34%); }
+.S-foot-photo::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, transparent 65%, rgb(16 24 28 / 0.55) 100%); }
+.S-foot-photo figcaption { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap;
+  padding-top: 14px; padding-bottom: 22px; font-size: 13px; color: rgb(255 255 255 / 0.88); text-shadow: 0 1px 8px rgb(0 0 0 / 0.25); }
 .S-leak-note { margin: 14px 2px 0; font-size: 12.5px; color: var(--ink-3); }
 .S-log code em { margin-left: 6px; }
 @media (min-width: 760px) { .S-lead { max-width: 860px; } }
@@ -393,42 +397,5 @@ ul.S-chain { list-style: none; margin: 0; }
 #faq .S-sub { margin-top: 14px; }
 #faq .S-btn.sm { margin-top: 24px; }
 
-/* Footer illustration: depth comes from lighter, hazier colours further back */
-.S-skyline .sk-far path { fill: var(--city-far); }
-.S-skyline .sk-mid path { fill: var(--city-mid); }
-.S-skyline .sk-near path { fill: var(--city); }
-.S-skyline .sk-win rect { fill: #fff; opacity: 0.14; }
-.S-skyline .sk-win rect.on { fill: var(--win); opacity: 0.85; }
-.S-skyline .sk-clouds ellipse { fill: #fff; opacity: 0.7; }
-.S-skyline .sk-birds path { fill: none; stroke: var(--link); stroke-width: 1.2; stroke-linecap: round; opacity: 0.55; }
-.S-skyline .sk-deck { fill: var(--link); }
-.S-skyline .sk-rail { fill: none; stroke: var(--rail); stroke-width: 0.9; opacity: 0.8; }
-.S-skyline .sk-pylon, .S-skyline .sk-pylon-cap { fill: var(--link); }
-.S-skyline .sk-stays path { fill: none; stroke: var(--link); stroke-width: 0.55; opacity: 0.55; }
-.S-skyline .sk-piers path { fill: var(--link); opacity: 0.75; }
-.S-skyline .sk-glint rect { fill: var(--glint); opacity: 0.85; }
-.S-skyline .sk-waves path { fill: none; stroke: var(--glint); stroke-width: 1; }
-.S-skyline .sk-hull { fill: var(--link); }
-.S-skyline .sk-sail { fill: var(--link); opacity: 0.7; }
-.S-skyline .sk-mast { stroke: var(--link); stroke-width: 1; }
-.S-skyline .sk-boat.far { opacity: 0.55; }
-@media (prefers-reduced-motion: no-preference) {
-  .S-skyline .sk-glint rect { animation: S-glint 3.2s ease-in-out infinite alternate; }
-  .S-skyline .sk-glint rect:nth-child(2n) { animation-delay: -1.6s; }
-  @keyframes S-glint { from { opacity: 0.3; } to { opacity: 0.95; } }
-  .S-skyline .sk-waves path { animation: S-wave 9s ease-in-out infinite alternate; }
-  @keyframes S-wave { to { transform: translateX(-36px); } }
-  .S-skyline .sk-win rect.on { animation: S-win 7s ease-in-out infinite; }
-  @keyframes S-win { 0%, 72%, 100% { opacity: 0.85; } 82% { opacity: 0.25; } }
-  .S-skyline .sk-clouds { animation: S-cloud 45s linear infinite alternate; }
-  @keyframes S-cloud { to { transform: translateX(70px); } }
-  .S-skyline .sk-birds { animation: S-birds 24s linear infinite; }
-  @keyframes S-birds { from { transform: translate(-300px, 16px); } to { transform: translate(520px, -14px); } }
-  .S-skyline .sk-boat { animation: S-boat 34s ease-in-out infinite alternate; }
-  .S-skyline .sk-boat.far { animation-duration: 50s; animation-direction: alternate-reverse; }
-  @keyframes S-boat { from { transform: translateX(0); } to { transform: translateX(120px); } }
-  .S-skyline .sk-sun { animation: S-sun 6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
-  @keyframes S-sun { to { transform: scale(1.04); } }
-}
 .S-chain-wait { opacity: 0.55; } .S-chain-wait b { font-weight: 500; color: var(--ink-3); font-size: 12.5px; }
 .S-fallback { margin-top: 12px; font-family: var(--body); }

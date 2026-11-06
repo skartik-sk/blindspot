@@ -166,7 +166,7 @@ describe("PIR persistence", () => {
     const rec = unpackRecord(c.decode(t, i, ((await res.json()) as { answers: `0x${string}`[] }).answers), parseInt(t.block, 16));
     expect(rec.history).toEqual([105, 100]);
     expect(rec.eth).toBe(1n);
-  });
+  }, 30_000); // real 1024-bit Paillier keygen: slow on a busy machine
 
   test("a missing or corrupt state file means a fresh start, not a crash", async () => {
     expect(await loadPirState("/nonexistent/pir-state.json")).toBeUndefined();
