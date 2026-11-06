@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isAddress, type Address } from "viem";
 import Icon from "../components/Icon";
 import { config } from "../lib/config";
-import { ago, fmtAmount, short } from "../lib/format";
+import { ago, fmtAmount, fmtBytes, short } from "../lib/format";
 import { ANONYMITY, crowdFor, privateHistory, type HistoryResult } from "../lib/history";
 import { pirTable, privateBalance, type LookupResult } from "../lib/lookup";
 import { useStore } from "../lib/store";
@@ -62,7 +62,11 @@ export default function Lookup() {
     <>
       <header className="head">
         <h1>Private lookup</h1>
-        <p>Any address's balance and recent activity. The server does the same work for every address it knows, so it can't tell which one you asked about.</p>
+        <p>Any address's balance and recent activity, without telling the server which address.</p>
+        <dl className="guarantee">
+          <dt>Balance</dt><dd>Private lookup (PIR): the server computes over every address it knows and can't tell which one you read.</dd>
+          <dt>History</dt><dd>Hidden among up to {ANONYMITY} wallets: the server sees which blocks you download, and they fit {ANONYMITY} wallets equally, so it learns "one of these", not which. It also sees when.</dd>
+        </dl>
       </header>
 
       <section className="panel">
@@ -123,7 +127,7 @@ export default function Lookup() {
         <section className="panel" aria-live="polite">
           <header>
             <h2>Recent activity</h2>
-            {hist.state === "done" && <span className="chip" data-kind="verified">Hidden among {hist.r.crowd} · {(hist.r.ms / 1000).toFixed(1)} s</span>}
+            {hist.state === "done" && <span className="chip" data-kind="verified">Hidden among {hist.r.crowd} · {(hist.r.ms / 1000).toFixed(1)} s · {fmtBytes(hist.r.bytes)}</span>}
           </header>
           {res.via !== "pir" && <p className="small muted">History is private only for addresses in the directory. This one isn't, so none was fetched.</p>}
           {res.via === "pir" && !res.history?.length && <p className="small muted">No activity in the relay's recent window for this address.</p>}
@@ -136,7 +140,7 @@ export default function Lookup() {
           )}
           {hist.state === "loading" && (
             <div className="hist-progress">
-              <span className="small">Downloading verified blocks for {ANONYMITY} addresses, each on its own mixnet route: {hist.done} of {hist.total}</span>
+              <span className="small">Downloading verified blocks for up to {ANONYMITY} wallets, each on its own mixnet route: {hist.done} of {hist.total}</span>
               <span className="bar"><i style={{ width: `${(100 * hist.done) / Math.max(1, hist.total)}%` }} /></span>
             </div>
           )}

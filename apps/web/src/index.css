@@ -481,6 +481,11 @@ html, body { overflow-x: clip; }
 .btn.primary:disabled { background: var(--sunk); color: var(--ink-3); box-shadow: none; opacity: 1; border: 1px solid var(--line); }
 @media (hover: hover) { .btn.primary:not(:disabled):hover { filter: none; background: #241f45; } }
 
+/* Lookup: the guarantee, stated plainly */
+.guarantee { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 12px 0 0; font-size: 14px; color: var(--ink-2); max-width: 68ch; }
+.guarantee dt { font-weight: 650; color: var(--ink); }
+.guarantee dd { margin: 0; }
+
 /* Lookup: suggested addresses and history progress */
 .suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .chip-btn { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13px; cursor: pointer;

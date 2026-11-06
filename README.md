@@ -123,12 +123,24 @@ multiplies through every record and returns every row encrypted; only the client
 records: ~1.2 s end to end (3–5 s through the mixnet). The table is built from accounts active in verified blocks,
 never from user requests.
 
-**Private history.** Each record also carries the address's last 6 active blocks (it sent a tx, or its ETH, USDC or
-WETH balance changed), stored as 20-bit offsets, 440 bits per record. After the lookup the phone downloads those blocks
-by number and verifies them like any other block. The relay built that index, so fetching only one address's blocks
-would give it away. Instead the phone also fetches the full histories of 3 other addresses taken from the same PIR
-reply (a reply holds one record per row), chosen with the platform CSPRNG, in random order, each block on its own
-mixnet route. The relay sees a set of blocks that fits 4 addresses equally. If no cover exists, the app asks first.
+**What the server learns.**
+- *Balance lookup (PIR):* that someone looked something up, when, from which mixnet exit, plus a one-time public key and
+  ~32 ciphertexts. Not the address or row (computational privacy: Paillier).
+- *History lookup:* the same PIR query, then the set of block numbers the phone downloads, and their timing. Those
+  blocks are the combined recent activity of up to 8 directory wallets, so the server learns "one of these 8 (or any
+  other wallet whose activity also fits)", not which. That second phase is cover traffic (k-anonymity), not PIR.
+
+**Private history, how.** Each PIR record carries the address's last 6 active blocks (it sent a tx, or its ETH, USDC
+or WETH balance changed), as 20-bit offsets, 440 bits per record. After the lookup the phone downloads the union of
+this address's blocks and up to 7 other wallets' blocks taken from the same PIR reply (one record per row), chosen
+with the platform CSPRNG, capped at 48 blocks, in random order, each block on its own mixnet route, and verifies every
+block like any other. It also checks the server's claims: every listed wallet must show activity in each listed
+verified block, or the app flags the relay. If no cover exists, the app asks first.
+
+Measured on Nov 6 (live relay, ~330 KB per block): crowd 4: 10 blocks, 14 s; crowd 8: 5–17 blocks, 9–21 s, ~1.4 MB;
+crowd 16: 24 blocks, 28 s, 8 MB. In steady state (6 blocks per wallet) crowd 16 could reach 96 blocks (~32 MB, ~2 min)
+and ~300 upstream calls on the relay, which would compete with the block feed's rate limit; crowd 32 needs a full
+1,024-row directory and ~192 blocks. So the default is 8 with a 48-block cap (~16 MB, ~1 min worst case).
 
 ## Traffic through Anon-RPC, and the disclosed exceptions
 
@@ -164,7 +176,7 @@ Exceptions (all counted in the denominator above):
   The relay serves receipts without blooms (about 3x smaller).
 - **No light client yet.** Each block hash is checked against a second provider. Faking data needs the relay
   and the anchor to collude. A light client (e.g. Helios) would remove this.
-- **History anonymity is 4, not 1,000.** The history download hides the address among 4, not the whole directory,
+- **History anonymity is up to 8, not 1,000.** The history download hides the address among up to 8, not the whole directory,
   and the relay can see the downloads arrive together. The window covers the last 6 active blocks per address since
   the relay started indexing; older history isn't available.
 - **PIR hides, it doesn't prove.** A lying PIR server could return a wrong balance; the next verified block
