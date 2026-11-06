@@ -1,6 +1,6 @@
 # Custom domain
 
-Main site: **useblindspot.xyz**. `www.useblindspot.xyz` and **useblindspot.in** point to it. The site is GitHub Pages
+Site: **useblindspot.xyz** (`www.useblindspot.xyz` redirects to it). The site is GitHub Pages
 (repo `skartik-sk/blindspot`, branch `gh-pages`).
 
 ## 1. DNS at the registrar (you)
@@ -14,8 +14,6 @@ For `useblindspot.xyz`:
 | A | @ | 185.199.110.153 |
 | A | @ | 185.199.111.153 |
 | CNAME | www | skartik-sk.github.io |
-
-For `useblindspot.in`, use the registrar's URL forwarding: a permanent (301) redirect to `https://useblindspot.xyz/`.
 
 Check it from a terminal:
 
