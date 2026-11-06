@@ -3,8 +3,11 @@ export interface ReqEntry {
   id: number;
   t: number;
   host: string;
-  /** mixnet = through Anon-RPC; direct = relay on this machine; bootstrap = the worker reading its specifier contract. */
-  route: "mixnet" | "direct" | "bootstrap";
+  /**
+   * mixnet = through Anon-RPC; direct = relay on this machine; bootstrap = the worker reading its specifier contract;
+   * demo = the Spy Panel's opt-in "normal wallet" lane, sent directly on purpose (demo addresses only).
+   */
+  route: "mixnet" | "direct" | "bootstrap" | "demo";
   /** First chars of the isolation key: same key = same route, different key = unlinkable. */
   key: string;
   method: string;
@@ -15,7 +18,7 @@ export interface ReqEntry {
 let entries: ReqEntry[] = [];
 let seq = 0;
 /** Running totals since load (the visible log keeps only the last 300). */
-const totals: Record<ReqEntry["route"], number> = { mixnet: 0, direct: 0, bootstrap: 0 };
+const totals: Record<ReqEntry["route"], number> = { mixnet: 0, direct: 0, bootstrap: 0, demo: 0 };
 const subs = new Set<() => void>();
 
 function describe(body: unknown): { method: string; detail: string } {
@@ -41,6 +44,7 @@ export function logRequest(url: string, init: RequestInit & { anonOptions?: { is
 /**
  * Traffic share: of every RPC/HTTP request this app made since load, the % that went through Anon-RPC.
  * Counts every logged request, including the worker's own bootstrap reads (sent directly; public chain data).
+ * The opt-in demo lane is reported separately: it's the "normal wallet" being shown off, not the app's own traffic.
  */
 export function trafficShare() {
   const total = totals.mixnet + totals.direct + totals.bootstrap;

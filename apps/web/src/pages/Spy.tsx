@@ -1,11 +1,11 @@
 // Side by side: what a typical wallet's provider learns from the same screens, and what ours actually received.
-import { newIsolationKey } from "@bina/sdk";
+import { newIsolationKey, SEPOLIA_USDC } from "@bina/sdk";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { anonFetch } from "../lib/anon";
 import { config } from "../lib/config";
-import type { Address } from "viem";
+import { encodeFunctionData, erc20Abi, type Address } from "viem";
 import { short } from "../lib/format";
-import { reqlog } from "../lib/reqlog";
+import { logRequest, reqlog } from "../lib/reqlog";
 import { useStore, type Wallet } from "../lib/store";
 
 const USDC = "0x1c7d…7238";
@@ -25,6 +25,47 @@ function typicalRequests(wallets: Wallet[], block: string) {
     }
   }
   return out;
+}
+
+/** Public contracts, never a user's address: the demo "normal wallet" polls these. */
+const DEMO: { label: string; address: Address }[] = [
+  { label: "Uniswap router", address: "0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e" },
+  { label: "Uniswap quoter", address: "0xed1f6473345f45b75f8179591dd5ba1888cf2fb3" },
+];
+interface Seen { id: number; ip: string; method: string; params: unknown[] }
+
+/**
+ * Opt-in: act like a normal wallet for the demo addresses, once per new block. Sent straight to our relay's /naive
+ * lane (no mixnet, like MetaMask to Infura), which answers with what it just learned. Real server-side data.
+ */
+function useNaiveDemo(on: boolean, head: string) {
+  const [state, setState] = useState<{ seen: Seen[]; unavailable?: string }>({ seen: [] });
+  useEffect(() => {
+    if (!on || !config.relayUrl) return;
+    let live = true;
+    const url = `${config.relayUrl}/naive`;
+    const calls = DEMO.flatMap(({ address }) => [
+      { method: "eth_getBalance", params: [address, "latest"] },
+      { method: "eth_call", params: [{ to: SEPOLIA_USDC.token, data: encodeFunctionData({ abi: erc20Abi, functionName: "balanceOf", args: [address] }) }, "latest"] },
+      { method: "eth_getTransactionCount", params: [address, "latest"] },
+    ]);
+    (async () => {
+      for (const c of calls) {
+        const init = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, ...c }) };
+        logRequest(url, init, "demo");
+        try {
+          const r = await fetch(url, init);
+          if (r.status === 404) return live && setState((s) => ({ ...s, unavailable: "The relay's normal-wallet lane is off (ENABLE_NAIVE)." }));
+          const j = await r.json();
+          if (live && j.seen) setState((s) => ({ seen: [{ id: Math.random(), ...j.seen }, ...s.seen].slice(0, 30) }));
+        } catch (e) {
+          return live && setState((s) => ({ ...s, unavailable: `Couldn't reach the relay: ${(e as Error).message}` }));
+        }
+      }
+    })();
+    return () => { live = false; };
+  }, [on, head]);
+  return state;
 }
 
 interface RelayEntry { t: number; method: string; params: unknown[] }
@@ -56,7 +97,9 @@ function Highlight({ text, addrs }: { text: string; addrs: string[] }) {
 export default function Spy() {
   const wallets = useStore((s) => s.wallets);
   const tape = useStore((s) => s.tape);
-  const entries = useSyncExternalStore(reqlog.subscribe, reqlog.get);
+  const logged = useSyncExternalStore(reqlog.subscribe, reqlog.get);
+  const entries = useMemo(() => logged.filter((e) => e.route !== "demo"), [logged]); // the demo lane is shown on the left
+  const [demoOn, setDemoOn] = useState(false);
   const head = tape[0]?.number ?? "latest";
   const typical = useMemo(() => typicalRequests(wallets, head), [wallets, head]);
   const all = wallets.map((w) => w.address);
@@ -64,6 +107,8 @@ export default function Spy() {
   // Addresses that actually appeared in our requests (one-off mixnet lookups, sends): shown, not hidden.
   const oursLeaked = useMemo(() => new Set(entries.flatMap((e) => all.filter((a) => e.detail.toLowerCase().includes(a)))), [entries, all]);
   const relay = useRelayLog();
+  const demo = useNaiveDemo(demoOn, head);
+  const real = demoOn && !demo.unavailable;
   const feedReqs = entries.filter((e) => !all.some((a) => e.detail.toLowerCase().includes(a))).length;
 
   return (
@@ -76,11 +121,32 @@ export default function Spy() {
       <div className="spy">
         <section className="panel spy-col">
           <header>
-            <span className="small muted">A typical wallet, every block</span>
-            <span className="spy-score down">{all.length}</span>
-            <span className="small">addresses handed over, plus your IP on every request. Your provider now knows your portfolio and who you copy.</span>
+            <span className="small muted">What a normal provider sees{real ? ": live, from our relay's normal-wallet lane" : ""}</span>
+            <span className="spy-score down">{real ? DEMO.length : all.length}</span>
+            <span className="small">
+              {real
+                ? "demo addresses handed over, plus your IP on every request. These are real requests and the relay's real record of them."
+                : "addresses handed over, plus your IP on every request. Your provider now knows your portfolio and who you copy."}
+            </span>
           </header>
-          {typical.length === 0 ? (
+          {config.relayUrl && (
+            <button className="btn small" onClick={() => setDemoOn((v) => !v)} aria-pressed={demoOn}>
+              {demoOn ? "Stop the normal wallet" : "Run a normal wallet against our relay"}
+            </button>
+          )}
+          {demoOn && demo.unavailable && <p className="small muted">{demo.unavailable} Showing the simulated version.</p>}
+          {real ? (
+            <ul className="log" aria-label="What a normal provider saw">
+              {demo.seen.map((r) => (
+                <li key={r.id}>
+                  <span className="m">{r.method}</span>
+                  <span className="p"><Highlight text={JSON.stringify(r.params)} addrs={DEMO.map((d) => d.address.slice(2))} /></span>
+                  <span className="from">from {r.ip} (your IP, masked here) · block {head}</span>
+                </li>
+              ))}
+              {demo.seen.length === 0 && <li className="p">Sending the first block's requests…</li>}
+            </ul>
+          ) : typical.length === 0 ? (
             <p className="small muted">Add a wallet or watch one to see what would leak.</p>
           ) : (
             <ul className="log" aria-label="Typical wallet requests">
@@ -93,7 +159,11 @@ export default function Spy() {
               ))}
             </ul>
           )}
-          <p className="small faint">Built from your wallet list, the way MetaMask-style wallets poll. Nothing on this side is sent anywhere.</p>
+          <p className="small faint">
+            {real
+              ? `Demo addresses only (${DEMO.map((d) => d.label).join(", ")}), never yours. Sent directly, without the mixnet, the way a normal wallet does.`
+              : "Simulated from your wallet list, the way MetaMask-style wallets poll. Nothing on this side is sent anywhere."}
+          </p>
         </section>
 
         <section className="panel spy-col">

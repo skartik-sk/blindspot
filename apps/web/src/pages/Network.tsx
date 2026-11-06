@@ -53,6 +53,7 @@ export default function Network() {
             <span className="small muted">
               {share.mixnet} of {share.total} requests since this page loaded. Not through it: {share.bootstrap} bootstrap reads of the
               public network contract{share.direct ? `, ${share.direct} to a relay on this machine` : ""}.
+              {share.demo ? ` Not counted: ${share.demo} requests from the Spy panel's normal-wallet demo, sent directly on purpose.` : ""}
             </span>
           </dd>
           <dt>Per block</dt><dd>{tape.length ? `${fmtBytes(avgBytes)} in ${(avgMs / 1000).toFixed(1)} s on average` : "–"}</dd>
