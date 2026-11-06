@@ -87,14 +87,14 @@ export class PirClient {
   }
 }
 
-export const PIR_MIN_BITS = 1000;
-export const PIR_MAX_BITS = 2100;
+/** Accepted key sizes (bits of n): server cost scales with n, so only the two sizes clients use. */
+export const PIR_BITS = [1024, 2048];
 
 /** Server side. records.length <= rows * cols; missing cells are 0. Validates the query to bound CPU. */
 export function pirAnswer(records: bigint[], t: Pick<PirTable, "rows" | "cols">, query: Pick<PirQuery, "n" | "q">): Hex[] {
   const n = BigInt(query.n);
   const bits = n.toString(2).length;
-  if (bits < PIR_MIN_BITS || bits > PIR_MAX_BITS || n % 2n === 0n) throw new Error("bad modulus");
+  if (!PIR_BITS.some((b) => bits === b || bits === b - 1) || n % 2n === 0n) throw new Error("bad modulus");
   if (!Array.isArray(query.q) || query.q.length !== t.cols) throw new Error("bad query size");
   const n2 = n * n;
   const q = query.q.map((c) => {

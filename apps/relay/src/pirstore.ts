@@ -65,6 +65,7 @@ export class PirStore {
     batch.forEach((a) => this.pending.delete(a));
     const got = await this.read(batch);
     for (const [a, b] of got) this.known.set(a.toLowerCase() as Address, { ...b, seen: n });
+    for (const a of batch) if (!got.has(a)) this.pending.add(a); // retry failed reads next block
     // Evict least recently active non-seed accounts beyond the cap.
     if (this.known.size > this.max) {
       const victims = [...this.known.entries()].filter(([a]) => !this.seeds.has(a)).sort((x, y) => x[1].seen - y[1].seen);

@@ -100,6 +100,14 @@ export function createApp(opts: AppOptions) {
     pirHits.set(key, [...recent, now]);
     return recent.length >= perMin;
   };
+  // Global budget too: mixnet users share exit IPs, and one client could rotate exits.
+  let pirWindow = { start: 0, n: 0 };
+  const PIR_GLOBAL_PER_MIN = 40;
+  const pirOverBudget = () => {
+    const now = Date.now();
+    if (now - pirWindow.start > 60_000) pirWindow = { start: now, n: 0 };
+    return ++pirWindow.n > PIR_GLOBAL_PER_MIN;
+  };
   // Behind a trusted proxy, the right-most XFF entry is the one that proxy appended; the rest are client-controlled.
   const ipOf = (req: Request, server: any): string =>
     (trustProxy && req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim()) ||
@@ -188,6 +196,7 @@ export function createApp(opts: AppOptions) {
       }
       if (req.method === "POST") {
         if (pirLimited(bucket(ip))) return json({ error: "rate limited" }, 429);
+        if (pirOverBudget()) return json({ error: "busy, try again in a minute" }, 503);
         let q: any;
         try {
           q = await readBody(req, MAX_PIR_BODY);

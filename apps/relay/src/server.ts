@@ -29,8 +29,9 @@ async function readBalances(addrs: Address[]) {
   const res = await client.multicall({ contracts: calls, allowFailure: true });
   const out = new Map<Address, Balances>();
   addrs.forEach((a, i) => {
-    const v = (k: number) => (res[i * 3 + k].status === "success" ? (res[i * 3 + k].result as bigint) : 0n);
-    out.set(a, { eth: v(0), usdc: v(1), weth: v(2) });
+    const r = res.slice(i * 3, i * 3 + 3);
+    // A failed read is not a zero balance: leave the account out (PirStore re-queues it).
+    if (r.every((x) => x.status === "success")) out.set(a, { eth: r[0].result as bigint, usdc: r[1].result as bigint, weth: r[2].result as bigint });
   });
   return out;
 }
