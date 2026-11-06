@@ -36,6 +36,9 @@ async function fetchMeta(token: Address): Promise<TokenMeta> {
   cache[token] = m;
   subs.forEach((f) => f());
   try {
+    // Bounded: keep the newest 400 entries (insertion order).
+    const keys = Object.keys(cache);
+    for (const k of keys.slice(0, Math.max(0, keys.length - 400))) if (!isKnown(k as Address)) delete cache[k];
     localStorage.setItem(KEY, JSON.stringify(cache));
   } catch {}
   return m;
@@ -55,6 +58,7 @@ const queue: Address[] = [];
 let draining = false;
 export function resolveAll(tokens: Address[]) {
   for (const t of tokens) if (!cache[t.toLowerCase()] && !queue.includes(t)) queue.push(t);
+  queue.splice(0, Math.max(0, queue.length - 30)); // bounded: drop the oldest if a block floods us
   if (draining) return;
   draining = true;
   (async () => {
