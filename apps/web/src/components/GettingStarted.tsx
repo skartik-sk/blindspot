@@ -2,16 +2,11 @@
 // (nothing to fake): connected, watching a wallet, got an alert, did a private lookup, saw the Spy panel.
 import { useState } from "react";
 import { useStore } from "../lib/store";
+import { GUIDE_KEY, readGuide } from "../lib/actions";
 import Icon from "./Icon";
 
-export const GUIDE_KEY = "bp.guide.v1";
-type Flags = { lookup?: boolean; spy?: boolean; hidden?: boolean };
 
-const read = (): Flags => { try { return JSON.parse(localStorage.getItem(GUIDE_KEY) ?? "{}"); } catch { return {}; } };
-/** Mark a step done from anywhere (Lookup, Spy). */
-export function markGuide(k: "lookup" | "spy") {
-  try { localStorage.setItem(GUIDE_KEY, JSON.stringify({ ...read(), [k]: true })); } catch {}
-}
+const read = readGuide;
 
 export default function GettingStarted() {
   const status = useStore((s) => s.status);

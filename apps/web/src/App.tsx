@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import Onboarding, { needsOnboarding } from "./components/Onboarding";
+import Onboarding from "./components/Onboarding";
+import { loadBalance, needsOnboarding } from "./lib/actions";
 import Shell from "./components/Shell";
 import { ensureDeviceWallet } from "./lib/device";
 import { startEngine } from "./lib/engine";
 import Landing from "./pages/Landing";
 import Lookup from "./pages/Lookup";
 import Network from "./pages/Network";
-import Portfolio, { loadBalance } from "./pages/Portfolio";
+import Portfolio from "./pages/Portfolio";
 import Send from "./pages/Send";
 import Spy from "./pages/Spy";
 import Watch from "./pages/Watch";

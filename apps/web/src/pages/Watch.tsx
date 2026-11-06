@@ -4,14 +4,9 @@ import { ago, fmtAmount, short } from "../lib/format";
 import { ETH_LOGGER } from "@blindspot/sdk";
 import { isKnown, useToken } from "../lib/tokens";
 import { TOKEN } from "../lib/trade";
-import { rescan } from "../lib/engine";
-import { addWallet, removeWallet, setState, useStore, type Alert, type Wallet } from "../lib/store";
+import { removeWallet, setState, useStore, type Alert } from "../lib/store";
 import { AddWallet } from "./Portfolio";
-
-export function watchWallet(w: Wallet) {
-  addWallet(w);
-  rescan(w.address);
-}
+import { watchWallet } from "../lib/actions";
 
 function Leg({ leg, noAmount }: { leg?: { token: `0x${string}`; value: bigint }; noAmount?: boolean }) {
   const m = useToken(leg?.token);
@@ -35,6 +30,7 @@ function AlertRow({ a, fresh, own }: { a: Alert; fresh: boolean; own: boolean })
       <span className="alert-icon" data-kind={a.kind}><Icon name={a.kind} /></span>
       <div style={{ minWidth: 0, display: "grid", gap: 2 }}>
         <span className="row-title"><span>{a.title}</span></span>
+        {a.pending && <span className="small muted">Unverified, could be wrong until the block confirms it.</span>}
         <span className="row-sub">{legs ? <><Leg leg={a.sold} /><span aria-label="for">→</span><Leg leg={a.bought} noAmount={a.pending} /></> : <span>{a.detail.replace(short(ETH_LOGGER), "ETH")}</span>}</span>
       </div>
       <div className="row-end small">
@@ -42,7 +38,9 @@ function AlertRow({ a, fresh, own }: { a: Alert; fresh: boolean; own: boolean })
         {a.pending
           ? <span className="chip pending-chip" title="Seen in the mempool only. Not in a block yet, so nothing is verified.">Pending · unverified</span>
           : <span className={a.anchored ? "up" : "faint"}>block {a.block}{a.anchored ? " ✓" : ""}</span>}
-        {canCopy && <a className="btn small" href={`#/send?copy=${encodeURIComponent(a.id)}`}>Copy trade</a>}
+        {canCopy
+          ? <a className="btn small" href={`#/send?copy=${encodeURIComponent(a.id)}`}>Copy trade</a>
+          : !own && a.kind === "swap" && legs && <span className="faint" title="Copy trade works only for ETH, WETH and USDC on Sepolia.">Can't copy: unsupported token</span>}
       </div>
     </li>
   );

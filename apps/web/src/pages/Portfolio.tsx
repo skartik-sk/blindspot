@@ -3,10 +3,10 @@ import { isAddress, type Address } from "viem";
 import Icon from "../components/Icon";
 import { fmtAmount, short } from "../lib/format";
 import { rescan } from "../lib/engine";
-import { privateBalance } from "../lib/lookup";
+import { loadBalance } from "../lib/actions";
 import GettingStarted from "../components/GettingStarted";
 import InstallButton from "../components/InstallButton";
-import { addWallet, removeWallet, setBalance, useStore, type Bal, type Wallet } from "../lib/store";
+import { addWallet, removeWallet, useStore, type Bal, type Wallet } from "../lib/store";
 
 export function Source({ b }: { b?: Bal }) {
   if (!b) return <span className="chip">Not loaded</span>;
@@ -14,12 +14,6 @@ export function Source({ b }: { b?: Bal }) {
   if (b.source === "verified") return <span className="chip" data-kind="verified" title="Read from a block's verified access list">Verified{at}</span>;
   if (b.source === "pir") return <span className="chip" data-kind="pir" title="Private lookup: the server never learned which row">Private lookup{at}</span>;
   return <span className="chip" title="Read on a one-off mixnet route">Mixnet read{at}</span>;
-}
-
-export async function loadBalance(a: Address) {
-  const r = await privateBalance(a);
-  setBalance(a, { eth: r.eth, usdc: r.usdc, weth: r.weth, block: r.block, source: r.via });
-  return r;
 }
 
 const AVATAR = ["#4c6ef5", "#e8590c", "#0ca678", "#ae3ec9", "#1098ad", "#d6336c"];

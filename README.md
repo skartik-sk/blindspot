@@ -250,6 +250,8 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 - **Latency.** The mixnet adds seconds. Fine for swing and copy traders, not for millisecond trading.
 - **Bandwidth.** The phone downloads whole blocks: ~250 KB to ~1 MB per Sepolia block from publicnode.
   The relay serves receipts without blooms (about 3x smaller).
+- **Data use.** About 250–330 KB per block while the app is open (roughly 75–100 MB an hour on Sepolia's 12 s
+  blocks); nothing while it's hidden or closed. The Network page shows the live per-block average.
 - **No light client yet.** Each block hash is checked against a second provider. Faking data needs the relay
   and the anchor to collude. A light client (e.g. Helios) would remove this.
 - **History anonymity is up to 8, not 1,000.** The history download hides the address among up to 8, not the whole directory,

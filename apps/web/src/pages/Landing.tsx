@@ -13,7 +13,7 @@ import { useStore } from "../lib/store";
 import { isKnown } from "../lib/tokens";
 import { quote } from "../lib/trade";
 import { formatUnits } from "viem";
-import { watchWallet } from "./Watch";
+import { watchWallet } from "../lib/actions";
 
 const REPO = import.meta.env.VITE_REPO_URL as string | undefined;
 const VIDEO = import.meta.env.VITE_VIDEO_URL as string | undefined;
@@ -334,14 +334,13 @@ const CHECKS = ["header hash", "access list", "receipts root", "2nd provider"];
 function How() {
   const reduce = useReducedMotion();
   const head = useStore((s) => s.status.head);
-  const [active, setActive] = useState(0);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     if (reduce) return;
     const t = setInterval(() => setTick((x) => x + 1), 650);
     return () => clearInterval(t);
   }, [reduce]);
-  useEffect(() => { if (!reduce && tick % 5 === 0) setActive((a) => (tick === 0 ? 0 : (a + 1) % 3)); }, [tick, reduce]);
+  const active = reduce ? 0 : Math.floor(tick / 5) % 3; // advances every 5 ticks, same as before
   const on = (i: number) => reduce || active === i;
   const checks = reduce ? 4 : active === 2 ? Math.min(4, (tick % 5) + 1) : 0;
   const steps = [

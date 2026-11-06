@@ -47,6 +47,8 @@ export interface TapeBlock {
   ms: number;
   anchored: boolean;
   hits: number;
+  /** When this device verified the block (ms since epoch). */
+  at?: number;
 }
 
 export interface Trader {

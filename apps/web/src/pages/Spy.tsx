@@ -3,7 +3,7 @@
 // lane, directly and through Anon-RPC; the relay answers with what it saw. The third is the relay's own log.
 import { newIsolationKey, SEPOLIA_USDC } from "@blindspot/sdk";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { markGuide } from "../components/GettingStarted";
+import { markGuide } from "../lib/actions";
 import { anonFetch, getWorker } from "../lib/anon";
 import { config } from "../lib/config";
 import { encodeFunctionData, erc20Abi, type Address } from "viem";

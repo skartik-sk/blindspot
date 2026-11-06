@@ -47,6 +47,20 @@ export default function Network() {
   const n = tape.length || 1;
   const avgMs = tape.reduce((a, b) => a + b.ms, 0) / n;
   const avgBytes = tape.reduce((a, b) => a + b.bytes, 0) / n;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const lastAt = tape[0]?.at;
+  const since = lastAt ? Math.max(0, Math.round((now - lastAt) / 1000)) : undefined;
+  // No extra requests: the relay is "answering" if it served a block that verified recently.
+  const relay =
+    status.phase === "paused" ? "Paused while in background"
+    : since !== undefined && since < 60 ? "Answering: it served the last verified block"
+    : status.phase === "live" || status.phase === "connecting" ? "Waiting for the next block"
+    : status.phase === "error" ? "Not answering right now; retrying"
+    : "Not contacted yet";
 
   useEffect(() => {
     const ac = new AbortController();
@@ -77,6 +91,9 @@ export default function Network() {
           <details className="small muted"><summary>Details</summary><code className="mono">{status.message}</code></details>
         )}
         <dl className="kv">
+          <dt>Relay</dt><dd>{relay} <span className="small muted">({host(config.relayUrl)})</span></dd>
+          <dt>Current block</dt><dd>{status.head ? Number(status.head).toLocaleString("en-US") : "–"}</dd>
+          <dt>Since last block</dt><dd>{since !== undefined ? `${since} s` : "–"} <span className="small muted">(Sepolia makes one about every 12 s)</span></dd>
           <dt>Privacy network</dt><dd>{network().label}{!network().anonymous && <strong className="down"> · not anonymous</strong>}</dd>
           <dt>Traffic share</dt>
           <dd>
@@ -87,9 +104,13 @@ export default function Network() {
               {share.mixnet} of {share.total} requests since this page loaded went through {network().short}. Not through it: {share.bootstrap} Anon-RPC bootstrap
               requests (the public network contract and code, no address){share.direct ? `, ${share.direct} to a relay on this machine` : ""}.
               {share.demo ? ` Not counted: ${share.demo} requests from the Spy panel's normal-wallet demo, sent directly on purpose.` : ""}
+              {" "}The first requests are that bootstrap, which Anon-RPC needs before it can route anything, so the share starts
+              around 91% and climbs to 96–99% as blocks arrive.
             </span>
           </dd>
           <dt>Per block</dt><dd>{tape.length ? `${fmtBytes(avgBytes)} in ${(avgMs / 1000).toFixed(1)} s on average` : "–"}</dd>
+          <dt>Data use</dt>
+          <dd className="small">About 250–330 KB per block while the app is open (roughly 75–100 MB an hour); nothing while it's hidden or closed.</dd>
         </dl>
       </section>
 

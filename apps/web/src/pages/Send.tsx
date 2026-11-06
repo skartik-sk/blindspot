@@ -7,7 +7,8 @@ import { deviceAccount } from "../lib/device";
 import { decimalsOf, fmtAmount, short } from "../lib/format";
 import { setState, useStore } from "../lib/store";
 import { DECIMALS, TOKEN, execute, privateRouteAvailable, quote, swapPlan, transferPlan, type Asset, type Route } from "../lib/trade";
-import { Source, loadBalance } from "./Portfolio";
+import { Source } from "./Portfolio";
+import { loadBalance } from "../lib/actions";
 
 const ASSETS: Asset[] = ["ETH", "USDC", "WETH"];
 const assetOf = (t?: Address): Asset | undefined =>
@@ -34,14 +35,15 @@ export default function Send({ query }: { query: URLSearchParams }) {
       if (ok) setRoute("private");
     });
   }, []);
-  const [out, setOut] = useState<bigint>();
-  const [quoteFailed, setQuoteFailed] = useState(false);
+  // A quote belongs to the inputs it was asked for; a stale one is ignored instead of cleared in an effect.
+  const [quoted, setQuoted] = useState<{ key: string; out?: bigint; failed?: boolean }>({ key: "" });
   const [step, setStep] = useState<string>();
   const [err, setErr] = useState<string>();
 
-  // Copy trade: same direction as the watched wallet, your own size.
-  useEffect(() => {
-    if (!copy) return;
+  // Copy trade: same direction as the watched wallet, your own size. Applied once per alert, during render.
+  const [copied, setCopied] = useState<string>();
+  if (copy && copy.id !== copied) {
+    setCopied(copy.id);
     const sold = assetOf(copy.sold?.token);
     const bought = assetOf(copy.bought?.token);
     setMode("Swap");
@@ -50,7 +52,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
     const pay: Asset = sold && sold !== target ? sold : "ETH";
     setToAsset(target);
     setAsset(pay);
-  }, [copy]);
+  }
 
   const amt = useMemo(() => {
     try {
@@ -61,13 +63,14 @@ export default function Send({ query }: { query: URLSearchParams }) {
   }, [amount, asset]);
 
   // Live quote (names tokens and an amount, never you).
+  const qkey = `${mode}|${asset}|${toAsset}|${amt}`;
+  const out = quoted.key === qkey ? quoted.out : undefined;
+  const quoteFailed = quoted.key === qkey && !!quoted.failed;
   useEffect(() => {
-    setOut(undefined);
-    setQuoteFailed(false);
     if (mode !== "Swap" || !amt || asset === toAsset) return;
-    const t = setTimeout(() => quote(asset, toAsset, amt).then(setOut).catch(() => setQuoteFailed(true)), 500);
+    const t = setTimeout(() => quote(asset, toAsset, amt).then((out) => setQuoted({ key: qkey, out }), () => setQuoted({ key: qkey, failed: true })), 500);
     return () => clearTimeout(t);
-  }, [mode, amt, asset, toAsset]);
+  }, [qkey, mode, amt, asset, toAsset]);
 
   useEffect(() => {
     if (!bal) loadBalance(me).catch(() => {});

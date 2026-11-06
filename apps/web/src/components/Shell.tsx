@@ -7,7 +7,7 @@ import { useStore } from "../lib/store";
 import Icon from "./Icon";
 import Tape from "./Tape";
 
-export const NAV = [
+const NAV = [
   { href: "#/portfolio", label: "Portfolio", icon: "portfolio" },
   { href: "#/watch", label: "Watch", icon: "watch" },
   { href: "#/lookup", label: "Lookup", icon: "lookup" },

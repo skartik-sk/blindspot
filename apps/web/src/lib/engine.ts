@@ -205,7 +205,7 @@ async function onBlock(b: VerifiedBlock) {
     pendingAlerts: st.pendingAlerts.filter((p) => !settled.has(p.address.toLowerCase())),
     alerts: [...alerts.filter((a) => !st.alerts.some((x) => x.id === a.id)), ...st.alerts].slice(0, 200),
     tape: [{ number: block, txs: b.receipts.length, accounts: b.bal.length, swaps: b.feed.filter((f) => f.kind === "swap").length,
-      bytes: b.bytes, ms: Math.round(b.ms), anchored: b.anchored, hits: acts.length }, ...st.tape].slice(0, 60),
+      bytes: b.bytes, ms: Math.round(b.ms), anchored: b.anchored, hits: acts.length, at: Date.now() }, ...st.tape].slice(0, 60),
     traders: [...traders, ...st.traders.filter((t) => !traders.some((n) => n.address === t.address))].slice(0, 40),
     ...(landed ? { pendingTx: { ...pending!, landed: block } } : {}),
   }));

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { isAddress, type Address } from "viem";
 import Icon from "../components/Icon";
-import { markGuide } from "../components/GettingStarted";
+import { markGuide } from "../lib/actions";
 import { config } from "../lib/config";
 import { ago, fmtAmount, fmtBytes, short } from "../lib/format";
 import { ANONYMITY, crowdFor, privateHistory, type HistoryResult } from "../lib/history";
@@ -107,7 +107,7 @@ export default function Lookup() {
         <section className="panel">
           <header>
             <h2 className="mono" style={{ fontSize: 16 }}>{short(res.address)}</h2>
-            <span className="chip" data-kind={res.via === "pir" ? "pir" : undefined}>{res.via === "pir" ? "Private lookup" : "Mixnet read"} · {(res.ms / 1000).toFixed(1)} s</span>
+            <span className="chip" data-kind={res.via === "pir" ? "pir" : undefined}>{res.via === "pir" ? "Private, not yet proven" : "Mixnet read"} · {(res.ms / 1000).toFixed(1)} s</span>
           </header>
           <div className="holdings">
             <div className="holding"><span className="sym">ETH</span><span className="qty">{fmtAmount(res.eth, 18)}</span></div>

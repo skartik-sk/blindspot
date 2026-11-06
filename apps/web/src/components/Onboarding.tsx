@@ -7,20 +7,12 @@ import { friendly } from "../lib/errors";
 import { rescan } from "../lib/engine";
 import { short } from "../lib/format";
 import { addWallet, useStore } from "../lib/store";
-import { loadBalance } from "../pages/Portfolio";
+import { ONBOARDED_KEY, loadBalance } from "../lib/actions";
 import Icon from "./Icon";
 
-const KEY = "bp.onboarded.v1";
-export const needsOnboarding = () => {
-  try {
-    return !localStorage.getItem(KEY);
-  } catch {
-    return false;
-  }
-};
 const finish = () => {
   try {
-    localStorage.setItem(KEY, String(Date.now()));
+    localStorage.setItem(ONBOARDED_KEY, String(Date.now()));
   } catch {}
 };
 
