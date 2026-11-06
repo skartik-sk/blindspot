@@ -1,13 +1,16 @@
 # Bina Pooche (बिना पूछे)
 
-A private trading companion. Watch whales, copy their trades, check balances and send trades, and your
-RPC provider never learns what you hold, who you follow or what you're about to do.
+**Anon-RPC hides who you are. We also hide what you watch.**
 
-**Watch, don't ask.** A normal wallet asks its provider about your addresses on every block, so the provider
-knows your portfolio, your copy-trade list and your IP. Bina Pooche never asks about an address. It downloads
-each block, the same bytes everyone gets, proves the block is real, and filters it on your device. Every
-request goes through [Anon-RPC](https://github.com/ethereum/anon-rpc) on its Nox network (the Sphinx mixnet,
-specifier `0x35133267A8F7EC35046a83DCA0f4Ca8A6e1b7A9A` on Sepolia).
+A private trading companion: watch whales, get copy-trade alerts, check any wallet's balance and history, and trade,
+without any RPC provider learning which wallets you care about.
+
+Anon-RPC alone hides your IP. But a wallet that sends `eth_getBalance(0xWhale…)` or `eth_getLogs(…0xWhale…)` through
+Anon-RPC still tells the node *which* addresses matter; it just doesn't know who asked. Repeat that every block and
+the node holds your watchlist, minus your name. Bina Pooche never asks about an address. Every phone downloads the
+same verified blocks by number (through Anon-RPC's Nox network, the Sphinx mixnet, specifier
+`0x35133267A8F7EC35046a83DCA0f4Ca8A6e1b7A9A` on Sepolia) and filters them locally. Balance and history lookups use PIR.
+The Spy panel shows all three side by side, from real requests: a normal RPC, Anon-RPC alone, and us.
 
 Track: Ethereum Foundation, Best Use of Anon-RPC (ETHGlobal Mumbai 2026).
 
@@ -46,10 +49,10 @@ What this does **not** give you (we never claim "100% private"):
 | Screen | What you get | What the provider learns |
 | --- | --- | --- |
 | Portfolio | Balances of your wallets, updated every block | Nothing: block numbers only |
-| Watch | Alerts the moment a watched wallet swaps, with what it sold and bought | Nothing: block numbers only |
+| Watch | Alerts the moment a watched wallet swaps, with what it sold and bought; pending (mempool) alerts seconds earlier, marked unverified | Nothing: block numbers and a parameterless mempool snapshot |
 | Lookup | Any address's ETH/USDC/WETH balance and recent activity, via PIR | An encrypted query; then blocks matching 4 addresses equally |
 | Trade / Send | Uniswap swap or transfer, signed on device, sent through the mixnet | The tx, from a mixnet exit (not your IP). On mainnet a private builder (Flashbots Protect) keeps it out of the public mempool |
-| Spy panel | Side by side: a typical wallet's requests vs. this app's actual requests, plus our relay's own log | — |
+| Spy panel | Three columns from real requests: normal RPC (your IP + addresses), Anon-RPC alone (addresses), ours (block numbers) | — |
 | Network | Traffic share: % of requests sent through Anon-RPC, live | — |
 
 It's a PWA: one codebase for phone and desktop, installable from the browser.
@@ -66,7 +69,7 @@ It's a PWA: one codebase for phone and desktop, installable from the browser.
 
 ```bash
 bun install
-bun test                      # 51 tests, real Sepolia block fixtures
+bun test                      # 66 tests, real Sepolia block fixtures
 bun run relay                 # relay on :8787
 cd apps/web && VITE_RELAY_URL=http://localhost:8787 bunx vite    # app on :5173
 ```
@@ -74,7 +77,9 @@ cd apps/web && VITE_RELAY_URL=http://localhost:8787 bunx vite    # app on :5173
 Without `VITE_RELAY_URL` the app reads blocks straight from publicnode through the mixnet (no relay needed;
 PIR lookup falls back to a one-off mixnet read). Relay env: `UPSTREAM_RPC`, `PORT`, `POLL_MS`, `SPY_TOKEN`,
 `ENABLE_NAIVE=1`, `RATE_LIMIT`, `TRUST_PROXY=1`, `PIR_SEED` (comma-separated addresses, never evicted), `PIR_MAX`,
-`PIR_NEW_PER_BLOCK` (default 8: how fast new wallets enter the directory; lower keeps quiet wallets listed longer).
+`PIR_NEW_PER_BLOCK` (default 8: how fast new wallets enter the directory; lower keeps quiet wallets listed longer),
+`PENDING_RPC` (mempool source, defaults to `UPSTREAM_RPC`; use a different provider, e.g. Tenderly's gateway, so pending
+polling can't rate-limit block fetches).
 
 Deployed on a small VM: the relay runs as a systemd service (`bina-relay`, bound to 127.0.0.1, MemoryMax 400M)
 behind Caddy, which serves the static web build and HTTPS (sslip.io hostnames, no DNS setup). The root
@@ -173,6 +178,17 @@ Exceptions (all counted in the denominator above):
   block number instead; alerts still arrive within a block (~12 s).
 - **Keys on device.** The device key lives in `localStorage`. Production would use a passkey or hardware wallet.
 - **Token names are untrusted.** Unknown tokens are marked; copy-trade is offered only for known pairs.
+- **Pending alerts are unverified.** The mempool feed can't be proven against a block; the app labels it "pending,
+  unverified" and replaces it with the verified alert when the block lands. A relay could show fake pending
+  transactions; copying from a pending alert is your call, and the trade may front-run a tx that never lands.
+- **The mempool feed is one shared snapshot,** the same bytes for everyone with no parameters; the relay learns only
+  that an app is polling it, from a mixnet exit.
+- **The Spy panel comparison is opt-in.** Its "Normal RPC" column really sends demo requests (public contract
+  addresses, never yours) from your IP to our relay; that's the point of the demo.
+- **Mainnet private send: tested, not built.** On Nov 6, through Anon-RPC: Flashbots Protect (`rpc.flashbots.net/fast`)
+  and MEV Blocker (`rpc.mevblocker.io`) both answered `eth_chainId = 0x1`, rejected a malformed tx, and accepted a
+  signed tx from an unfunded throwaway key (hash returned in ~1–2 s; it can never land). Wiring a mainnet config is
+  next; the app today targets Sepolia.
 - **Testnet only** until Glamsterdam (block access lists) reaches mainnet.
 
 ## CROPS
