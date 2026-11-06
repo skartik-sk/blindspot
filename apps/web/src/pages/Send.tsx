@@ -11,14 +11,6 @@ const ASSETS: Asset[] = ["ETH", "USDC", "WETH"];
 const assetOf = (t?: Address): Asset | undefined =>
   t === TOKEN.USDC ? "USDC" : t === TOKEN.WETH ? "WETH" : undefined;
 
-function Seg<T extends string>({ value, options, onChange, label }: { value: T; options: readonly T[]; onChange: (v: T) => void; label: string }) {
-  return (
-    <div className="seg" role="group" aria-label={label}>
-      {options.map((o) => <button type="button" key={o} aria-pressed={o === value} onClick={() => onChange(o)}>{o}</button>)}
-    </div>
-  );
-}
-
 export default function Send({ query }: { query: URLSearchParams }) {
   const me = deviceAccount().address.toLowerCase() as Address;
   const bal = useStore((s) => s.balances[me]);
@@ -96,75 +88,102 @@ export default function Send({ query }: { query: URLSearchParams }) {
     }
   }
 
+  const flip = () => {
+    if (mode !== "Swap") return;
+    const nextPay: Asset = toAsset;
+    const nextGet: Asset = asset === "ETH" ? "WETH" : asset;
+    if (nextPay === nextGet) return;
+    setAsset(nextPay);
+    setToAsset(nextGet);
+    setAmount("");
+  };
+  const max = () => have !== undefined && setAmount(formatUnits(asset === "ETH" ? (have * 9n) / 10n : have, DECIMALS[asset]));
+
   return (
     <>
       <header className="head">
         <h1>{mode === "Swap" ? "Trade" : "Send"}</h1>
-        <p>Signed on this device, sent through the mixnet straight to a private builder. Nobody sees it before it lands.</p>
+        <p>Signed on this device, sent through the mixnet. Nobody sees it before it lands.</p>
       </header>
 
       {copy && (
-        <section className="callout">
+        <section className="callout copy-callout">
           <strong>Copying {copy.title.replace(" swapped", "")}</strong>
-          <span className="muted">{copy.detail} in block {copy.block}. Pick your own size below.</span>
+          <span className="muted">{copy.detail} in block {copy.block}. Pick your own size.</span>
         </section>
       )}
 
-      <section className="panel">
-        <header>
-          <Seg label="Action" value={mode} options={["Swap", "Send"] as const} onChange={setMode} />
-          <span className="small muted">From This device · <span className="mono">{short(me)}</span></span>
-        </header>
-        <form className="form" onSubmit={submit}>
-          <div className="field">
-            <label>{mode === "Swap" ? "You pay" : "Asset"}</label>
-            <div className="actions"><Seg label="Pay with" value={asset} options={ASSETS} onChange={setAsset} /></div>
-          </div>
-          <div className="field">
-            <label htmlFor="amt">Amount</label>
-            <input id="amt" type="text" inputMode="decimal" placeholder="0.0" value={amount} onChange={(e) => setAmount(e.target.value.replace(",", "."))} />
+      <form className="trade" onSubmit={submit}>
+        <div className="segtabs trade-mode" role="tablist" aria-label="Action">
+          {(["Swap", "Send"] as const).map((m) => (
+            <button type="button" key={m} role="tab" aria-selected={mode === m} onClick={() => setMode(m)}>{m === "Swap" ? "Trade" : "Send"}</button>
+          ))}
+        </div>
+
+        <div className="tcard">
+          <div className="tcard-top">
+            <label htmlFor="amt">{mode === "Swap" ? "You pay" : "You send"}</label>
             <span className="small muted">
-              Balance {have !== undefined ? `${fmtAmount(have, DECIMALS[asset])} ${asset}` : "loading"}{" "}
-              {have !== undefined && have > 0n && (
-                <button type="button" className="btn ghost small" onClick={() => setAmount(formatUnits(asset === "ETH" ? (have * 9n) / 10n : have, DECIMALS[asset]))}>
-                  {asset === "ETH" ? "Use 90%" : "Use all"}
-                </button>
-              )}
-              {!enough && <span className="error-text"> More than you have</span>}
+              Balance {have !== undefined ? fmtAmount(have, DECIMALS[asset]) : "…"}
+              {have !== undefined && have > 0n && <button type="button" className="max" onClick={max}>Max</button>}
             </span>
           </div>
-          {mode === "Swap" ? (
-            <div className="field">
-              <label>You get</label>
-              <div className="actions">
-                <Seg label="Receive" value={toAsset} options={["USDC", "WETH"] as Asset[]} onChange={setToAsset} />
-                <span>{out !== undefined ? <><strong>≈ {fmtAmount(out, DECIMALS[toAsset])}</strong> {toAsset}</> : amt ? <span className="muted">Getting a quote…</span> : null}</span>
+          <div className="tcard-row">
+            <input id="amt" className="amount" type="text" inputMode="decimal" autoComplete="off" placeholder="0" value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(",", ".").replace(/[^0-9.]/g, ""))} aria-invalid={!enough} />
+            <div className="toks" role="group" aria-label="Asset">
+              {ASSETS.map((a) => <button type="button" key={a} aria-pressed={a === asset} onClick={() => setAsset(a)}>{a}</button>)}
+            </div>
+          </div>
+          {!enough && <span className="error-text">That's more than you have.</span>}
+        </div>
+
+        {mode === "Swap" ? (
+          <>
+            <button type="button" className="flip" onClick={flip} aria-label="Swap direction"><Icon name="swap" /></button>
+            <div className="tcard">
+              <div className="tcard-top"><span className="lbl">You get</span><span className="small muted">Uniswap v3 · 0.05% pool</span></div>
+              <div className="tcard-row">
+                <output className="amount" aria-live="polite">
+                  {out !== undefined ? fmtAmount(out, DECIMALS[toAsset]) : amt ? <span className="skeleton" style={{ width: "5ch" }} /> : <span className="faint">0</span>}
+                </output>
+                <div className="toks" role="group" aria-label="Receive">
+                  {(["USDC", "WETH"] as Asset[]).map((a) => <button type="button" key={a} aria-pressed={a === toAsset} onClick={() => setToAsset(a)}>{a}</button>)}
+                </div>
               </div>
-              <span className="small faint">Uniswap v3, 0.05% pool, 0.5% max slippage. The quote request carries no address.</span>
+              <span className="small faint">0.5% max slippage. The quote request carries no address.</span>
             </div>
-          ) : (
-            <div className="field">
-              <label htmlFor="to">To</label>
-              <input id="to" type="text" className="mono" placeholder="0x…" value={to} onChange={(e) => setTo(e.target.value)} spellCheck={false} autoComplete="off" />
-            </div>
-          )}
-          <div className="field">
-            <label>Route</label>
-            <div className="actions">
-              <Seg label="Route" value={route === "private" ? "Private" : "Public"} options={["Private", "Public"] as const}
-                onChange={(v) => setRoute(v === "Private" ? "private" : "public")} />
-              <span className="small muted">
-                {route === "private" ? "Flashbots Protect: skips the public mempool, can't be front-run." : "Public mempool, still through the mixnet: your IP stays hidden, but bots see it before it lands."}
-              </span>
-            </div>
+          </>
+        ) : (
+          <div className="tcard">
+            <div className="tcard-top"><label htmlFor="to">To</label></div>
+            <input id="to" type="text" className="mono addr-input" placeholder="0x…" value={to} onChange={(e) => setTo(e.target.value)} spellCheck={false} autoComplete="off"
+              aria-invalid={to !== "" && !isAddress(to.trim())} />
+            {to !== "" && !isAddress(to.trim()) && <span className="error-text">That doesn't look like an Ethereum address.</span>}
           </div>
-          <div className="actions">
-            <button className="btn primary" disabled={!canSend}><Icon name="send" />{step ? "Working…" : mode === "Swap" ? "Trade privately" : "Send privately"}</button>
-            {step && <span className="small" aria-live="polite">{step}</span>}
-          </div>
-          {err && <p className="error-text">{err}</p>}
-        </form>
-      </section>
+        )}
+
+        <fieldset className="routes">
+          <legend>Route</legend>
+          <label className="route" data-on={route === "private"}>
+            <input type="radio" name="route" checked={route === "private"} onChange={() => setRoute("private")} />
+            <span><strong>Private</strong><span className="small muted">Flashbots Protect. Skips the public mempool, can't be front-run.</span></span>
+          </label>
+          <label className="route" data-on={route === "public"}>
+            <input type="radio" name="route" checked={route === "public"} onChange={() => setRoute("public")} />
+            <span><strong>Public</strong><span className="small muted">Mempool, still through the mixnet. IP hidden, bots see it first.</span></span>
+          </label>
+        </fieldset>
+
+        {err && <p className="error-text" role="alert">{err}</p>}
+
+        <div className="dock">
+          {step && <span className="small dock-step" aria-live="polite">{step}</span>}
+          <button className="btn primary dock-btn" disabled={!canSend} aria-busy={!!step}>
+            <Icon name="send" />{step ? "Working…" : mode === "Swap" ? `Trade ${asset} for ${toAsset}` : `Send ${asset} privately`}
+          </button>
+        </div>
+      </form>
 
       {pending && (
         <section className="panel">

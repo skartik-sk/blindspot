@@ -430,3 +430,46 @@ mark.leak { background: color-mix(in srgb, var(--down) 22%, transparent); color:
   .strip { margin: 0; padding: 2px 0; }
 }
 @media (min-width: 1280px) { .live-strip { display: none; } }
+
+/* ================= Trade screen (phone-first) ================= */
+.trade { display: grid; gap: 10px; position: relative; }
+.trade-mode { position: static; margin-bottom: 4px; }
+.tcard { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 16px 16px 14px; display: grid; gap: 10px; min-width: 0; }
+.tcard:focus-within { border-color: color-mix(in srgb, var(--signal) 45%, var(--line)); }
+.tcard-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.tcard-top label, .tcard-top .lbl { font-size: 13px; font-weight: 650; color: var(--ink-2); }
+.tcard-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.amount { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; outline: none; padding: 0; color: var(--ink);
+  font: 600 clamp(34px, 10vw, 44px)/1.1 var(--display); font-stretch: 105%; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+.amount::placeholder { color: var(--ink-3); }
+.amount[aria-invalid="true"] { color: var(--down); }
+output.amount { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toks { display: flex; gap: 4px; background: var(--sunk); padding: 4px; border-radius: 999px; flex: none; }
+.toks button { border: 0; background: transparent; color: var(--ink-2); font-weight: 700; font-size: 13px; min-height: 34px; padding: 0 11px; border-radius: 999px; cursor: pointer; transition: background-color 100ms ease-out, color 100ms ease-out; }
+.toks button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / 0.18), inset 0 0 0 1px var(--line); }
+.max { margin-left: 8px; border: 0; background: var(--signal-wash); color: var(--signal); font-weight: 700; font-size: 12px; padding: 4px 9px; border-radius: 999px; cursor: pointer; min-height: 26px; }
+@media (prefers-color-scheme: light) { .max { color: #0b7a43; } }
+.flip { justify-self: center; margin: -22px 0; z-index: 1; width: 44px; height: 44px; border-radius: 14px; border: 4px solid var(--paper); background: var(--surface); color: var(--ink);
+  display: grid; place-items: center; cursor: pointer; transition: transform 150ms ease-out; box-shadow: 0 0 0 1px var(--line); }
+.flip svg { width: 18px; height: 18px; transform: rotate(90deg); }
+.flip:active { transform: rotate(180deg) scale(0.96); }
+.addr-input { border-radius: 14px; }
+.routes { border: 0; margin: 6px 0 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+.routes legend { font-size: 13px; font-weight: 650; color: var(--ink-2); margin-bottom: 8px; padding: 0; }
+.route { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; padding: 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; transition: border-color 100ms ease-out, background-color 100ms ease-out; }
+.route[data-on="true"] { border-color: color-mix(in srgb, var(--signal) 55%, transparent); background: color-mix(in srgb, var(--signal-wash) 60%, var(--surface)); }
+.route input { margin: 3px 0 0; width: 18px; height: 18px; accent-color: var(--signal); }
+.route > span { display: grid; gap: 2px; min-width: 0; }
+.dock { display: grid; gap: 8px; margin-top: 8px; }
+.dock-btn { width: 100%; min-height: 54px; font-size: 16px; }
+.dock-step { text-align: center; color: var(--ink-2); }
+@media (max-width: 959px) {
+  .dock { position: sticky; bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 6; padding: 10px 0 4px; background: linear-gradient(180deg, transparent, var(--paper) 30%); }
+}
+.copy-callout { border: 1px solid color-mix(in srgb, var(--signal) 35%, transparent); background: var(--signal-wash); }
+.main > * { min-width: 0; }
+.tcard input.amount[type="text"] { width: 0; flex: 1 1 auto; padding: 0; border: 0; border-radius: 0; background: transparent; }
+@media (max-width: 380px) { .toks button { padding: 0 8px; font-size: 12px; } }
+html, body { overflow-x: clip; }
+.tabs { left: 0; right: 0; }
+.kv dd, .panel p { overflow-wrap: anywhere; }
