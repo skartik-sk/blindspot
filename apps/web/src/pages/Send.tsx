@@ -5,7 +5,7 @@ import Icon from "../components/Icon";
 import { deviceAccount } from "../lib/device";
 import { decimalsOf, fmtAmount, short } from "../lib/format";
 import { setState, useStore } from "../lib/store";
-import { DECIMALS, TOKEN, execute, quote, swapPlan, transferPlan, type Asset, type Route } from "../lib/trade";
+import { DECIMALS, TOKEN, execute, privateRouteAvailable, quote, swapPlan, transferPlan, type Asset, type Route } from "../lib/trade";
 import { Source, loadBalance } from "./Portfolio";
 
 const ASSETS: Asset[] = ["ETH", "USDC", "WETH"];
@@ -24,7 +24,14 @@ export default function Send({ query }: { query: URLSearchParams }) {
   const [toAsset, setToAsset] = useState<Asset>("USDC");
   const [to, setTo] = useState("");
   const [amount, setAmount] = useState("");
-  const [route, setRoute] = useState<Route>("private");
+  const [route, setRoute] = useState<Route>("public");
+  const [privOk, setPrivOk] = useState<boolean>();
+  useEffect(() => {
+    privateRouteAvailable().then((ok) => {
+      setPrivOk(ok);
+      if (ok) setRoute("private");
+    });
+  }, []);
   const [out, setOut] = useState<bigint>();
   const [step, setStep] = useState<string>();
   const [err, setErr] = useState<string>();
@@ -81,8 +88,8 @@ export default function Send({ query }: { query: URLSearchParams }) {
       setAmount("");
     } catch (e) {
       const m = (e as Error).message;
-      setErr(route === "private" && /DnsFailed|Tunnel|fetch|network/i.test(m)
-        ? "The private route (Flashbots Protect on Sepolia) isn't reachable right now. Switch Route to Public: it still goes through the mixnet, so your IP stays hidden, but bots can see it before it lands."
+      setErr(route === "private" && /DnsFailed|Tunnel|fetch|network|timed out/i.test(m)
+        ? "The private builder didn't answer. Use the public route: it still goes through the mixnet, so your IP stays hidden, but bots can see it before it lands."
         : m.split("\n")[0]);
     } finally {
       setStep(undefined);
@@ -104,7 +111,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
     <>
       <header className="head">
         <h1>{mode === "Swap" ? "Trade" : "Send"}</h1>
-        <p>Signed on this device, sent through the mixnet. Nobody sees it before it lands.</p>
+        <p>Signed on this device and sent through the mixnet, so no node learns your IP.</p>
       </header>
 
       {copy && (
@@ -170,20 +177,27 @@ export default function Send({ query }: { query: URLSearchParams }) {
 
         <fieldset className="routes">
           <legend>Route</legend>
-          <label className="route" data-on={route === "private"}>
-            <input type="radio" name="route" checked={route === "private"} onChange={() => setRoute("private")} />
-            <span><strong>Private</strong><span className="small muted">Flashbots Protect. Skips the public mempool, can't be front-run.</span></span>
+          <label className="route" data-on={route === "private"} data-disabled={privOk === false}>
+            <input type="radio" name="route" checked={route === "private"} disabled={!privOk} onChange={() => setRoute("private")} />
+            <span>
+              <strong>Private builder</strong>
+              <span className="small muted">
+                {privOk === undefined ? "Checking for a private builder on this network…"
+                  : privOk ? "Skips the public mempool, so bots can't front-run it."
+                  : "Not available on Sepolia: Flashbots retired its Sepolia endpoint. On mainnet this uses Flashbots Protect."}
+              </span>
+            </span>
           </label>
           <label className="route" data-on={route === "public"}>
             <input type="radio" name="route" checked={route === "public"} onChange={() => setRoute("public")} />
-            <span><strong>Public</strong><span className="small muted">Mempool, still through the mixnet. IP hidden, bots see it first.</span></span>
+            <span><strong>Public mempool, via the mixnet</strong><span className="small muted">Your IP stays hidden and the tx can't be linked to your other requests. Bots can see it before it lands.</span></span>
           </label>
         </fieldset>
 
         {err && (
           <div className="callout" role="alert">
             <span className="error-text">{err}</span>
-            {route === "private" && /isn't reachable/.test(err) && (
+            {route === "private" && /didn't answer/.test(err) && (
               <button type="button" className="btn small" onClick={() => { setRoute("public"); setErr(undefined); }}>Use the public route</button>
             )}
           </div>
@@ -192,7 +206,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
         <div className="dock">
           {step && <span className="small dock-step" aria-live="polite">{step}</span>}
           <button className="btn primary dock-btn" disabled={!canSend} aria-busy={!!step}>
-            <Icon name="send" />{step ? "Working…" : mode === "Swap" ? `Trade ${asset} for ${toAsset}` : route === "private" ? `Send ${asset} privately` : `Send ${asset}`}
+            <Icon name="send" />{step ? "Working…" : mode === "Swap" ? `Trade ${asset} for ${toAsset}` : route === "private" ? `Send ${asset} via private builder` : `Send ${asset}`}
           </button>
         </div>
       </form>
@@ -201,7 +215,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
         <section className="panel">
           <header>
             <h2>{pending.landed ? "Landed" : "Waiting to land"}</h2>
-            {pending.landed ? <span className="chip" data-kind="verified">Verified · block {pending.landed}</span> : <span className="chip">{pending.route === "public" ? "In the mempool" : "Private, not public yet"}</span>}
+            {pending.landed ? <span className="chip" data-kind="verified">Verified · block {pending.landed}</span> : <span className="chip">{pending.route === "private" ? "Private, not public yet" : "In the mempool"}</span>}
           </header>
           <dl className="kv">
             <dt>Transaction</dt><dd>{pending.label}</dd>
@@ -209,8 +223,8 @@ export default function Send({ query }: { query: URLSearchParams }) {
           </dl>
           <p className="small muted">
             {pending.landed ? "Seen in a verified block on this device. Your balance above is already updated from it."
-              : pending.route === "public" ? "Sent through the mixnet to the public mempool. It usually lands within a block or two."
-              : "Private builders include it in a block when they win one; this can take a few blocks on Sepolia."}
+              : pending.route === "private" ? "Private builders include it in a block when they win one; this can take a few blocks."
+              : "Sent through the mixnet to the public mempool. It usually lands within a block or two."}
           </p>
           {pending.landed && <button className="btn small" onClick={() => setState(() => ({ pendingTx: undefined }))}>Dismiss</button>}
         </section>

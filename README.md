@@ -22,7 +22,7 @@ Track: Ethereum Foundation, Best Use of Anon-RPC (ETHGlobal Mumbai 2026).
 | Portfolio | Balances of your wallets, updated every block | Nothing: block numbers only |
 | Watch | Alerts the moment a watched wallet swaps, with what it sold and bought | Nothing: block numbers only |
 | Lookup | Any address's ETH/USDC/WETH balance via PIR | An encrypted query; not which address |
-| Trade / Send | Uniswap swap or transfer, signed on device, sent via Flashbots Protect | The tx when it's sent, from a mixnet exit, not in the public mempool |
+| Trade / Send | Uniswap swap or transfer, signed on device, sent through the mixnet | The tx, from a mixnet exit (not your IP). On mainnet a private builder (Flashbots Protect) keeps it out of the public mempool |
 | Spy panel | Side by side: a typical wallet's requests vs. this app's actual requests | — |
 
 It's a PWA: one codebase for phone and desktop, installable from the browser.
@@ -109,9 +109,11 @@ quotes, token names and sends. The Spy panel lists every request as the server r
 - **PIR hides, it doesn't prove.** A lying PIR server could return a wrong balance; the next verified block
   that touches the address corrects it. Next step: proof-checked rows (`eth_getProof` against a verified header).
 - **PIR scale.** Paillier PIR is slow on big tables, so the demo indexes ~1k active addresses. 1024-bit keys.
-- **Private send on Sepolia.** Flashbots Protect's Sepolia endpoint didn't resolve from mixnet exits (Nov 6).
-  The app says so and offers the public route, still through the mixnet (IP hidden, tx visible in the mempool).
-  On mainnet the same code uses Flashbots Protect.
+- **No private builder on Sepolia.** Flashbots removed the DNS for its Sepolia Protect RPC and relay (checked Nov 6,
+  2026), and the builders producing Sepolia blocks today (builder.nflaig.eth, MigaLabs rbuilder) publish no
+  private-tx endpoint. The app checks the configured builder through the mixnet before offering the private route;
+  on Sepolia it sends to the public mempool via the mixnet (IP hidden, tx visible before it lands). Set
+  `VITE_SEND_URL=https://rpc.flashbots.net/fast` on mainnet.
 - **Keys on device.** The device key lives in `localStorage`. Production would use a passkey or hardware wallet.
 - **Token names are untrusted.** Unknown tokens are marked; copy-trade is offered only for known pairs.
 - **Testnet only** until Glamsterdam (block access lists) reaches mainnet.

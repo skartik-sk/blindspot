@@ -21,8 +21,12 @@ export const config = {
   anchorUrl: env.VITE_ANCHOR_URL ?? "https://sepolia.gateway.tenderly.co",
   /** Reads that name an address (your own balances when PIR can't help, nonce, gas). Fresh route each time. */
   readUrl: env.VITE_READ_URL ?? "https://ethereum-sepolia-rpc.publicnode.com",
-  /** Private send: Flashbots Protect keeps the tx out of the public mempool until it lands. */
-  sendUrl: env.VITE_SEND_URL ?? "https://rpc-sepolia.flashbots.net/",
+  /**
+   * Private send: a builder RPC that keeps the tx out of the public mempool (Flashbots Protect on mainnet:
+   * https://rpc.flashbots.net/fast). Sepolia has none as of Nov 2026 (Flashbots removed its Sepolia DNS), so it's
+   * unset by default and the app checks availability before offering it.
+   */
+  privateSendUrl: env.VITE_SEND_URL as string | undefined,
   /** Bootstrap providers, tried in order: only used to read the Anon-RPC specifier contract (public data). */
   bootstrap: {
     mainnet: list(env.VITE_BOOTSTRAP_MAINNET, ["https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://1rpc.io/eth"]),

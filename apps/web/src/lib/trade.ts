@@ -1,5 +1,6 @@
-// Build, sign and send transactions. Signing happens here; the signed tx goes to Flashbots Protect through the
-// mixnet, so it never sits in the public mempool and the sender's IP is never attached to it.
+// Build, sign and send transactions. Signing happens here; the signed tx goes out through the mixnet, so the sender's
+// IP is never attached to it. With a private builder configured (Flashbots Protect on mainnet) it also skips the
+// public mempool; Sepolia has no such builder today, so there it goes to the public mempool.
 // Disclosed: preparing a tx (nonce, gas) names your address to a read node, on a fresh one-off mixnet route.
 import { RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, newIsolationKey } from "@bina/sdk";
 import {
@@ -79,7 +80,8 @@ export async function execute(plan: TxPlan[], route: Route, onStep?: (s: string)
   const account = deviceAccount();
   const key = newIsolationKey(); // one route for this trade's prep reads; unlinkable from anything else
   const reader = createPublicClient({ chain: sepolia, transport: anonTransport(config.readUrl, key) });
-  const sender = new RpcClient(route === "private" ? config.sendUrl : config.readUrl, anonFetch, newIsolationKey());
+  if (route === "private" && !config.privateSendUrl) throw new Error("No private builder is configured for this network.");
+  const sender = new RpcClient(route === "private" ? config.privateSendUrl! : config.readUrl, anonFetch, newIsolationKey());
   let nonce = await reader.getTransactionCount({ address: account.address, blockTag: "pending" });
   const fees = await reader.estimateFeesPerGas();
   const hashes: Hex[] = [];
@@ -91,8 +93,22 @@ export async function execute(plan: TxPlan[], route: Route, onStep?: (s: string)
       chainId: sepolia.id, type: "eip1559", nonce: nonce++, to: step.to, data: step.data, value: step.value ?? 0n,
       gas: (gas * 12n) / 10n, maxFeePerGas: fees.maxFeePerGas! * 2n, maxPriorityFeePerGas: fees.maxPriorityFeePerGas! * 2n,
     });
-    onStep?.(`${step.label}: sending ${route === "private" ? "privately via Flashbots Protect" : "to the public mempool"}`);
+    onStep?.(`${step.label}: sending ${route === "private" ? "to the private builder" : "to the public mempool through the mixnet"}`);
     hashes.push(await sender.call<Hex>("eth_sendRawTransaction", [signed]));
   }
   return hashes;
+}
+
+/**
+ * Is the private route really usable here? Asks the configured builder RPC for its chain id through the mixnet
+ * (once per session). Never pretends: no URL, an error, or a different chain all mean "unavailable".
+ */
+let privateCheck: Promise<boolean> | undefined;
+export function privateRouteAvailable(): Promise<boolean> {
+  if (!config.privateSendUrl) return Promise.resolve(false);
+  privateCheck ??= new RpcClient(config.privateSendUrl, anonFetch, newIsolationKey())
+    .call<Hex>("eth_chainId")
+    .then((id) => BigInt(id) === BigInt(sepolia.id))
+    .catch(() => false);
+  return privateCheck;
 }

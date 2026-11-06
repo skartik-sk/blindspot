@@ -58,7 +58,7 @@ export default function Bento() {
         <div className="L-swap L-vis" aria-hidden>
           <div className="L-swap-row"><strong>0.5</strong><span className="L-tok">ETH</span></div>
           <div className="L-swap-row"><strong>≈ 1,690</strong><span className="L-tok">USDC</span></div>
-          <div className="L-route"><span className="L-ok">●</span> Signed on device · private route</div>
+          <div className="L-route"><span className="L-ok">●</span> Signed on device · sent through the mixnet</div>
         </div>
       </Reveal>
       <Reveal className="L-tile w2">
@@ -78,8 +78,8 @@ export default function Bento() {
       </Reveal>
       <Reveal className="L-tile w2" delay={0.1}>
         <span className="L-fig">FIG 5 · Send</span>
-        <h3>Trades skip the public mempool</h3>
-        <p>Signed on your phone and sent through the mixnet to a private builder. Bots can't front-run what they never see.</p>
+        <h3>Trades that can't be traced to you</h3>
+        <p>Signed on your phone and sent through the mixnet, so no node learns your IP. On mainnet it goes to a private builder (Flashbots Protect), so bots never see it first.</p>
         <span className="L-learns">Your IP never touches the tx.</span>
       </Reveal>
     </div>
