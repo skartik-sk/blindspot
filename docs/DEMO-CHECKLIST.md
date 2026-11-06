@@ -1,6 +1,6 @@
 # Demo checklist (live, ~3 min)
 
-Site: https://bina.13-53-45-89.sslip.io · Whale A: `0xC2D7d07c52F556b1837E5FD51989850Fa4f173E9`
+Site: https://skartik-sk.github.io/bina-pooche/ · Whale A: `0xC2D7d07c52F556b1837E5FD51989850Fa4f173E9`
 (Sepolia, ~0.0045 ETH = about 8 more 0.0005 ETH swaps; it is seeded, so it never leaves the lookup directory).
 
 ## 15 minutes before

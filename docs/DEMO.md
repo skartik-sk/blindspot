@@ -2,7 +2,7 @@
 
 Judging: works end to end · UX · traffic share through Anon-RPC · could ship · technical depth.
 
-**Setup before recording:** phone (or narrow browser) on https://bina.13-53-45-89.sslip.io, app open for 2+ minutes
+**Setup before recording:** phone (or narrow browser) on https://skartik-sk.github.io/bina-pooche/, app open for 2+ minutes
 so the traffic share has settled. Whale wallet funded. Second window ready to send the whale's swap. Wallet A
 (the whale) already added under Watch.
 

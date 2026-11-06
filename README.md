@@ -41,7 +41,7 @@ What this does **not** give you (we never claim "100% private"):
 
 ## Live
 
-- App: https://bina.13-53-45-89.sslip.io (landing at `/`, app at `/#/portfolio`)
+- App: https://skartik-sk.github.io/bina-pooche/ (GitHub Pages; landing at `/`, app at `#/portfolio`)
 - Relay: https://bina-relay.13-53-45-89.sslip.io/health
 
 ## What it does
@@ -95,7 +95,8 @@ PIR lookup falls back to a one-off mixnet read). Relay env: `UPSTREAM_RPC`, `POR
 polling can't rate-limit block fetches).
 
 Deployed on a small VM: the relay runs as a systemd service (`bina-relay`, bound to 127.0.0.1, MemoryMax 400M)
-behind Caddy, which serves the static web build and HTTPS (sslip.io hostnames, no DNS setup). The root
+behind Caddy for HTTPS (sslip.io hostname, no DNS setup). The web app is a static build on GitHub Pages
+(`bun run build -- --base /bina-pooche/`, pushed to the `gh-pages` branch), so our server never serves the page. The root
 `Dockerfile` works for Railway/fly.io too. Mixnet exits only reach `https://` hosts on 443,
 so a deployed relay needs a public https URL.
 
@@ -186,7 +187,8 @@ Checked Nov 6. Everything the app fetches goes through `anonFetch` (Anon-RPC), e
 | Who | Sees your IP | Learns | Notes |
 | --- | --- | --- | --- |
 | Mixnet entry node | yes | that you use the mixnet; not destinations or content | inherent to any mixnet |
-| Our server, when you **load the website** | yes | that you opened the site | the static site is served by the same machine as the relay (Caddy). Caddy keeps no access log, but its error/warning log records the IP of a request that fails (seen only for mixnet exits so far). Moving the site to separate static hosting is pending. |
+| GitHub Pages, when you **load the website** | yes | that you opened the site | the static app is hosted on GitHub Pages (moved off our server on Nov 6); GitHub's own logging applies. Our server no longer serves any page: the old site address doesn't answer. |
+| Our server's error log | only for a request that fails | | Caddy keeps no access log. Its shared error log records the IP of a failed proxied request (so far only mixnet exits). That log can't be filtered per site, only globally, and the box is shared with another service, so it's left as is and disclosed. |
 | Anon-RPC bootstrap | yes | that someone is starting Anon-RPC | 2 `eth_call`s to the public network contract (publicnode, with fallbacks) and the client code from `raw.githubusercontent.com`. No address. Counted in the traffic share. |
 | Spy panel "Run the comparison" | yes (opt-in) | 2 public demo contract addresses | the "Normal RPC" column sends directly to our relay's demo lane on purpose. The lane is off by default (`ENABLE_NAIVE`), and when on it answers only about the demo addresses (`NAIVE_ALLOW`). |
 | A relay on `localhost` | n/a | | dev only |
