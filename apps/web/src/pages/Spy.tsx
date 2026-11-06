@@ -1,0 +1,105 @@
+// Side by side: what a typical wallet's provider learns from the same screens, and what ours actually received.
+import { useMemo, useSyncExternalStore } from "react";
+import type { Address } from "viem";
+import { short } from "../lib/format";
+import { reqlog } from "../lib/reqlog";
+import { useStore, type Wallet } from "../lib/store";
+
+const USDC = "0x1c7d…7238";
+const WETH = "0xfff9…6b14";
+
+/** The polling a typical wallet does for these exact screens, per new block (balances + watched activity). */
+function typicalRequests(wallets: Wallet[], block: string) {
+  const out: { method: string; params: string; leaks: Address }[] = [];
+  for (const w of wallets) {
+    if (w.kind !== "watch") {
+      out.push({ method: "eth_getBalance", params: `["${w.address}", "latest"]`, leaks: w.address });
+      out.push({ method: "eth_call", params: `balanceOf(${w.address}) on USDC ${USDC}`, leaks: w.address });
+      out.push({ method: "eth_call", params: `balanceOf(${w.address}) on WETH ${WETH}`, leaks: w.address });
+    } else {
+      out.push({ method: "eth_getLogs", params: `{ block: ${block}, topics: [Transfer, ${w.address}] }`, leaks: w.address });
+      out.push({ method: "eth_getTransactionCount", params: `["${w.address}", "latest"]`, leaks: w.address });
+    }
+  }
+  return out;
+}
+
+function Highlight({ text, addrs }: { text: string; addrs: string[] }) {
+  const re = useMemo(() => (addrs.length ? new RegExp(`(${addrs.join("|")})`, "gi") : undefined), [addrs]);
+  if (!re) return <>{text}</>;
+  return <>{text.split(re).map((p, i) => (i % 2 ? <mark key={i} className="leak">{p}</mark> : p))}</>;
+}
+
+export default function Spy() {
+  const wallets = useStore((s) => s.wallets);
+  const tape = useStore((s) => s.tape);
+  const entries = useSyncExternalStore(reqlog.subscribe, reqlog.get);
+  const head = tape[0]?.number ?? "latest";
+  const typical = useMemo(() => typicalRequests(wallets, head), [wallets, head]);
+  const all = wallets.map((w) => w.address);
+  const ours = [...entries].reverse().slice(0, 80);
+  // Addresses that actually appeared in our requests (one-off mixnet lookups, sends): shown, not hidden.
+  const oursLeaked = useMemo(() => new Set(entries.flatMap((e) => all.filter((a) => e.detail.toLowerCase().includes(a)))), [entries, all]);
+  const feedReqs = entries.filter((e) => !all.some((a) => e.detail.toLowerCase().includes(a))).length;
+
+  return (
+    <>
+      <header className="head">
+        <h1>Spy panel</h1>
+        <p>The same screens, two ways. On the left, what a normal wallet sends its provider. On the right, every request this app actually sent.</p>
+      </header>
+
+      <div className="spy">
+        <section className="panel spy-col">
+          <header>
+            <span className="small muted">A typical wallet, every block</span>
+            <span className="spy-score down">{all.length}</span>
+            <span className="small">addresses handed over, plus your IP on every request. Your provider now knows your portfolio and who you copy.</span>
+          </header>
+          {typical.length === 0 ? (
+            <p className="small muted">Add a wallet or watch one to see what would leak.</p>
+          ) : (
+            <ul className="log" aria-label="Typical wallet requests">
+              {typical.map((r, i) => (
+                <li key={i}>
+                  <span className="m">{r.method}</span>
+                  <span className="p"><Highlight text={r.params} addrs={[r.leaks]} /></span>
+                  <span className="from">from your IP · block {head}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="small faint">Built from your wallet list, the way MetaMask-style wallets poll. Nothing on this side is sent anywhere.</p>
+        </section>
+
+        <section className="panel spy-col">
+          <header>
+            <span className="small muted">This app, live</span>
+            <span className={`spy-score ${oursLeaked.size ? "" : "up"}`}>{oursLeaked.size}</span>
+            <span className="small">
+              addresses in {entries.length} requests. {feedReqs} of them name only a block number, and none carry your IP.
+            </span>
+          </header>
+          <ul className="log" aria-label="This app's requests">
+            {ours.map((e) => (
+              <li key={e.id}>
+                <span className="m">{e.method} <span className="faint">→ {e.host}</span></span>
+                {e.detail && <span className="p"><Highlight text={e.detail} addrs={all} /></span>}
+                <span className="from">
+                  {e.route === "mixnet" ? `from a mixnet exit · route ${e.key}` : "direct to a relay on this machine"}
+                </span>
+              </li>
+            ))}
+            {ours.length === 0 && <li className="p">Requests appear here as they're sent.</li>}
+          </ul>
+          {oursLeaked.size > 0 && (
+            <p className="small muted">
+              Highlighted: one-off lookups and sends that must name an address ({[...oursLeaked].map(short).join(", ")}). Each went
+              out on its own mixnet route, so the node can't tell they're the same person.
+            </p>
+          )}
+        </section>
+      </div>
+    </>
+  );
+}
