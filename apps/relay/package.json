@@ -8,6 +8,7 @@
     "dev": "bun --watch src/server.ts"
   },
   "dependencies": {
-    "@bina/sdk": "workspace:*"
+    "@bina/sdk": "workspace:*",
+    "viem": "^2.57.16"
   }
 }

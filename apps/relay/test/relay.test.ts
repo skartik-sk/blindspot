@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { RpcClient, verifyReceipts, type CompactReceipt } from "@bina/sdk";
+import { PirClient, RpcClient, unpackBalances, verifyReceipts, type BalJson, type CompactReceipt, type PirTable } from "@bina/sdk";
+import type { Address } from "viem";
+import { PirStore } from "../src/pirstore";
 import fx from "../../../packages/sdk/test/fixtures/block.json";
 import rcpts from "../../../packages/sdk/test/fixtures/receipts.json";
 import { bucket, createApp, type AppOptions } from "../src/app";
@@ -129,5 +131,37 @@ describe("relay", () => {
     expect(bucket("2001:DB8:0:1::5%eth0")).toBe(a);
     expect(bucket("2001:db8:0:2::1")).not.toBe(a);
     expect(bucket("::ffff:203.0.113.9")).toBe("203.0.113.9");
+  });
+});
+
+describe("PIR", () => {
+  const read = async (addrs: Address[]) =>
+    new Map(addrs.map((a, i) => [a, { eth: BigInt(i + 1), usdc: BigInt(1000 + i), weth: 0n }]));
+  test("indexes active accounts from the verified BAL and answers privately", async () => {
+    const pir = new PirStore(read);
+    const { app, spy } = setup({ pir });
+    expect((await app(new Request("http://r/pir"))).status).toBe(503); // no table yet
+    await pir.onBlock(N, fx.bal as BalJson);
+    const t = (await (await app(new Request("http://r/pir"))).json()) as PirTable;
+    expect(t.addresses.length).toBeGreaterThan(10);
+    const i = 7;
+    const c = await PirClient.create(1024);
+    const res = await app(new Request("http://r/pir", { method: "POST", body: JSON.stringify(c.query(t, i)) }));
+    const { answers } = (await res.json()) as { answers: `0x${string}`[] };
+    const b = unpackBalances(c.decode(t, i, answers));
+    expect(b.usdc).toBeGreaterThanOrEqual(1000n);
+    // The operator's log has no address and no index.
+    const logged = JSON.stringify(spy.recent());
+    expect(logged).toContain("pir_query");
+    expect(logged).not.toContain(t.addresses[i].slice(2));
+  });
+  test("rejects a query for an unknown epoch", async () => {
+    const pir = new PirStore(read);
+    const { app } = setup({ pir });
+    await pir.onBlock(N, fx.bal as BalJson);
+    const t = pir.table()!;
+    const c = await PirClient.create(1024);
+    const res = await app(new Request("http://r/pir", { method: "POST", body: JSON.stringify({ ...c.query(t, 0), epoch: 99 }) }));
+    expect(res.status).toBe(400);
   });
 });

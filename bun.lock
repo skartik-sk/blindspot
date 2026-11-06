@@ -14,6 +14,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@bina/sdk": "workspace:*",
+        "viem": "^2.57.16",
       },
     },
     "apps/web": {

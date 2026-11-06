@@ -4,7 +4,10 @@
 //   GET  /stream  SSE: every new block, pushed identically to every client
 //   POST /naive   "normal wallet" passthrough to upstream, read-only allowlist; logged for the Spy Panel
 //   GET  /spy     SSE: spy log (what a provider sees from each lane)
+//   GET  /pir     PIR table: public address directory + layout (no balances)
+//   POST /pir     PIR query: encrypted selectors in, encrypted rows out; the index never leaves the client
 import { RpcClient, toHex } from "@bina/sdk";
+import type { PirStore } from "./pirstore";
 import type { BlockCache, CachedBlock } from "./relay";
 import type { SpyLog } from "./spy";
 
@@ -13,6 +16,8 @@ const NAIVE_METHODS = new Set([
   "eth_blockNumber", "eth_chainId", "eth_getBalance", "eth_call", "eth_getTransactionCount", "eth_getLogs",
 ]);
 export const MAX_BODY = 16 * 1024;
+/** PIR queries carry one ciphertext per column (~17 KB at 1024-bit keys, ~33 KB at 2048). */
+export const MAX_PIR_BODY = 64 * 1024;
 const MAX_LOG_RANGE = 10n;
 const BLOCK_RE = /^0x[0-9a-f]{1,16}$/i;
 
@@ -42,11 +47,11 @@ function sse(subscribe: (send: (data: unknown) => void) => () => void, initial: 
 }
 const big = (_k: string, v: unknown) => (typeof v === "bigint" ? toHex(v) : v);
 
-async function readBody(req: Request): Promise<any> {
+async function readBody(req: Request, max = MAX_BODY): Promise<any> {
   const len = Number(req.headers.get("content-length") ?? 0);
-  if (len > MAX_BODY) throw new Error("body too large");
+  if (len > max) throw new Error("body too large");
   const text = await req.text();
-  if (text.length > MAX_BODY) throw new Error("body too large");
+  if (text.length > max) throw new Error("body too large");
   return JSON.parse(text);
 }
 
@@ -63,6 +68,8 @@ export interface AppOptions {
   rateLimit?: number;
   /** Trust x-forwarded-for (only behind a proxy you control). */
   trustProxy?: boolean;
+  /** Serve PIR balance lookups. */
+  pir?: PirStore;
 }
 
 // Rate-limit key: IPv4 as-is; IPv6 normalised to its /64, so one host can't rotate addresses to dodge the limit.
@@ -82,7 +89,17 @@ export function bucket(ip: string): string {
 const MAX_TRACKED = 10_000;
 
 export function createApp(opts: AppOptions) {
-  const { cache, spy, upstream, chainId, spyToken, enableNaive = false, rateLimit = 600, trustProxy = false } = opts;
+  const { cache, spy, upstream, chainId, spyToken, enableNaive = false, rateLimit = 600, trustProxy = false, pir } = opts;
+  // PIR answers cost ~1-2 s of CPU each (synchronous, so they run one at a time): own, much lower limit.
+  const pirHits = new Map<string, number[]>();
+  const pirLimited = (key: string, perMin = 10) => {
+    const now = Date.now();
+    const recent = (pirHits.get(key) ?? []).filter((t) => now - t < 60_000);
+    pirHits.delete(key);
+    while (pirHits.size >= MAX_TRACKED) pirHits.delete(pirHits.keys().next().value!);
+    pirHits.set(key, [...recent, now]);
+    return recent.length >= perMin;
+  };
   // Behind a trusted proxy, the right-most XFF entry is the one that proxy appended; the rest are client-controlled.
   const ipOf = (req: Request, server: any): string =>
     (trustProxy && req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim()) ||
@@ -162,6 +179,30 @@ export function createApp(opts: AppOptions) {
       if (!spyAllowed(req)) return new Response("forbidden", { status: 403 });
       if (req.method === "GET" && url.pathname === "/spy") return sse((send) => spy.subscribe(send), spy.recent());
       if (req.method === "POST" && url.pathname === "/spy/clear") return spy.clear(), json({ ok: true });
+    }
+
+    if (url.pathname === "/pir" && pir) {
+      if (req.method === "GET") {
+        const t = pir.table();
+        return t ? json(t) : json({ error: "table not ready" }, 503);
+      }
+      if (req.method === "POST") {
+        if (pirLimited(bucket(ip))) return json({ error: "rate limited" }, 429);
+        let q: any;
+        try {
+          q = await readBody(req, MAX_PIR_BODY);
+        } catch (e) {
+          return json({ error: (e as Error).message }, 400);
+        }
+        // What the operator sees: an epoch and a pile of ciphertexts. No address, no index.
+        spy.add({ t: Date.now(), lane: "bina", client: tag(ip), method: "pir_query",
+          params: [`epoch ${q?.epoch}`, `${Array.isArray(q?.q) ? q.q.length : 0} ciphertexts`] });
+        try {
+          return json({ answers: pir.answer(q) });
+        } catch (e) {
+          return json({ error: (e as Error).message }, 400);
+        }
+      }
     }
 
     if (req.method === "POST" && (url.pathname === "/" || url.pathname === "/naive")) {

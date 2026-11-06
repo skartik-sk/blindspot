@@ -1,5 +1,8 @@
-import { RpcClient } from "@bina/sdk";
-import { MAX_BODY, createApp } from "./app";
+import { RpcClient, SEPOLIA_USDC, SEPOLIA_WETH, type Balances } from "@bina/sdk";
+import { createPublicClient, erc20Abi, http, isAddress, type Address } from "viem";
+import { sepolia } from "viem/chains";
+import { MAX_PIR_BODY, createApp } from "./app";
+import { PirStore } from "./pirstore";
 import { BlockCache } from "./relay";
 import { SpyLog } from "./spy";
 
@@ -12,16 +15,39 @@ const cache = new BlockCache(upstream);
 const spy = new SpyLog();
 const chainId = await upstream.call<string>("eth_chainId");
 
+// PIR table: initial balances in one multicall per block, then kept current from verified BALs.
+const client = createPublicClient({ chain: sepolia, transport: http(UPSTREAM) });
+const multicall3Abi = [{ type: "function", name: "getEthBalance", stateMutability: "view",
+  inputs: [{ name: "addr", type: "address" }], outputs: [{ name: "", type: "uint256" }] }] as const;
+async function readBalances(addrs: Address[]) {
+  const mc = sepolia.contracts.multicall3.address;
+  const calls = addrs.flatMap((a) => [
+    { address: mc, abi: multicall3Abi, functionName: "getEthBalance", args: [a] },
+    { address: SEPOLIA_USDC.token, abi: erc20Abi, functionName: "balanceOf", args: [a] },
+    { address: SEPOLIA_WETH.token, abi: erc20Abi, functionName: "balanceOf", args: [a] },
+  ] as const);
+  const res = await client.multicall({ contracts: calls, allowFailure: true });
+  const out = new Map<Address, Balances>();
+  addrs.forEach((a, i) => {
+    const v = (k: number) => (res[i * 3 + k].status === "success" ? (res[i * 3 + k].result as bigint) : 0n);
+    out.set(a, { eth: v(0), usdc: v(1), weth: v(2) });
+  });
+  return out;
+}
+const seeds = (process.env.PIR_SEED ?? "").split(",").map((s) => s.trim()).filter((s): s is Address => isAddress(s));
+const pir = new PirStore(readBalances, { seeds, max: Number(process.env.PIR_MAX ?? 1024) });
+
 const app = createApp({
   cache, spy, upstream, chainId,
   spyToken: process.env.SPY_TOKEN || undefined,
   enableNaive: process.env.ENABLE_NAIVE === "1",
   rateLimit: Number(process.env.RATE_LIMIT ?? 600),
   trustProxy: process.env.TRUST_PROXY === "1",
+  pir,
 });
 // idleTimeout 0: keep SSE streams open. maxRequestBodySize: hard cap before the body is buffered.
 const server = Bun.serve({
-  port: PORT, idleTimeout: 0, maxRequestBodySize: MAX_BODY, fetch: (req, srv) => app(req, srv),
+  port: PORT, idleTimeout: 0, maxRequestBodySize: MAX_PIR_BODY, fetch: (req, srv) => app(req, srv),
 });
 
 async function loop() {
@@ -32,6 +58,9 @@ async function loop() {
   }
   setTimeout(loop, POLL_MS);
 }
-cache.onBlock((b) => console.log(`block ${b.number} verified, ${b.bal.length} accounts`));
+cache.onBlock((b) => {
+  console.log(`block ${b.number} verified: ${b.bal.length} accounts, ${b.receipts.length} receipts`);
+  pir.onBlock(b.number, b.bal).catch((e) => console.error("pir:", (e as Error).message));
+});
 loop();
-console.log(`BAL relay on :${server.port}, chain ${chainId}, upstream ${new URL(UPSTREAM).host}`);
+console.log(`relay on :${server.port}, chain ${chainId}, upstream ${new URL(UPSTREAM).host}`);
