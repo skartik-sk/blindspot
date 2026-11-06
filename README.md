@@ -1,76 +1,122 @@
 # Bina Pooche (बिना पूछे)
 
-Tap-to-pay for merchants where the RPC provider never learns who the merchant is or what they earn.
+A private trading companion. Watch whales, copy their trades, check balances and send trades, and your
+RPC provider never learns what you hold, who you follow or what you're about to do.
 
-**Watch, don't ask.** The app never asks about an address. It downloads each block's
-[EIP-7928](https://eips.ethereum.org/EIPS/eip-7928) access list (which everyone receives
-identically), checks it against the block header, and finds its own payments locally. All traffic
-goes through [Anon-RPC](https://github.com/ethereum/anon-rpc).
+**Watch, don't ask.** A normal wallet asks its provider about your addresses on every block, so the provider
+knows your portfolio, your copy-trade list and your IP. Bina Pooche never asks about an address. It downloads
+each block, the same bytes everyone gets, proves the block is real, and filters it on your device. Every
+request goes through [Anon-RPC](https://github.com/ethereum/anon-rpc) (Sphinx mixnet).
 
 Track: Ethereum Foundation, Best Use of Anon-RPC (ETHGlobal Mumbai 2026).
+
+## What it does
+
+| Screen | What you get | What the provider learns |
+| --- | --- | --- |
+| Portfolio | Balances of your wallets, updated every block | Nothing: block numbers only |
+| Watch | Alerts the moment a watched wallet swaps, with what it sold and bought | Nothing: block numbers only |
+| Lookup | Any address's ETH/USDC/WETH balance via PIR | An encrypted query; not which address |
+| Trade / Send | Uniswap swap or transfer, signed on device, sent via Flashbots Protect | The tx when it's sent, from a mixnet exit, not in the public mempool |
+| Spy panel | Side by side: a typical wallet's requests vs. this app's actual requests | — |
+
+It's a PWA: one codebase for phone and desktop, installable from the browser.
 
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `packages/sdk` | Verifier SDK: BAL RLP + hash check, header hash check, local USDC/ETH detection, watch window |
-| `apps/relay` | BAL Relay: fetches each block once, verifies, serves the identical stream to everyone; spy log |
-| `apps/web` | PWA: `#/merchant` (charge), `#/customer` (pay), `#/diag` (Anon-RPC + verification check) |
-| `docs/BRIEF.md` | Project brief |
+| `packages/sdk` | The private core, usable by any wallet: header, access-list and receipts verification; event feed; per-wallet activity; chain follower; PIR client and server |
+| `apps/relay` | Fetches each block once, verifies it, serves the same bytes to everyone; PIR balance table; spy log |
+| `apps/web` | The app (React + Vite) |
 
 ## Run
 
 ```bash
 bun install
-bun test            # SDK + relay tests (uses a real Sepolia block fixture)
-bun run relay       # relay on :8787, upstream = publicnode Sepolia
-cd apps/web && cp .env.example .env && bunx vite   # app on :5173
+bun test                      # 47 tests, real Sepolia block fixtures
+bun run relay                 # relay on :8787
+cd apps/web && VITE_RELAY_URL=http://localhost:8787 bunx vite    # app on :5173
 ```
 
-Open `#/diag` first: it boots the Anon-RPC worker and verifies a live block through it.
+Without `VITE_RELAY_URL` the app reads blocks straight from publicnode through the mixnet (no relay needed;
+PIR lookup falls back to a one-off mixnet read). Relay env: `UPSTREAM_RPC`, `PORT`, `POLL_MS`, `SPY_TOKEN`,
+`ENABLE_NAIVE=1`, `RATE_LIMIT`, `TRUST_PROXY=1`, `PIR_SEED` (comma-separated addresses), `PIR_MAX`.
 
-### Anon-RPC network
+Deploy the relay with the root `Dockerfile` (Railway, fly.io). Mixnet exits only reach `https://` hosts on 443,
+so a deployed relay needs a public https URL.
 
-Default is the **Sphinx mixnet** (specifier on Sepolia). Tor works too (`VITE_ANON_NETWORK=tor`) but needs a
-reachable tor-js gateway (`VITE_TOR_GATEWAYS`); the public demo gateway was unreachable on Nov 6.
-Mixnet/Tor exits only reach `https://` hosts on port 443, so the relay must be deployed publicly before
-`VITE_RELAY_URL` can point at it. Until then lists come straight from publicnode, which is equally address-free.
+## Using the SDK
 
-Relay env: `UPSTREAM_RPC`, `PORT`, `POLL_MS`, `SPY_TOKEN`, `ENABLE_NAIVE=1` (demo lane), `RATE_LIMIT`, `TRUST_PROXY=1`.
+```ts
+import { RpcClient, follow, scanBlock, SEPOLIA_TOKENS } from "@bina/sdk";
 
-## How a payment is proven
+const rpc = new RpcClient("https://ethereum-sepolia-rpc.publicnode.com", anonFetch);   // any fetch, e.g. Anon-RPC's
+const anchor = new RpcClient("https://sepolia.gateway.tenderly.co", anonFetch);        // different operator
 
-For each block in the watch window the client checks:
+await follow({ rpc, anchor, onBlock: (b) => {
+  // b is verified: header hash, access-list hash, receipts root, and the anchor agrees on b.hash
+  for (const a of scanBlock(b.bal, b.feed, myWallets, SEPOLIA_TOKENS))
+    if (a.swapped) console.log(`${a.address} traded in block ${b.number}`, a.items);
+}});
+```
 
-1. `keccak(rlp(header)) == header.hash` and `header.number` is the block asked for
-2. `keccak(rlp(accessList)) == header.blockAccessListHash`
-3. `header.parentHash` == previous block's hash (one chain)
-4. For a block with a hit: an independent provider (via Anon-RPC) agrees on its hash
+## How a block is proven
 
-USDC balances come from the token's balance slot (`keccak(addr, 9)` for FiatTokenV2_2) inside the
-verified list, so no `balanceOf` call is ever made.
+For every block the app uses:
+
+1. `keccak(rlp(header)) == header.hash`, and the number is the one asked for
+2. `keccak(rlp(accessList)) == header.blockAccessListHash` ([EIP-7928](https://eips.ethereum.org/EIPS/eip-7928))
+3. The receipts trie root `== header.receiptsRoot`, so no event can be invented, edited or hidden
+4. An independent provider agrees on the block hash (every block, so the anchor can't tell which blocks matter)
+
+Balances come from storage slots inside the verified access list (USDC slot 9, WETH slot 3), never `balanceOf`.
+"Who traded" comes from nonce changes in the access list (index = tx position + 1), not from the relay.
+
+## Private lookup (PIR)
+
+Single-server PIR (Kushilevitz–Ostrovsky over Paillier, from `paillier-bigint`) on a √N grid. The client
+downloads the public directory, finds its row locally and sends one encrypted selector per column. The server
+multiplies through every record and returns every row encrypted; only the client can read its row. 1,024
+records: ~1.2 s end to end. The table is built from accounts active in verified blocks, never from user requests.
+
+## Traffic through Anon-RPC, and the disclosed exceptions
+
+Everything the browser sends goes through `anonFetch` (Anon-RPC worker), including blocks, anchor checks, PIR,
+quotes, token names and sends. The Spy panel lists every request as the server received it. Exceptions:
+
+- **Bootstrap:** the Anon-RPC worker reads its specifier contract once from publicnode, directly.
+- **Local relay:** a relay on `localhost` is fetched directly (exits can't reach it). Dev only; shown in the UI.
+- **Named reads:** a few reads must name an address: your nonce and gas when sending, and balances of addresses
+  not in the PIR directory. Each goes out on its own fresh mixnet route, so it can't be linked to you or to
+  each other. The Spy panel highlights them.
 
 ## Honest trade-offs
 
-- **Header trust.** Without a light client, a hit is trusted if the relay and an independent
-  anchor provider agree on the block hash. Faking a payment needs both to collude. A light client
-  (e.g. Helios) would remove this.
-- **Customer balance.** The customer screen reads its own balance with `balanceOf`, through the mixnet under
-  a fresh isolation key. That names the customer's address (never the merchant's) to the provider.
-- **Keys on device.** Seed and burner key live in `localStorage`; the app loads no third-party scripts.
-  Production would wrap them with a passkey.
-- **Provider regions.** Some publicnode regions don't serve `eth_getBlockAccessList`; the SDK retries under a
-  fresh isolation key (new route). Running our own relay removes this.
-- **Sending is public.** Sender, receiver and amount are on-chain. We protect reads only.
-- **Old balances** of arbitrary wallets are out of scope (that's PIR's job).
-- **Testnet only** until Glamsterdam reaches mainnet.
+- **The trade is public once it lands.** We hide reading and intent, not settled money.
+- **Latency.** The mixnet adds seconds. Fine for swing and copy traders, not for millisecond trading.
+- **Bandwidth.** The phone downloads whole blocks: ~250 KB to ~1 MB per Sepolia block from publicnode.
+  The relay serves receipts without blooms (about 3x smaller).
+- **No light client yet.** Each block hash is checked against a second provider. Faking data needs the relay
+  and the anchor to collude. A light client (e.g. Helios) would remove this.
+- **PIR hides, it doesn't prove.** A lying PIR server could return a wrong balance; the next verified block
+  that touches the address corrects it. Next step: proof-checked rows (`eth_getProof` against a verified header).
+- **PIR scale.** Paillier PIR is slow on big tables, so the demo indexes ~1k active addresses. 1024-bit keys.
+- **Keys on device.** The device key lives in `localStorage`. Production would use a passkey or hardware wallet.
+- **Token names are untrusted.** Unknown tokens are marked; copy-trade is offered only for known pairs.
+- **Testnet only** until Glamsterdam (block access lists) reaches mainnet.
 
 ## CROPS
 
 - **C**ensorship resistance: the relay is optional and untrusted; any node serving `eth_getBlockAccessList` works.
 - **O**pen source: MIT.
-- **P**rivacy: reads are address-free; transport is Anon-RPC with a separate isolation key per sale.
-- **S**ecurity: every list is hash-verified against the header; keys never leave the device.
+- **P**rivacy: reads are address-free; transport is Anon-RPC; lookups via PIR; sends skip the public mempool.
+- **S**ecurity: every block is hash-checked three ways and anchored; keys never leave the device.
+
+## After the hackathon
+
+Faster PIR with hints updated from the block stream; mempool streaming for earlier alerts; shielded sends;
+merchant payments on the same core (an earlier prototype lives in this repo's history).
 
 ## AI usage
 
