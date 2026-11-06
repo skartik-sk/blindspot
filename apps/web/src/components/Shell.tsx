@@ -5,7 +5,7 @@ import Icon from "./Icon";
 import Tape from "./Tape";
 
 export const NAV = [
-  { href: "#/", label: "Portfolio", icon: "portfolio" },
+  { href: "#/portfolio", label: "Portfolio", icon: "portfolio" },
   { href: "#/watch", label: "Watch", icon: "watch" },
   { href: "#/lookup", label: "Lookup", icon: "lookup" },
   { href: "#/send", label: "Send", icon: "send" },
@@ -34,7 +34,7 @@ function Brand() {
 
 export default function Shell({ route, children }: { route: string; children: ReactNode }) {
   const unread = useStore((s) => s.alerts.filter((a) => !a.read).length);
-  const current = (href: string) => (route === href || (href === "#/" && route === "") ? "page" : undefined);
+  const current = (href: string) => (route === href ? "page" : undefined);
   return (
     <div className="shell">
       <aside className="side">

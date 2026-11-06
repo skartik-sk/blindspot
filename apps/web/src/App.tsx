@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Shell from "./components/Shell";
 import { ensureDeviceWallet } from "./lib/device";
 import { startEngine } from "./lib/engine";
+import Landing from "./pages/Landing";
 import Lookup from "./pages/Lookup";
 import Network from "./pages/Network";
 import Portfolio, { loadBalance } from "./pages/Portfolio";
@@ -30,7 +31,9 @@ export default function App() {
     return () => removeEventListener("hashchange", on);
   }, []);
   const { path, query } = parse(hash);
+  if (path === "#/") return <Landing />;
   const page =
+    path === "#/portfolio" ? <Portfolio /> :
     path === "#/watch" ? <Watch /> :
     path === "#/lookup" ? <Lookup /> :
     path === "#/send" ? <Send query={query} key={hash} /> :

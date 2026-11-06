@@ -2,7 +2,7 @@
   "name": "Bina Pooche",
   "short_name": "Bina Pooche",
   "description": "Watch wallets, copy trades and check balances without telling any provider what you hold or follow.",
-  "start_url": "./#/",
+  "start_url": "./#/portfolio",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0e1525",
