@@ -2,6 +2,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Icon from "../components/Icon";
+import ThemeToggle from "../components/ThemeToggle";
 import LeakCompare from "../landing/LeakCompare";
 import Reveal from "../landing/Reveal";
 import Skyline from "../landing/Skyline";
@@ -9,6 +10,8 @@ import "../landing/site.css";
 import { short } from "../lib/format";
 import { reqlog, trafficShare } from "../lib/reqlog";
 import { useStore } from "../lib/store";
+import { isKnown } from "../lib/tokens";
+import { watchWallet } from "./Watch";
 
 const REPO = import.meta.env.VITE_REPO_URL as string | undefined;
 const VIDEO = import.meta.env.VITE_VIDEO_URL as string | undefined;
@@ -55,7 +58,10 @@ function Nav() {
           <a href="#how" onClick={go("how")}>How it works</a>
           <a href="#faq" onClick={go("faq")}>FAQ</a>
         </nav>
-        <a className="S-btn dark sm" href="#/portfolio">Launch app</a>
+        <span className="S-nav-end">
+          <ThemeToggle className="S-theme" />
+          <a className="S-btn dark sm" href="#/portfolio">Launch app</a>
+        </span>
       </div>
     </header>
   );
@@ -66,6 +72,8 @@ function AppCard() {
   const traders = useStore((s) => s.traders);
   const tape = useStore((s) => s.tape);
   const head = useStore((s) => s.status.head);
+  const wallets = useStore((s) => s.wallets);
+  const watched = new Set(wallets.map((w) => w.address.toLowerCase()));
   const rows = traders.slice(0, 4);
   return (
     <div className="S-app">
@@ -84,7 +92,10 @@ function AppCard() {
             <li key={t.address + t.block}>
               <span className="S-av" aria-hidden><Icon name="swap" /></span>
               <span className="S-row-main"><b className="mono">{short(t.address)}</b><small>Swapped on Uniswap {t.dex} · block {fmtBlock(t.block)}</small></span>
-              <span className="S-mini">Watch</span>
+              {watched.has(t.address.toLowerCase())
+                ? <a className="S-mini on" href="#/watch"><Icon name="check" />Watching</a>
+                : <button type="button" className="S-mini" onClick={() => watchWallet({ address: t.address, label: `Trader ${short(t.address)}`, kind: "watch" })}
+                    aria-label={`Watch ${short(t.address)} privately`}>Watch</button>}
             </li>
           )) : Array.from({ length: 4 }, (_, i) => (
             <li key={i} className="S-skel"><span className="S-av" /><span className="S-row-main"><b /><small /></span></li>
@@ -104,7 +115,8 @@ function Hero() {
   const status = useStore((s) => s.status);
   const alerts = useStore((s) => s.alerts);
   const share = useShare();
-  const swap = alerts.find((a) => a.kind === "swap");
+  // Prefer a copyable swap (both legs known tokens); the app marks unknown tokens and won't copy them.
+  const swap = alerts.find((a) => a.kind === "swap" && a.sold && a.bought && isKnown(a.sold.token) && isKnown(a.bought.token));
   const enter = (d: number) => (reduce ? {} : { initial: { opacity: 0, y: 18 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.55, delay: d, ease } });
   return (
     <section className="S-hero">
@@ -163,7 +175,7 @@ function Hero() {
             <div className="S-float f5">
               <span className="S-label">Through Anon-RPC</span>
               {/* Startup is mostly the network bootstrap; wait for a fair sample before showing a number. */}
-              <strong className="S-big">{share.total >= 20 ? `${share.pct.toFixed(1)}%` : "measuring…"}</strong>
+              <strong className={`S-big ${share.total >= 20 ? "" : "wait"}`}>{share.total >= 20 ? `${share.pct.toFixed(1)}%` : "Measuring…"}</strong>
               <span className="S-bar"><i style={{ width: `${share.total >= 20 ? share.pct : 0}%` }} /></span>
               <span className="S-note">{share.total >= 20 ? `${share.mixnet} of ${share.total} requests this visit` : "Counting this visit's requests"}</span>
             </div>

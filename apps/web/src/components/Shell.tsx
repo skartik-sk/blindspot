@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { network } from "../lib/anon";
 import { useStore } from "../lib/store";
 import Icon from "./Icon";
+import ThemeToggle from "./ThemeToggle";
 import Tape from "./Tape";
 
 export const NAV = [
@@ -14,7 +15,7 @@ export const NAV = [
 
 function Status() {
   const s = useStore((s) => s.status);
-  const text = s.phase === "live" ? `Live · block ${s.head}` : s.phase === "connecting" ? "Connecting" : s.phase === "error" ? "Reconnecting" : "Idle";
+  const text = s.phase === "live" ? <>Live<span className="status-long"> · block</span> {s.head}</> : s.phase === "connecting" ? "Connecting" : s.phase === "error" ? "Reconnecting" : "Idle";
   return (
     <a className="status" href="#/network" data-phase={s.phase} title={s.message ?? network().label}>
       <span className="dot" aria-hidden />
@@ -53,13 +54,13 @@ export default function Shell({ route, children }: { route: string; children: Re
           </a>
         </nav>
         <div className="grow" />
-        <Status />
+        <span className="side-row"><Status /><ThemeToggle /></span>
         <p className="small faint">Every read goes through {network().label.replace(" (Sepolia)", "")}. Nothing you hold or watch leaves this device.</p>
       </aside>
 
       <header className="topbar">
         <Brand />
-        <Status />
+        <span className="topbar-end"><Status /><ThemeToggle /></span>
       </header>
 
       <main className="main" id="main">{children}</main>
