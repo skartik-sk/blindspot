@@ -1,5 +1,6 @@
 // HTTP surface of the relay.
-//   POST /        JSON-RPC (address-free methods only), served from the verified cache
+//   POST /        JSON-RPC (address-free methods only), served from the verified cache.
+//                 bina_getReceipts(n): the block's receipts minus blooms/hashes (clients check receiptsRoot)
 //   GET  /stream  SSE: every new block, pushed identically to every client
 //   POST /naive   "normal wallet" passthrough to upstream, read-only allowlist; logged for the Spy Panel
 //   GET  /spy     SSE: spy log (what a provider sees from each lane)
@@ -7,7 +8,7 @@ import { RpcClient, toHex } from "@bina/sdk";
 import type { BlockCache, CachedBlock } from "./relay";
 import type { SpyLog } from "./spy";
 
-const BINA_METHODS = new Set(["eth_blockNumber", "eth_chainId", "eth_getBlockByNumber", "eth_getBlockAccessList"]);
+const BINA_METHODS = new Set(["eth_blockNumber", "eth_chainId", "eth_getBlockByNumber", "eth_getBlockAccessList", "bina_getReceipts"]);
 const NAIVE_METHODS = new Set([
   "eth_blockNumber", "eth_chainId", "eth_getBalance", "eth_call", "eth_getTransactionCount", "eth_getLogs",
 ]);
@@ -124,7 +125,10 @@ export function createApp(opts: AppOptions) {
     } catch (e) {
       return rpcErr(id, -32000, `upstream: ${(e as Error).message}`);
     }
-    const result = !b ? null : method === "eth_getBlockAccessList" ? b.bal : b.header;
+    const result = !b ? null
+      : method === "eth_getBlockAccessList" ? b.bal
+      : method === "bina_getReceipts" ? b.receipts
+      : b.header;
     return json({ jsonrpc: "2.0", id, result });
   }
 
@@ -152,7 +156,8 @@ export function createApp(opts: AppOptions) {
 
     if (req.method === "GET" && url.pathname === "/health") return json({ ok: true, head: toHex(cache.head) });
     if (req.method === "GET" && url.pathname === "/stream")
-      return sse((send) => cache.onBlock((b) => send({ number: b.number, header: b.header, bal: b.bal })));
+      // Tiny "new block" signal, identical for everyone; clients then fetch and verify the block itself.
+      return sse((send) => cache.onBlock((b) => send({ number: b.number, hash: b.header.hash, txs: b.receipts.length })));
     if (url.pathname.startsWith("/spy")) {
       if (!spyAllowed(req)) return new Response("forbidden", { status: 403 });
       if (req.method === "GET" && url.pathname === "/spy") return sse((send) => spy.subscribe(send), spy.recent());

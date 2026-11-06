@@ -1,11 +1,16 @@
-// BAL Relay: fetch each block's header + access list once from upstream, verify, cache, serve to everyone.
+// Relay: fetch each block's header, access list and receipts once from upstream, verify, cache, serve to everyone.
 // Untrusted by design: clients re-verify every list against the header hash.
-import { RpcClient, verifyBal, verifyHeader, type BalJson, type Header } from "@bina/sdk";
+import {
+  RpcClient, compactReceipts, verifyBal, verifyHeader, verifyReceipts,
+  type BalJson, type CompactReceipt, type Header,
+} from "@bina/sdk";
 
 export interface CachedBlock {
   number: bigint;
   header: Header;
   bal: BalJson;
+  /** Compact receipts (no blooms/hashes): the event feed, checked against header.receiptsRoot. */
+  receipts: CompactReceipt[];
 }
 
 export class BlockCache {
@@ -28,11 +33,15 @@ export class BlockCache {
   async load(n: bigint): Promise<CachedBlock | undefined> {
     const hit = this.blocks.get(n);
     if (hit) return hit;
-    const [header, bal] = await Promise.all([this.upstream.header(n), this.upstream.bal(n)]);
-    if (!header || !bal) return undefined;
+    const [header, bal, raw] = await Promise.all([
+      this.upstream.header(n), this.upstream.bal(n), this.upstream.receipts(n),
+    ]);
+    if (!header || !bal || !raw) return undefined;
     verifyHeader(header, n); // don't cache or relay garbage
     verifyBal(bal, header);
-    const b = { number: n, header, bal };
+    const receipts = compactReceipts(raw);
+    verifyReceipts(receipts, header);
+    const b = { number: n, header, bal, receipts };
     this.blocks.set(n, b);
     if (n > this.head) this.head = n;
     for (const k of this.blocks.keys()) if (k < this.head - BigInt(this.keep)) this.blocks.delete(k);

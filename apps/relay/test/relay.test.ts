@@ -1,13 +1,19 @@
 import { describe, expect, test } from "bun:test";
-import { RpcClient } from "@bina/sdk";
+import { RpcClient, verifyReceipts, type CompactReceipt } from "@bina/sdk";
 import fx from "../../../packages/sdk/test/fixtures/block.json";
+import rcpts from "../../../packages/sdk/test/fixtures/receipts.json";
 import { bucket, createApp, type AppOptions } from "../src/app";
 import { BlockCache } from "../src/relay";
 import { SpyLog } from "../src/spy";
 
 const N = BigInt(fx.header.number);
+// Fixture receipts back in eth_getBlockReceipts shape.
+const raw = (rcpts as CompactReceipt[]).map((r) => ({
+  type: `0x${r.type.toString(16)}`, status: `0x${r.status}`, cumulativeGasUsed: r.gas,
+  logs: r.logs.map(([address, topics, data]) => ({ address, topics, data })),
+}));
 
-function setup(over: Partial<AppOptions> = {}, tamper = false) {
+function setup(over: Partial<AppOptions> = {}, tamper: boolean | "receipts" = false) {
   const upstreamCalls: string[] = [];
   const upstream = new RpcClient("http://up", async (_u, init) => {
     const { method, params } = JSON.parse(String(init.body));
@@ -16,7 +22,8 @@ function setup(over: Partial<AppOptions> = {}, tamper = false) {
       method === "eth_blockNumber" ? fx.header.number
       : BigInt(params[0]) !== N ? null
       : method === "eth_getBlockByNumber" ? fx.header
-      : method === "eth_getBlockAccessList" ? (tamper ? fx.bal.slice(1) : fx.bal)
+      : method === "eth_getBlockAccessList" ? (tamper === true ? fx.bal.slice(1) : fx.bal)
+      : method === "eth_getBlockReceipts" ? (tamper === "receipts" ? raw.slice(1) : raw)
       : "0x0";
     return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result }));
   });
@@ -48,6 +55,20 @@ describe("relay", () => {
 
   test("refuses to cache a list that fails the hash check", async () => {
     const { cache } = setup({}, true);
+    await expect(cache.poll()).rejects.toThrow();
+    expect(cache.get(N)).toBeUndefined();
+  });
+
+  test("serves compact receipts that verify against the header", async () => {
+    const { cache, rpc } = setup();
+    await cache.poll();
+    const r = (await rpc("bina_getReceipts", [fx.header.number])).result as CompactReceipt[];
+    expect(r.length).toBe(raw.length);
+    expect(() => verifyReceipts(r, fx.header as { receiptsRoot: `0x${string}` })).not.toThrow();
+  });
+
+  test("refuses to cache receipts that fail the root check", async () => {
+    const { cache } = setup({}, "receipts");
     await expect(cache.poll()).rejects.toThrow();
     expect(cache.get(N)).toBeUndefined();
   });
