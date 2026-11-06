@@ -1,5 +1,6 @@
 // Landing page: cinematic dark, headline behind the phone, redaction as the signature.
 import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState } from "react";
 import Icon from "../components/Icon";
 import Bento from "../landing/Bento";
 import MixnetRoute from "../landing/MixnetRoute";
@@ -31,8 +32,15 @@ const FAQ = [
 ];
 
 function Nav() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 8);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
   return (
-    <header className="L-nav">
+    <header className="L-nav" data-scrolled={scrolled}>
       <div className="L-wrap">
         <a className="L-nav-brand" href="#/"><span className="L-logo" aria-hidden /><span>Bina Pooche</span></a>
         <nav className="L-pillnav" aria-label="Sections">
@@ -181,6 +189,8 @@ export default function Landing() {
                 <li>Your trade is public once it lands. We hide your reading and your intent, not settled money.</li>
                 <li>The mixnet adds a few seconds per request.</li>
                 <li>Your phone downloads a few hundred kilobytes per block.</li>
+                <li>On Sepolia there's no private builder, so sends wait in the public mempool (your IP still hidden).</li>
+                <li>Private lookup covers about 1,000 active addresses, not the whole chain.</li>
                 <li>Testnet until block access lists reach mainnet.</li>
               </ul>
             </Reveal>

@@ -78,7 +78,7 @@ export default function Bento() {
       </Reveal>
       <Reveal className="L-tile w2" delay={0.1}>
         <span className="L-fig">FIG 5 · Send</span>
-        <h3>Trades that can't be traced to you</h3>
+        <h3>Trades that don't carry your IP</h3>
         <p>Signed on your phone and sent through the mixnet, so no node learns your IP. On mainnet it goes to a private builder (Flashbots Protect), so bots never see it first.</p>
         <span className="L-learns">Your IP never touches the tx.</span>
       </Reveal>

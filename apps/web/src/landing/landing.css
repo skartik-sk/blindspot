@@ -60,8 +60,11 @@
 .L-logo::after { content: ""; position: absolute; left: 9px; right: 9px; top: 16px; height: 6px; border-radius: 3px; background: var(--l-grad); box-shadow: 0 0 12px rgb(124 242 154 / 0.9); }
 
 /* ---------- Nav: floating pills ---------- */
-.L-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; padding-top: 16px; pointer-events: none; }
-.L-nav::before { content: ""; position: absolute; inset: 0 0 -28px; z-index: -1; pointer-events: none; background: linear-gradient(180deg, var(--l-bg) 30%, transparent); }
+.L-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; padding: 16px 0 12px; pointer-events: none; }
+.L-nav::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 200ms ease-out;
+  background: rgb(5 8 7 / 0.78); backdrop-filter: saturate(140%) blur(16px); -webkit-backdrop-filter: saturate(140%) blur(16px);
+  border-bottom: 1px solid rgb(255 255 255 / 0.06); }
+.L-nav[data-scrolled="true"]::before { opacity: 1; } /* frosted bar once content can slide under it */
 .L-nav .L-wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .L-nav a { pointer-events: auto; }
 .L-nav-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--l-ink); font: 650 16px var(--l-display); letter-spacing: -0.01em; }
@@ -358,4 +361,5 @@
 .L-hero-foot { margin-top: -48px; }
 @media (max-width: 759px) { .L-hero-foot { margin-top: -110px; } .L-hero-fade { height: 220px; } }
 .L-bento > *, .L-proof > * { min-width: 0; }
+.L-tile { grid-template-columns: minmax(0, 1fr); } /* the block strip must not widen the tile past its card */
 .L-chain { max-width: 100%; }
