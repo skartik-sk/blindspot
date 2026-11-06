@@ -17,8 +17,11 @@ const USDC = SEPOLIA_TOKENS[0].token;
 const WETH = SEPOLIA_TOKENS[1].token;
 
 export function startEngine() {
+  // One loop per tab, even across dev hot reloads (a second loop would double every alert).
+  const g = globalThis as { __bpEngine?: AbortController };
+  g.__bpEngine?.abort();
   if (ac) return;
-  ac = new AbortController();
+  ac = g.__bpEngine = new AbortController();
   setState(() => ({ status: { phase: "connecting", message: "Opening a route through the mixnet" } }));
   const rpc = new RpcClient(config.feedUrl, anonFetch, newIsolationKey());
   const anchor = new RpcClient(config.anchorUrl, anonFetch, newIsolationKey());
@@ -123,7 +126,7 @@ async function onBlock(b: VerifiedBlock) {
 
   setState((st) => ({
     status: { phase: "live", head: block, message: undefined },
-    alerts: [...alerts, ...st.alerts].slice(0, 200),
+    alerts: [...alerts.filter((a) => !st.alerts.some((x) => x.id === a.id)), ...st.alerts].slice(0, 200),
     tape: [{ number: block, txs: b.receipts.length, accounts: b.bal.length, swaps: b.feed.filter((f) => f.kind === "swap").length,
       bytes: b.bytes, ms: Math.round(b.ms), anchored: b.anchored, hits: acts.length }, ...st.tape].slice(0, 60),
     traders: [...traders, ...st.traders.filter((t) => !traders.some((n) => n.address === t.address))].slice(0, 40),
