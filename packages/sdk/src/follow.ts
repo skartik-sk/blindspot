@@ -24,17 +24,12 @@ export interface VerifiedBlock {
 export interface FollowOptions {
   rpc: RpcClient;
   /**
-   * Independent provider. The first block, and the first block after any break in the chain, are only
-   * accepted if it agrees on their hash; every later block must link to an accepted one. Without an anchor,
-   * the starting point is trust-on-first-use (onError is told).
+   * Independent provider. Every block is accepted only if it agrees on the hash. Linking alone isn't proof (a
+   * lying relay can mint a self-consistent fake chain), and anchoring only "interesting" blocks would tell the
+   * anchor which blocks matter to us, so it's all or nothing. A header is ~2 KB.
+   * Without an anchor, blocks must link to the first one, which is trust-on-first-use (onError is told).
    */
   anchor?: RpcClient;
-  /**
-   * Also anchor a linked block before onBlock when this returns true (e.g. it touches a watched wallet).
-   * Linking alone isn't proof: a lying relay can mint a self-consistent fake chain. Anything the app acts on
-   * should be anchored; unanchored blocks are only as trustworthy as the relay.
-   */
-  anchorIf?: (b: VerifiedBlock) => boolean;
   /** Start here; default: current head. */
   from?: bigint;
   pollMs?: number;
@@ -83,15 +78,13 @@ export async function follow(o: FollowOptions): Promise<void> {
         continue;
       }
       const linked = !!prevHash && b.header.parentHash.toLowerCase() === prevHash;
-      if (!linked) {
-        // Start of chain, a reorg, or a lying server. Never accept an unlinked block on the server's word.
-        if (o.anchor) await confirmWithAnchor(o.anchor, n, b.hash);
-        else if (prevHash) throw new HeaderInvalid(`block ${n} does not extend block ${n - 1n}`);
-        else o.onError?.(new Error("no anchor: starting block is trust-on-first-use"), n);
-        b.anchored = !!o.anchor;
-      } else if (o.anchor && o.anchorIf?.(b)) {
-        await confirmWithAnchor(o.anchor, n, b.hash);
+      if (o.anchor) {
+        await confirmWithAnchor(o.anchor, n, b.hash); // reorgs pass here too: the anchor follows the new chain
         b.anchored = true;
+      } else if (prevHash && !linked) {
+        throw new HeaderInvalid(`block ${n} does not extend block ${n - 1n}`);
+      } else if (!prevHash) {
+        o.onError?.(new Error("no anchor: starting block is trust-on-first-use"), n);
       }
       prevHash = b.hash;
       await o.onBlock(b);
