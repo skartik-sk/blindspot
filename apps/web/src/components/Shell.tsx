@@ -54,7 +54,7 @@ export default function Shell({ route, children }: { route: string; children: Re
         </nav>
         <div className="grow" />
         <Status />
-        <p className="small faint">Every read goes through {network().label.replace(" (Sepolia)", "")}. Nothing you hold or watch leaves this device.</p>
+        <p className="small faint">Every read goes through the {network().short} mixnet. Nothing you hold or watch leaves this device.</p>
       </aside>
 
       <header className="topbar">

@@ -77,7 +77,7 @@ function Connect({ onNext }: { onNext: () => void }) {
   const status = useStore((s) => s.status);
   const tape = useStore((s) => s.tape);
   const steps = [
-    { t: `Start Anon-RPC (${network().label.replace(" (Sepolia)", "")})`, done: status.phase !== "idle" },
+    { t: `Start Anon-RPC (${network().short} mixnet)`, done: status.phase !== "idle" },
     { t: "Open a private route", done: status.phase === "live" || tape.length > 0 },
     { t: "Verify the latest block", done: tape.length > 0 },
     { t: "Confirm with a second provider", done: tape.some((b) => b.anchored) },
