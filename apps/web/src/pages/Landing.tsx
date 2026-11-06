@@ -122,7 +122,9 @@ function Hero() {
   const latest = traders[0];
   const ready = share.total >= 20;
   // Prefer a copyable swap (both legs known tokens); the app marks unknown tokens and won't copy them.
-  const swap = alerts.find((a) => a.kind === "swap" && a.sold && a.bought && isKnown(a.sold.token) && isKnown(a.bought.token));
+  // Only wallets you watch: your own trades are never offered as something to copy.
+  const watching = new Set(wallets.filter((w) => w.kind === "watch").map((w) => w.address.toLowerCase()));
+  const swap = alerts.find((a) => a.kind === "swap" && watching.has(a.address.toLowerCase()) && a.sold && a.bought && isKnown(a.sold.token) && isKnown(a.bought.token));
   const enter = (d: number) => (reduce ? {} : { initial: { opacity: 0, y: 18 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.55, delay: d, ease } });
   const pop = (d: number) => (reduce ? {} : { initial: { opacity: 0, scale: 0.92, y: 16 }, animate: { opacity: 1, scale: 1, y: 0 }, transition: { type: "spring" as const, stiffness: 260, damping: 22, delay: d } });
   return (
@@ -205,7 +207,7 @@ function LiveSwaps() {
         {traders.map((t, i) => (
           <motion.li key={t.address + t.block} layout initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 14 }} transition={{ duration: 0.35, ease }}>
             <span className={`S-av ${i === 0 ? "warm" : ""}`}><Icon name="swap" /></span>
-            <span className="S-row-main"><b className="mono">{short(t.address)} swapped</b><small>in block {fmtBlock(t.block)}</small></span>
+            <span className="S-row-main"><b className="mono">{short(t.address)}</b><small>Swapped in block {fmtBlock(t.block)}</small></span>
             <span className="S-mini">{i === 0 ? "latest" : "before"}</span>
           </motion.li>
         ))}
