@@ -1,7 +1,7 @@
 // Blindspot service worker: makes the installed app open instantly and offline.
 // Only same-origin GETs are handled. Every other request (Anon-RPC, the relay, providers) passes through untouched.
 // Pages: network first (a new deploy always wins), cached copy when offline. Hashed assets/icons: cache first.
-const CACHE = "bp-shell-v1";
+const CACHE = "bp-shell-v2"; // bump when icons or other non-hashed files change
 const SCOPE = new URL(self.registration.scope).pathname; // e.g. /
 
 self.addEventListener("install", (e) => {
