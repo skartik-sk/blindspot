@@ -85,6 +85,7 @@ Without `VITE_RELAY_URL` the app reads blocks straight from publicnode through t
 PIR lookup falls back to a one-off mixnet read). Relay env: `UPSTREAM_RPC`, `PORT`, `POLL_MS`, `SPY_TOKEN`,
 `ENABLE_NAIVE=1`, `RATE_LIMIT`, `TRUST_PROXY=1`, `PIR_SEED` (comma-separated addresses, never evicted), `PIR_MAX`,
 `PIR_NEW_PER_BLOCK` (default 8: how fast new wallets enter the directory; lower keeps quiet wallets listed longer),
+`NAIVE_ALLOW` (addresses the demo lane may answer about; default the Sepolia Uniswap router and quoter),
 `PIR_STATE` (where the directory and history are saved after each block and reloaded on start; default
 `~/.bina-relay/pir-state.json`, outside the code folder so a redeploy doesn't wipe it), `PENDING_RPC` (mempool source, defaults to `UPSTREAM_RPC`; use a different provider, e.g. Tenderly's gateway, so pending
 polling can't rate-limit block fetches).
@@ -174,7 +175,47 @@ Exceptions (all counted in the denominator above):
   not in the PIR directory. Each goes out on its own fresh mixnet route, so it can't be linked to you or to
   each other. The Spy panel highlights them.
 
+## Who sees your IP
+
+Checked Nov 6. Everything the app fetches goes through `anonFetch` (Anon-RPC), except these:
+
+| Who | Sees your IP | Learns | Notes |
+| --- | --- | --- | --- |
+| Mixnet entry node | yes | that you use the mixnet; not destinations or content | inherent to any mixnet |
+| Our server, when you **load the website** | yes | that you opened the site | the static site is served by the same machine as the relay (Caddy). Caddy keeps no access log, but its error/warning log records the IP of a request that fails (seen only for mixnet exits so far). Moving the site to separate static hosting is pending. |
+| Anon-RPC bootstrap | yes | that someone is starting Anon-RPC | 2 `eth_call`s to the public network contract (publicnode, with fallbacks) and the client code from `raw.githubusercontent.com`. No address. Counted in the traffic share. |
+| Spy panel "Run the comparison" | yes (opt-in) | 2 public demo contract addresses | the "Normal RPC" column sends directly to our relay's demo lane on purpose. The lane is off by default (`ENABLE_NAIVE`), and when on it answers only about the demo addresses (`NAIVE_ALLOW`). |
+| A relay on `localhost` | n/a | | dev only |
+
+Everything else (block feed, second-provider checks, PIR, history, mempool feed, quotes, token names, sends, relay
+log) reaches servers from mixnet exits. On the relay, per-IP rate-limit counters live in memory only (in practice
+they hold exit IPs), the Spy log stores salted hashes, and its journal has no client IPs. Not checked: network-level
+flow logs at the cloud provider (no access to the account).
+
+**Isolation keys** (requests sharing a key share a mixnet route, so the exit could link them): the block feed and
+the second-provider check each use one key for the session (address-free, identical for everyone); the mempool feed
+has its own; every PIR directory fetch, PIR query, history block, one-off balance read, quote, token-name read and
+relay-log poll gets a fresh key; a trade's preparation reads share one key and its send uses another.
+
+## Choice of network
+
+Nox (Sphinx) is the default; the Network page offers others, saved per device. Measured Nov 6 from the browser
+against the live relay (same app, same blocks):
+
+| Network | First verified block | Per block (header + list + receipts + second provider) |
+| --- | --- | --- |
+| Nox | 10 s | 2.6 s, ~280 KB |
+| Nym | 50 s (larger client download) | 15.7 s, ~270 KB: slower than Sepolia's 12 s blocks, so alerts lag |
+| Tor | not available | the EF demo gateway (`152.236.3.22:12298`) refused TCP connections at 19:15 IST on Nov 6 |
+
+Running our own Tor gateway is ~1–2 hours (a WebSocket-to-Tor bridge behind Caddy). That gateway would see users'
+IPs, like any Tor entry, but not destinations or content (the Tor circuit is end to end from the browser).
+
 ## Honest trade-offs
+
+- **Copy trades can link you to the whale.** Your trade is public on-chain once it lands; trading the same pair
+  right after a watched wallet can reveal that you follow it. Use a separate wallet for copy trading (the app says so
+  on the copy screen).
 
 - **The trade is public once it lands.** We hide reading and intent, not settled money.
 - **Latency.** The mixnet adds seconds. Fine for swing and copy traders, not for millisecond trading.
