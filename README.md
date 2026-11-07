@@ -227,6 +227,20 @@ banner says "Nox isn't available in this browser, using Nym (slower alerts)". Re
 tests in `apps/web/test/fallback.test.ts`. Tested on desktop by simulating the exact error (`?simulate-nox-fail`,
 development builds only): live on Nym in 41 s; not yet tested on a real iPhone.
 
+**Mid-session failover (Nov 7).** On Nov 7 between 04:25 and 05:00 IST, Nox stopped delivering ("No exit offers TLS
+tunnels"), and for a while so did Nym. Our relay received nothing while still verifying every block. So the app now
+also switches mid-session:
+- **When:** 3 failed reads in a row, or no verified block for 60 s on Nox (120 s on Nym, which starts slower).
+- **What it shows:** "Switched to Nym because Nox stopped responding", with the time it will retry Nox.
+- **Retries:** it goes back to Nox after 10 min, then 20, then 40, and stays once Nox delivers again.
+- **Both down:** after 4 switches in 15 minutes it stops switching and says both networks stopped responding.
+- **Your choice wins:** if you picked a network yourself, it only suggests the switch.
+- **Never direct:** it never falls back to a direct connection.
+
+Logic: `apps/web/src/lib/failover.ts`, tests in `apps/web/test/failover.test.ts`. Tested in the browser with a
+simulated Nox stall: it switched to Nym within 30 s. Nym was really down then, so after 120 s it returned to Nox,
+which went live.
+
 ## Choice of network
 
 Nox (Sphinx) is the default; the Network page offers others, saved per device. Measured Nov 6 from the browser

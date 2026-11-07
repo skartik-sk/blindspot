@@ -2,7 +2,7 @@
 // Requests name block numbers only. Which wallets you hold or watch never leaves this tab.
 import { ETH_LOGGER, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scanBlock, type Activity, type PendingTx, type VerifiedBlock } from "@blindspot/sdk";
 import type { Address } from "viem";
-import { anonFetch, anonRpc } from "./anon";
+import { anonFetch, anonRpc, checkFailover, noteProgress, resetHealth } from "./anon";
 import { resumeFrom } from "./resume";
 import { keepWatching, onVisibility } from "./background";
 import { config } from "./config";
@@ -55,9 +55,13 @@ function run(from?: bigint, skipped = 0) {
   const rpc = anonRpc(config.feedUrl, newIsolationKey());
   const anchor = anonRpc(config.anchorUrl, newIsolationKey());
   const signal = ac.signal;
+  // Mid-session failover: if the mixnet stops delivering verified blocks, switch to the other anonymous network.
+  resetHealth();
+  const watchdog = setInterval(checkFailover, 5000);
+  signal.addEventListener("abort", () => clearInterval(watchdog));
   follow({
     rpc, anchor, compact: config.feedCompact, signal, pollMs: 3000, from,
-    onBlock: (b) => { lastBlock = b.number; return onBlock(b); },
+    onBlock: (b) => { lastBlock = b.number; noteProgress(); return onBlock(b); },
     onError: (e, n) => {
       if (signal.aborted) return;
       const msg = (e as Error).message ?? String(e);
