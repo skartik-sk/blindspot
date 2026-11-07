@@ -29,3 +29,30 @@ so the traffic share has settled. Whale wallet funded. Second window ready to se
 
 Measured on Nov 6 on the deployed site: 109 / 112 = 97.3%; it rises over time because bootstrap happens only
 at startup.
+
+## If the network is down
+
+The mixnets themselves can stall. On Nov 7, Nox stopped delivering between about 04:25 and 05:00 IST, and Nym timed
+out too, while our relay kept verifying every block. The app then shows **Reconnecting**, or a banner such as
+"Switched to Nym because Nox stopped responding" or "Nox and Nym both stopped responding". That's the app refusing to
+fall back to a direct connection, which is the point.
+
+**What to say (about 15 s):** "The mixnet is having a moment. Notice what the app doesn't do: it never falls back to
+asking a server directly. It waits, switches between Nox and Nym, and tells you. Here's the same flow from earlier."
+
+**What still shows real data with no mixnet:**
+
+| Where | What it shows | Why it still works |
+| --- | --- | --- |
+| Watch → Alerts | Past alerts with "block N ✓" | Stored on the device from blocks verified earlier |
+| Portfolio | Balances marked "Verified · block N" | Stored on the device |
+| Spy panel → "Normal RPC" column | A normal wallet's requests, with your IP and the addresses | It's sent directly on purpose (the leak demo) |
+| https://bina-relay.13-53-45-89.sslip.io/health | The relay is up, with its current block | Opened in a normal browser tab |
+| https://bina-relay.13-53-45-89.sslip.io/log | The relay's own log: block numbers and method names only, no addresses | Opened in a normal browser tab |
+| Network page | Relay status, "Per block" average and the data-use line | From blocks seen before the outage |
+| README | Measured numbers: 97.3% / 99.7% traffic share; Nox 10 s to the first block, then 2.6 s per block; PIR 3–5 s; 84 relay requests with 0 from our IP | Written down |
+
+**Show the backup.** Open `docs/demo-backup/README.md` and click through the screenshots in order. Each is captioned
+with the step from the table above and the time it was taken.
+
+**Don't:** switch the app to a direct connection, or claim it's live when it says Reconnecting.

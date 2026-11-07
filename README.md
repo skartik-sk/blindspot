@@ -274,13 +274,16 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 - **PIR hides; the device checks it when it can.** A PIR answer starts as "Private, not yet proven". When a block
   this device verifies shows that address's balance (the history download fetches its last active blocks, and the
   live feed and the last 30 blocks in memory are checked too), the app compares:
-  - same value: **proven ✓ (block N)**;
+  - same value: **proven ✓ (block N)**, per asset ("Partly proven ✓ (ETH)" when only ETH changed in a verified block).
+    This means "equals the verified balance at block N", not "proven current": the server picks which blocks a
+    record lists, so a stale answer could match an older block;
   - different value at or before the PIR snapshot: **"Mismatch: the server may have lied"**, and the verified value is
     shown;
   - different value in a later block: "Updated from verified block N", a real change, not an accusation.
 
   No new requests and no change to the PIR protocol (`apps/web/src/lib/proof.ts`, tested). An address with no
-  verifiable block in reach stays "not yet proven". Next step: proof-checked rows (`eth_getProof` against a verified
+  verifiable block in reach stays "not yet proven". The server's snapshot block is capped at the device's own
+  verified head, and any difference always shows the verified value. Next step: proof-checked rows (`eth_getProof` against a verified
   header).
 - **PIR scale.** Paillier PIR is slow on big tables, so the demo indexes ~1k active addresses. 1024-bit keys.
 - **Sends.** On Sepolia, sends are signed on the device and go through Anon-RPC to the public mempool: the node

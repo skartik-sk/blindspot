@@ -41,7 +41,8 @@ It does not:
 - **Prove the value by itself.** A dishonest server could return a wrong balance, so the answer starts as "Private,
   not yet proven". The device then compares it with verified blocks it already has: the address's own recent blocks
   from the history download, the live feed, and the last 30 blocks in memory.
-  - Match: "proven ✓".
+  - Match: "proven ✓" per asset, meaning it equals the verified balance at that block. That's not a proof that it's
+    current: only a state proof can give that.
   - Different at or before the PIR snapshot: "Mismatch: the server may have lied", and the verified value is shown.
   - Different later: "Updated from verified block N".
 

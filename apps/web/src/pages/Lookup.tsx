@@ -21,6 +21,7 @@ export default function Lookup() {
   const [dirFailed, setDirFailed] = useState(false);
   const [hist, setHist] = useState<History>({ state: "idle" });
   const traders = useStore((s) => s.traders);
+  const head = useStore((s) => s.status.head);
   const [proof, setProof] = useState<Proof>({ status: "unproven" });
 
   useEffect(() => {
@@ -39,7 +40,8 @@ export default function Lookup() {
 
   // Hold the PIR answer to verified data: blocks this device already has or verifies next (no new requests).
   const pirBal = res && res.via === "pir" ? { eth: res.eth, usdc: res.usdc, weth: res.weth } : undefined;
-  const pirBlock = res?.block ? parseInt(res.block, 16) : 0;
+  // The server states its snapshot block; never trust it past this device's own verified head.
+  const pirBlock = Math.min(res?.block ? parseInt(res.block, 16) : 0, head ? Number(head) : Infinity);
   const lastActive = res?.history?.[0];
   const apply = (seen: Seen) => setProof((p) => (pirBal ? compare(pirBal, pirBlock, lastActive, seen, p) : p));
   useEffect(() => {
@@ -126,7 +128,7 @@ export default function Lookup() {
           <header>
             <h2 className="mono" style={{ fontSize: 16 }}>{short(res.address)}</h2>
             {res.via !== "pir" ? <span className="chip">Mixnet read · {(res.ms / 1000).toFixed(1)} s</span>
-              : proof.status === "proven" ? <span className="chip" data-kind="verified" title="A verified block on this device shows the same balance">Private · proven ✓ block {proof.block}</span>
+              : proof.status === "proven" ? <span className="chip" data-kind="verified" title="Equals the verified balance in that block">{proof.fields.length === 3 ? "Proven ✓" : `Partly proven ✓ (${proof.fields.map((f) => f.toUpperCase()).join(", ")})`} · block {proof.block}</span>
               : proof.status === "mismatch" ? <span className="chip" data-kind="leak">Mismatch: the server may have lied</span>
               : proof.status === "updated" ? <span className="chip" data-kind="verified">Updated from verified block {proof.block}</span>
               : <span className="chip" data-kind="pir">Private, not yet proven · {(res.ms / 1000).toFixed(1)} s</span>}
@@ -149,7 +151,13 @@ export default function Lookup() {
               address's balance (its recent activity below, or a new block), the app checks the number and marks it proven ✓.
             </p>
           )}
-          {proof.status === "proven" && <p className="small muted">Checked against verified block {proof.block}: the private answer matches the chain.</p>}
+          {proof.status === "proven" && (
+            <p className="small muted">
+              {proof.fields.map((f) => f.toUpperCase()).join(", ")} matches the verified balance in block {proof.block}.
+              {proof.fields.length < 3 && " The other balances didn't change in a block this device verified, so they're still unproven."}
+              {" "}True as of that block; a later change shows up when the device verifies it.
+            </p>
+          )}
           {proof.status === "updated" && <p className="small muted">The balance changed in verified block {proof.block}, after the private answer's snapshot. Showing the verified value.</p>}
           {proof.status === "mismatch" && (
             <div className="callout warn-callout">

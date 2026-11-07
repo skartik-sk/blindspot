@@ -8,7 +8,9 @@ export interface Bal3 { eth?: bigint; usdc?: bigint; weth?: bigint }
 export interface Seen extends Bal3 { block: number }
 export type Proof =
   | { status: "unproven" }
-  | { status: "proven"; block: number }
+  /** These fields equal the verified post-block value at `block`. True as of that block only: the device can't rule out a
+   *  later change it hasn't seen, and the server chose which blocks to list, so this is "matches", not "current". */
+  | { status: "proven"; block: number; fields: (keyof Bal3)[] }
   | { status: "mismatch"; block: number; verified: Bal3 }
   | { status: "updated"; block: number; verified: Bal3 };
 
@@ -27,6 +29,8 @@ export function seenFrom(a: Activity, block: number): Seen | undefined {
 const KEYS = ["eth", "usdc", "weth"] as const;
 
 /**
+ * pirBlock and lastActive come from the server, so they only decide what's comparable and how a difference is worded;
+ * the caller caps pirBlock at the device's own verified head. A difference always shows the verified value.
  * pir: the PIR answer, as of the table's block `pirBlock`. lastActive: the newest block the PIR record lists for this
  * address (the last change the answer should reflect). Data older than that can't be compared and is ignored.
  * A difference at or before the PIR block means the server's answer was wrong: "mismatch", sticky.
@@ -40,7 +44,10 @@ export function compare(pir: Required<Bal3>, pirBlock: number, lastActive: numbe
   const verified: Bal3 = prev.status === "updated" ? { ...prev.verified } : {};
   for (const k of keys) verified[k] = seen[k];
   const same = keys.every((k) => seen[k] === pir[k]);
-  if (same && prev.status !== "updated") return { status: "proven", block: seen.block };
+  if (same && prev.status !== "updated") {
+    const fields = [...new Set([...(prev.status === "proven" ? prev.fields : []), ...keys])].sort((a, b) => KEYS.indexOf(a) - KEYS.indexOf(b));
+    return { status: "proven", block: Math.max(seen.block, prev.status === "proven" ? prev.block : 0), fields };
+  }
   if (seen.block <= pirBlock) return { status: "mismatch", block: seen.block, verified };
   return { status: "updated", block: seen.block, verified };
 }
