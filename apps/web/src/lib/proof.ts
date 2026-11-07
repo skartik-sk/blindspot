@@ -10,7 +10,7 @@ export type Proof =
   | { status: "unproven" }
   /** These fields equal the verified post-block value at `block`. True as of that block only: the device can't rule out a
    *  later change it hasn't seen, and the server chose which blocks to list, so this is "matches", not "current". */
-  | { status: "proven"; block: number; fields: (keyof Bal3)[] }
+  | { status: "proven"; fields: Partial<Record<keyof Bal3, number>> }
   | { status: "mismatch"; block: number; verified: Bal3 }
   | { status: "updated"; block: number; verified: Bal3 };
 
@@ -45,8 +45,10 @@ export function compare(pir: Required<Bal3>, pirBlock: number, lastActive: numbe
   for (const k of keys) verified[k] = seen[k];
   const same = keys.every((k) => seen[k] === pir[k]);
   if (same && prev.status !== "updated") {
-    const fields = [...new Set([...(prev.status === "proven" ? prev.fields : []), ...keys])].sort((a, b) => KEYS.indexOf(a) - KEYS.indexOf(b));
-    return { status: "proven", block: Math.max(seen.block, prev.status === "proven" ? prev.block : 0), fields };
+    // Each asset keeps the block where it was actually checked.
+    const fields = { ...(prev.status === "proven" ? prev.fields : {}) };
+    for (const k of keys) fields[k] = seen.block;
+    return { status: "proven", fields };
   }
   if (seen.block <= pirBlock) return { status: "mismatch", block: seen.block, verified };
   return { status: "updated", block: seen.block, verified };

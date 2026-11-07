@@ -128,7 +128,7 @@ export default function Lookup() {
           <header>
             <h2 className="mono" style={{ fontSize: 16 }}>{short(res.address)}</h2>
             {res.via !== "pir" ? <span className="chip">Mixnet read · {(res.ms / 1000).toFixed(1)} s</span>
-              : proof.status === "proven" ? <span className="chip" data-kind="verified" title="Equals the verified balance in that block">{proof.fields.length === 3 ? "Proven ✓" : `Partly proven ✓ (${proof.fields.map((f) => f.toUpperCase()).join(", ")})`} · block {proof.block}</span>
+              : proof.status === "proven" ? <span className="chip" data-kind="verified" title="Equals the verified balance in that block">{Object.keys(proof.fields).length === 3 ? "Proven ✓" : `Partly proven ✓ (${Object.keys(proof.fields).map((f) => f.toUpperCase()).join(", ")})`}</span>
               : proof.status === "mismatch" ? <span className="chip" data-kind="leak">Mismatch: the server may have lied</span>
               : proof.status === "updated" ? <span className="chip" data-kind="verified">Updated from verified block {proof.block}</span>
               : <span className="chip" data-kind="pir">Private, not yet proven · {(res.ms / 1000).toFixed(1)} s</span>}
@@ -153,9 +153,9 @@ export default function Lookup() {
           )}
           {proof.status === "proven" && (
             <p className="small muted">
-              {proof.fields.map((f) => f.toUpperCase()).join(", ")} matches the verified balance in block {proof.block}.
-              {proof.fields.length < 3 && " The other balances didn't change in a block this device verified, so they're still unproven."}
-              {" "}True as of that block; a later change shows up when the device verifies it.
+              {Object.entries(proof.fields).map(([f, b]) => `${f.toUpperCase()} matches verified block ${b}`).join("; ")}.
+              {Object.keys(proof.fields).length < 3 && " The other balances didn't change in a block this device verified, so they're still unproven."}
+              {" "}True as of those blocks; a later change shows up when the device verifies it.
             </p>
           )}
           {proof.status === "updated" && <p className="small muted">The balance changed in verified block {proof.block}, after the private answer's snapshot. Showing the verified value.</p>}

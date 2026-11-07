@@ -6,7 +6,7 @@ const un: Proof = { status: "unproven" };
 
 describe("PIR proof badge", () => {
   test("a matching verified value proves the answer", () => {
-    expect(compare(pir, 1000, 990, { block: 990, eth: 100n }, un)).toEqual({ status: "proven", block: 990, fields: ["eth"] });
+    expect(compare(pir, 1000, 990, { block: 990, eth: 100n }, un)).toEqual({ status: "proven", fields: { eth: 990 } });
   });
   test("a different value at or before the PIR block is a mismatch, and the verified value is shown", () => {
     const p = compare(pir, 1000, 990, { block: 995, eth: 70n }, un);
@@ -18,15 +18,15 @@ describe("PIR proof badge", () => {
     expect(compare(pir, 1000, 990, { block: 1001, eth: 100n }, p).status).toBe("mismatch");
   });
   test("a change after the PIR block is an update, not an accusation", () => {
-    const p = compare(pir, 1000, 990, { block: 1005, usdc: 9n }, { status: "proven", block: 990, fields: ["eth"] });
+    const p = compare(pir, 1000, 990, { block: 1005, usdc: 9n }, { status: "proven", fields: { eth: 990 } });
     expect(p).toEqual({ status: "updated", block: 1005, verified: { usdc: 9n } });
     expect(shown(pir, p).usdc).toBe(9n);
   });
   test("proof is per field: only the fields a verified block showed count", () => {
     const one = compare(pir, 1000, 990, { block: 990, eth: 100n }, un);
-    expect(one).toEqual({ status: "proven", block: 990, fields: ["eth"] });
+    expect(one).toEqual({ status: "proven", fields: { eth: 990 } });
     const two = compare(pir, 1000, 990, { block: 992, usdc: 5n }, one);
-    expect(two).toEqual({ status: "proven", block: 992, fields: ["eth", "usdc"] });
+    expect(two).toEqual({ status: "proven", fields: { eth: 990, usdc: 992 } });
   });
   test("blocks older than the record's last activity are ignored", () => {
     expect(compare(pir, 1000, 990, { block: 980, eth: 1n }, un)).toBe(un);
