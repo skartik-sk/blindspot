@@ -38,8 +38,14 @@ It protects *which row* you read. Single-server Paillier PIR (Kushilevitz–Ostr
 whole table and can't tell which row you asked for.
 
 It does not:
-- **Prove the value.** A dishonest server could return a wrong balance. The app labels it "Private, not yet proven",
-  and the next verified block touching that address corrects it.
+- **Prove the value by itself.** A dishonest server could return a wrong balance, so the answer starts as "Private,
+  not yet proven". The device then compares it with verified blocks it already has: the address's own recent blocks
+  from the history download, the live feed, and the last 30 blocks in memory.
+  - Match: "proven ✓".
+  - Different at or before the PIR snapshot: "Mismatch: the server may have lied", and the verified value is shown.
+  - Different later: "Updated from verified block N".
+
+  This adds no requests and doesn't change the protocol.
 - **Cover every address.** The table holds about 1,000 recently active addresses. Anything else falls back to a
   one-off read on a fresh mixnet route: the node learns the address, but not who asked.
 

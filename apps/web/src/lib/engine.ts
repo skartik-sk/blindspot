@@ -4,6 +4,7 @@ import { ETH_LOGGER, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scan
 import type { Address } from "viem";
 import { anonFetch, anonRpc, checkFailover, noteProgress, resetHealth } from "./anon";
 import { resumeFrom } from "./resume";
+import { seenFrom, type Seen } from "./proof";
 import { keepWatching, onVisibility } from "./background";
 import { config } from "./config";
 import { fmtToken, short } from "./format";
@@ -161,6 +162,26 @@ export function describe(a: Activity, b: VerifiedBlock): Alert[] {
 }
 
 /** Replay recent verified blocks for one address (all local). */
+// Looked-up addresses whose PIR answer is waiting for a verified balance (see proof.ts). Nothing is requested for them:
+// the device only checks blocks it already verifies, plus the recent ones it keeps in memory.
+const proofSubs = new Map<string, Set<(s: Seen) => void>>();
+function checkProofs(b: VerifiedBlock) {
+  if (!proofSubs.size) return;
+  for (const a of scanBlock(b.bal, b.feed, [...proofSubs.keys()] as Address[], SEPOLIA_TOKENS)) {
+    const s = seenFrom(a, Number(b.number));
+    if (s) proofSubs.get(a.address.toLowerCase())?.forEach((f) => f(s));
+  }
+}
+export function watchProof(address: Address, cb: (s: Seen) => void): () => void {
+  const k = address.toLowerCase();
+  if (!proofSubs.has(k)) proofSubs.set(k, new Set());
+  proofSubs.get(k)!.add(cb);
+  for (const b of [...recent].sort((x, y) => Number(x.number - y.number))) {
+    for (const a of scanBlock(b.bal, b.feed, [k as Address], SEPOLIA_TOKENS)) { const s = seenFrom(a, Number(b.number)); if (s) cb(s); }
+  }
+  return () => { proofSubs.get(k)?.delete(cb); if (!proofSubs.get(k)?.size) proofSubs.delete(k); };
+}
+
 export function rescan(address: Address) {
   const alerts = recent.flatMap((b) => scanBlock(b.bal, b.feed, [address], SEPOLIA_TOKENS).flatMap((a) => describe(a, b)));
   if (!alerts.length) return 0;
@@ -175,6 +196,7 @@ export function rescan(address: Address) {
 async function onBlock(b: VerifiedBlock) {
   recent.push(b);
   if (recent.length > KEEP) recent.shift();
+  checkProofs(b);
   const s = getState();
   const watched = s.wallets.map((w) => w.address);
   const acts = scanBlock(b.bal, b.feed, watched, SEPOLIA_TOKENS);

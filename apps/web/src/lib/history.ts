@@ -12,6 +12,7 @@ import { describe } from "./engine";
 import { fmtToken, short } from "./format";
 import { crowdFor, cryptoRand, type Cover } from "./crowd";
 import type { Alert } from "./store";
+import { seenFrom, type Seen } from "./proof";
 
 export { ANONYMITY, MAX_BLOCKS, crowdFor, type Cover } from "./crowd";
 
@@ -27,6 +28,8 @@ export interface HistoryResult {
   failed: number;
   /** Index entries the verified blocks contradict (an address listed as active in a block where it did nothing). */
   mismatches: number;
+  /** This address's verified post-block balances in its own blocks, oldest first (to check the PIR answer). */
+  seen: Seen[];
   ms: number;
 }
 
@@ -99,5 +102,9 @@ export async function privateHistory(address: Address, real: number[], cover: Co
   const claims = [...real.map((n) => [me, n] as const), ...picked.flatMap((c) => c.history.map((n) => [c.address, n] as const))];
   const mismatches = claims.filter(([a, n]) => got.has(n) && !activeIn(a, got.get(n)!)).length;
   const bytes = [...got.values()].reduce((a, b) => a + b.bytes, 0);
-  return { rows: rows.sort((x, y) => Number(y.block) - Number(x.block)), blocks: order.length, crowd, failed, mismatches, bytes, ms: Math.round(performance.now() - t0) };
+  const seen = [...real].sort((x, y) => x - y).flatMap((n) => {
+    const b = got.get(n);
+    return b ? scanBlock(b.bal, b.feed, [me], SEPOLIA_TOKENS).flatMap((a) => seenFrom(a, n) ?? []) : [];
+  });
+  return { rows: rows.sort((x, y) => Number(y.block) - Number(x.block)), blocks: order.length, crowd, failed, mismatches, seen, bytes, ms: Math.round(performance.now() - t0) };
 }

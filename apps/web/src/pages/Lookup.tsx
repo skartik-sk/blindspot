@@ -7,6 +7,8 @@ import { ago, fmtAmount, fmtBytes, short } from "../lib/format";
 import { ANONYMITY, crowdFor, privateHistory, type HistoryResult } from "../lib/history";
 import { pirTable, privateBalance, type LookupResult } from "../lib/lookup";
 import { useStore } from "../lib/store";
+import { watchProof } from "../lib/engine";
+import { compare, shown, type Proof, type Seen } from "../lib/proof";
 
 type History = { state: "idle" } | { state: "exposed" } | { state: "loading"; done: number; total: number } | { state: "done"; r: HistoryResult } | { state: "error"; msg: string };
 
@@ -19,6 +21,7 @@ export default function Lookup() {
   const [dirFailed, setDirFailed] = useState(false);
   const [hist, setHist] = useState<History>({ state: "idle" });
   const traders = useStore((s) => s.traders);
+  const [proof, setProof] = useState<Proof>({ status: "unproven" });
 
   useEffect(() => {
     pirTable()
@@ -34,10 +37,25 @@ export default function Lookup() {
     return (live.length ? live : dir.addresses.slice(-3)).slice(0, 3) as Address[];
   }, [dir, traders]);
 
+  // Hold the PIR answer to verified data: blocks this device already has or verifies next (no new requests).
+  const pirBal = res && res.via === "pir" ? { eth: res.eth, usdc: res.usdc, weth: res.weth } : undefined;
+  const pirBlock = res?.block ? parseInt(res.block, 16) : 0;
+  const lastActive = res?.history?.[0];
+  const apply = (seen: Seen) => setProof((p) => (pirBal ? compare(pirBal, pirBlock, lastActive, seen, p) : p));
+  useEffect(() => {
+    if (!res || res.via !== "pir") return;
+    return watchProof(res.address, apply);
+  }, [res]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (hist.state === "done") hist.r.seen.forEach(apply);
+  }, [hist]); // eslint-disable-line react-hooks/exhaustive-deps
+  const bal = pirBal ? shown(pirBal, proof) : res;
+
   const valid = isAddress(addr.trim());
   const lookup = async (raw: string) => {
     setErr(undefined);
     setRes(undefined);
+    setProof({ status: "unproven" });
     setHist({ state: "idle" });
     const a = raw.trim().toLowerCase() as Address;
     try {
@@ -107,12 +125,16 @@ export default function Lookup() {
         <section className="panel">
           <header>
             <h2 className="mono" style={{ fontSize: 16 }}>{short(res.address)}</h2>
-            <span className="chip" data-kind={res.via === "pir" ? "pir" : undefined}>{res.via === "pir" ? "Private, not yet proven" : "Mixnet read"} · {(res.ms / 1000).toFixed(1)} s</span>
+            {res.via !== "pir" ? <span className="chip">Mixnet read · {(res.ms / 1000).toFixed(1)} s</span>
+              : proof.status === "proven" ? <span className="chip" data-kind="verified" title="A verified block on this device shows the same balance">Private · proven ✓ block {proof.block}</span>
+              : proof.status === "mismatch" ? <span className="chip" data-kind="leak">Mismatch: the server may have lied</span>
+              : proof.status === "updated" ? <span className="chip" data-kind="verified">Updated from verified block {proof.block}</span>
+              : <span className="chip" data-kind="pir">Private, not yet proven · {(res.ms / 1000).toFixed(1)} s</span>}
           </header>
           <div className="holdings">
-            <div className="holding"><span className="sym">ETH</span><span className="qty">{fmtAmount(res.eth, 18)}</span></div>
-            <div className="holding"><span className="sym">USDC</span><span className="qty">{fmtAmount(res.usdc, 6, 2)}</span></div>
-            <div className="holding"><span className="sym">WETH</span><span className="qty">{fmtAmount(res.weth, 18)}</span></div>
+            <div className="holding"><span className="sym">ETH</span><span className="qty">{fmtAmount(bal!.eth, 18)}</span></div>
+            <div className="holding"><span className="sym">USDC</span><span className="qty">{fmtAmount(bal!.usdc, 6, 2)}</span></div>
+            <div className="holding"><span className="sym">WETH</span><span className="qty">{fmtAmount(bal!.weth, 18)}</span></div>
           </div>
           <div className="callout">
             <strong>What the server saw</strong>
@@ -121,11 +143,19 @@ export default function Lookup() {
           <ol className="steps">
             {res.steps.map((s) => <li key={s.label}><span>{s.label}</span><span className="muted">{s.ms} ms</span></li>)}
           </ol>
-          {res.via === "pir" && (
+          {res.via === "pir" && proof.status === "unproven" && (
             <p className="small muted">
-              Private, not proven: a dishonest server could return a wrong number. Add the address to Watch or Portfolio and the
-              next verified block corrects it.
+              Private, not yet proven: a dishonest server could return a wrong number. When a block this device verifies shows this
+              address's balance (its recent activity below, or a new block), the app checks the number and marks it proven ✓.
             </p>
+          )}
+          {proof.status === "proven" && <p className="small muted">Checked against verified block {proof.block}: the private answer matches the chain.</p>}
+          {proof.status === "updated" && <p className="small muted">The balance changed in verified block {proof.block}, after the private answer's snapshot. Showing the verified value.</p>}
+          {proof.status === "mismatch" && (
+            <div className="callout warn-callout">
+              <strong className="down">The private answer didn't match the chain</strong>
+              <span>Verified block {proof.block} shows a different balance than the server returned. Showing the verified value. Treat this relay as untrusted.</span>
+            </div>
           )}
         </section>
       )}

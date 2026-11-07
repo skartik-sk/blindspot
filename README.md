@@ -271,8 +271,17 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 - **History anonymity is up to 8, not 1,000.** The history download hides the address among up to 8, not the whole directory,
   and the relay can see the downloads arrive together. The window covers the last 6 active blocks per address since
   the relay started indexing; older history isn't available.
-- **PIR hides, it doesn't prove.** A lying PIR server could return a wrong balance; the next verified block
-  that touches the address corrects it. Next step: proof-checked rows (`eth_getProof` against a verified header).
+- **PIR hides; the device checks it when it can.** A PIR answer starts as "Private, not yet proven". When a block
+  this device verifies shows that address's balance (the history download fetches its last active blocks, and the
+  live feed and the last 30 blocks in memory are checked too), the app compares:
+  - same value: **proven ✓ (block N)**;
+  - different value at or before the PIR snapshot: **"Mismatch: the server may have lied"**, and the verified value is
+    shown;
+  - different value in a later block: "Updated from verified block N", a real change, not an accusation.
+
+  No new requests and no change to the PIR protocol (`apps/web/src/lib/proof.ts`, tested). An address with no
+  verifiable block in reach stays "not yet proven". Next step: proof-checked rows (`eth_getProof` against a verified
+  header).
 - **PIR scale.** Paillier PIR is slow on big tables, so the demo indexes ~1k active addresses. 1024-bit keys.
 - **Sends.** On Sepolia, sends are signed on the device and go through Anon-RPC to the public mempool: the node
   doesn't see your IP, but the tx is visible before it lands. There is no private builder on Sepolia: Flashbots
