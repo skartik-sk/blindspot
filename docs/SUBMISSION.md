@@ -44,7 +44,7 @@ from real requests, what a normal RPC, Anon-RPC alone, and Blindspot each reveal
   by the verified alert (~20 s).
 - **Live test on Sepolia:** a whale swap, then the alert, then a one-tap copy trade landed in a verified block.
 - **Persistence and hardening:** the directory and history are saved to disk (restart-tested). The Spy demo lane only
-  answers about allowlisted demo addresses. 85 tests run against real Sepolia block fixtures.
+  answers about allowlisted demo addresses. 110 tests run against real Sepolia block fixtures.
 - **Honest limits:**
   - trades are public once they land, and on Sepolia sends reach the public mempool (Flashbots has no Sepolia
     endpoint); mainnet Flashbots Protect and MEV Blocker were tested through Anon-RPC but aren't built in;
@@ -65,8 +65,8 @@ from real requests, what a normal RPC, Anon-RPC alone, and Blindspot each reveal
 | Check | Status (Nov 7) |
 | --- | --- |
 | Live site works (all screens, desktop + phone, Nox live, 0 console errors) | done, verified after the last Pages deploy |
-| Tests pass (`bun test`) | 85 pass, 0 fail |
-| No secrets in git history (all 122 commits scanned: keys, tokens, `.env`, server access) | clean |
+| Tests pass (`bun test`) | 110 pass, 0 fail |
+| No secrets in git history (all 148 commits scanned: keys, tokens, `.env`, server access) | clean |
 | README complete (claims checked against the live app) | done |
 | Demo video recorded and link added above | waiting on you |
 | Repo made public | waiting on your approval, right before submitting |

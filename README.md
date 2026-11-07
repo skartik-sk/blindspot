@@ -89,7 +89,7 @@ Demo: `docs/DEMO.md` (script) and `docs/DEMO-CHECKLIST.md` (exact steps, timings
 
 ```bash
 bun install
-bun test                      # 85 tests, real Sepolia block fixtures
+bun test                      # 110 tests, real Sepolia block fixtures
 bun run relay                 # relay on :8787
 cd apps/web && VITE_RELAY_URL=http://localhost:8787 bunx vite    # app on :5173
 ```
@@ -354,7 +354,7 @@ properly before the deadline.
   smart account would keep the key in the phone's secure hardware.
 - **A dedicated server with monitoring.** The relay shares a small machine with another team's service. Its own
   box, uptime and block-lag alerts, and per-site logging (no client IPs) are next.
-- **Browser tests in CI.** 85 unit tests run on real Sepolia fixtures; the end-to-end checks (Nox boot, a verified
+- **Browser tests in CI.** 110 unit tests run on real Sepolia fixtures; the end-to-end checks (Nox boot, a verified
   block, pause in background, copy trade) were run by hand in a browser and should run on every push.
 - **Shielded sends (Railgun on Sepolia).** Large proving artifacts and a separate broadcaster network that would also
   have to work through Anon-RPC: 6–10 hours, high risk.
