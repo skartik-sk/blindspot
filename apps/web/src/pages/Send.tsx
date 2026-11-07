@@ -203,7 +203,7 @@ export default function Send({ query }: { query: URLSearchParams }) {
           </label>
           <label className="route" data-on={route === "public"}>
             <input type="radio" name="route" checked={route === "public"} onChange={() => setRoute("public")} />
-            <span><strong>Public mempool, via the mixnet</strong><span className="small muted">Your IP stays hidden and the tx can't be linked to your other requests. Bots can see it before it lands.</span></span>
+            <span><strong>Public mempool, via the mixnet</strong><span className="small muted">Your IP stays hidden. Bots can see the tx before it lands.</span></span>
           </label>
         </fieldset>
 

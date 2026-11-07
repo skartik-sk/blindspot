@@ -50,7 +50,7 @@ export default function LeakCompare() {
           {ours.map((e) => (
             <motion.li key={e.id} {...item}>
               <code><b>{e.method}</b>{e.detail && <em>{e.detail.slice(0, 48)}</em>}</code>
-              <span>{e.host} · from a mixnet exit · route {e.key}</span>
+              <span>{e.host} · from a mixnet exit</span>
             </motion.li>
           ))}
           {ours.length === 0 && <li><code>Opening a route through the mixnet…</code></li>}

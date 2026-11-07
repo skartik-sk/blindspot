@@ -77,11 +77,11 @@ export async function mixnetLookup(address: Address): Promise<LookupResult> {
   ]);
   const ms = Math.round(performance.now() - t0);
   return { eth: BigInt(eth), usdc: BigInt(usdc), weth: BigInt(weth), block: head.toString(), via: "mixnet", ms,
-    steps: [{ label: "3 reads on one fresh mixnet route", ms }],
+    steps: [{ label: "3 reads through the mixnet", ms }],
     serverSaw: "This address, from a mixnet exit. Not your IP, and not linkable to your other lookups." };
 }
 
-/** PIR when possible, else a fresh mixnet route. */
+/** PIR when possible, else a read through the mixnet. */
 export async function privateBalance(address: Address, onStep?: (s: string) => void): Promise<LookupResult> {
   try {
     const r = await pirLookup(address, onStep);
@@ -89,6 +89,6 @@ export async function privateBalance(address: Address, onStep?: (s: string) => v
   } catch (e) {
     console.warn("PIR unavailable:", (e as Error).message);
   }
-  onStep?.("Not in the private directory; asking on a fresh mixnet route");
+  onStep?.("Not in the private directory; asking through the mixnet");
   return mixnetLookup(address);
 }

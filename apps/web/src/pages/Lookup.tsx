@@ -113,7 +113,7 @@ export default function Lookup() {
             <button className="btn primary" disabled={!valid || !!step}><Icon name="lookup" />{step ? "Looking up…" : "Look up privately"}</button>
             <span className="small muted">
               {dir ? `Directory: ${dir.count} active Sepolia addresses as of block ${parseInt(dir.block, 16)}`
-                : !config.relayUrl ? "No relay configured: lookups use a fresh mixnet route"
+                : !config.relayUrl ? "No relay configured: lookups are read through the mixnet"
                 : dirFailed ? "The private directory isn't reachable right now. Lookups still work as a one-off mixnet read (the node sees the address, not you); history needs the directory."
                 : "Loading the directory…"}
             </span>
@@ -185,7 +185,7 @@ export default function Lookup() {
           )}
           {hist.state === "loading" && (
             <div className="hist-progress">
-              <span className="small">Downloading verified blocks for up to {ANONYMITY} wallets, each on its own mixnet route: {hist.done} of {hist.total}</span>
+              <span className="small">Downloading verified blocks for up to {ANONYMITY} wallets, each through the mixnet: {hist.done} of {hist.total}</span>
               <span className="bar"><i style={{ width: `${(100 * hist.done) / Math.max(1, hist.total)}%` }} /></span>
             </div>
           )}

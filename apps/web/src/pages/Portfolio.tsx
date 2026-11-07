@@ -13,7 +13,7 @@ export function Source({ b }: { b?: Bal }) {
   const at = b.block ? ` · block ${b.block}` : "";
   if (b.source === "verified") return <span className="chip" data-kind="verified" title="Read from a block's verified access list">Verified{at}</span>;
   if (b.source === "pir") return <span className="chip" data-kind="pir" title="Private lookup: the server never learned which row">Private lookup{at}</span>;
-  return <span className="chip" title="Read on a one-off mixnet route">Mixnet read{at}</span>;
+  return <span className="chip" title="Read through the mixnet">Mixnet read{at}</span>;
 }
 
 const AVATAR = ["#4c6ef5", "#e8590c", "#0ca678", "#ae3ec9", "#1098ad", "#d6336c"];

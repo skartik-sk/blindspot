@@ -2,7 +2,7 @@
 export function friendly(raw?: string): string | undefined {
   if (!raw) return undefined;
   if (/DnsFailed|did not resolve|ENOTFOUND/i.test(raw)) return "A server address can't be reached through the mixnet. Retrying.";
-  if (/did not complete within|timed out|timeout/i.test(raw)) return "A mixnet route was slow. Retrying on a fresh route.";
+  if (/did not complete within|timed out|timeout/i.test(raw)) return "A mixnet route was slow. Retrying.";
   if (/rate limit|-32005|\b429\b/i.test(raw)) return "The block provider is busy. Retrying in a moment.";
   if (/Failed to fetch|NetworkError|network/i.test(raw)) return "No network connection. Retrying.";
   if (/Opening a route|Paused while in background|Catching up/i.test(raw)) return raw;

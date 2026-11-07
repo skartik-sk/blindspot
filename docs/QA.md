@@ -48,7 +48,7 @@ It does not:
 
   This adds no requests and doesn't change the protocol.
 - **Cover every address.** The table holds about 1,000 recently active addresses. Anything else falls back to a
-  one-off read on a fresh mixnet route: the node learns the address, but not who asked.
+  one-off read through the mixnet: the node learns the address, but not who asked.
 
 ### 5. Why is history hidden among only 8 wallets?
 
@@ -113,5 +113,6 @@ mainnet private-send route is already tested.
   are counted against our traffic share, which starts around 91% and climbs to 96–99%.
 - **The Spy panel's "Normal RPC" column:** sends directly, on purpose, and only about public demo contracts.
 
-Everything else reaches servers from mixnet exits. Each kind of request gets its own isolation key, so an exit can't
-link, for example, your lookups to your trades.
+Everything else reaches servers from mixnet exits. We used to say that separate isolation keys keep an exit from
+linking one kind of request to another. Then we checked the worker code Anon-RPC actually runs (Nox 0.4.1, Nym 0.1.0):
+neither reads the key. So we don't claim it. Blindspot doesn't need it, because block requests carry no address.

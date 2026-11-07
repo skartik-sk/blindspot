@@ -25,8 +25,8 @@ from real requests, what a normal RPC, Anon-RPC alone, and Blindspot each reveal
   `keccak(rlp(accessList)) == blockAccessListHash`, a receipts trie rebuilt to `receiptsRoot` (our own minimal MPT,
   canonical-hex guard), and a second operator (Tenderly) confirming each block hash. Balances come from verified
   access-list storage slots; "who traded" from verified nonce changes. The core is a reusable SDK (`packages/sdk`).
-- **Anon-RPC.** Every request goes through `@anon-rpc/browser-harness` 0.4.0 on Nox (Sphinx) by default, with
-  separate isolation keys per request type. Nym is selectable. If Nox can't boot (EF reported a topology failure on
+- **Anon-RPC.** Every request goes through `@anon-rpc/browser-harness` 0.4.0 on Nox (Sphinx) by default.
+  Nym is selectable. If Nox can't boot (EF reported a topology failure on
   iPhone Safari), the app falls back to Nym automatically, deciding from the failure, never the browser, and never to a
   direct connection. Tor with the temporary EF gateway booted and reached the relay, but our anchor provider returns
   403 to Tor exits, so it isn't offered.

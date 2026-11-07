@@ -8,7 +8,7 @@ export interface ReqEntry {
    * demo = the Spy Panel's opt-in "normal wallet" lane, sent directly on purpose (demo addresses only).
    */
   route: "mixnet" | "direct" | "bootstrap" | "demo";
-  /** First chars of the isolation key: same key = same route, different key = unlinkable. */
+  /** First chars of the isolation key we sent. The current Nox/Nym workers ignore it (checked Nov 7). */
   key: string;
   method: string;
   /** Params exactly as sent (truncated for display). */

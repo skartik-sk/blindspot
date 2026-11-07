@@ -201,7 +201,7 @@ export default function Spy() {
               <span className="m">{e.method} <span className="faint">→ {e.host}</span></span>
               {e.detail && <span className="p"><Highlight text={e.detail} addrs={all} /></span>}
               <span className="from">
-                {e.route === "mixnet" ? `from a mixnet exit · route ${e.key}`
+                {e.route === "mixnet" ? `from a mixnet exit`
                   : e.route === "bootstrap" ? "direct: Anon-RPC bootstrap (public network contract or code, no address)"
                   : "direct to a relay on this machine"}
               </span>
@@ -210,7 +210,7 @@ export default function Spy() {
         </ul>
         {oursLeaked.size > 0 && (
           <p className="small muted">
-            Highlighted: one-off lookups and sends that must name an address ({[...oursLeaked].map(short).join(", ")}), each on its own mixnet route.
+            Highlighted: one-off lookups and sends that must name an address ({[...oursLeaked].map(short).join(", ")}), each sent through the mixnet.
           </p>
         )}
       </details>

@@ -125,7 +125,7 @@ export default function Network() {
           <dt>Blocks and events</dt><dd>{host(config.feedUrl)} · {route(config.feedUrl)}<br /><span className="small muted">Asked by block number only</span></dd>
           <dt>Second opinion</dt><dd>{host(config.anchorUrl)} · {route(config.anchorUrl)}<br /><span className="small muted">Confirms every block hash</span></dd>
           <dt>Private lookup</dt><dd>{config.relayUrl ? `${host(config.relayUrl)} · ${route(config.relayUrl)}` : "No relay set (VITE_RELAY_URL)"}</dd>
-          <dt>One-off reads</dt><dd>{host(config.readUrl)} · {route(config.readUrl)}<br /><span className="small muted">Fresh route each time; used for sends and addresses outside the directory</span></dd>
+          <dt>One-off reads</dt><dd>{host(config.readUrl)} · {route(config.readUrl)}<br /><span className="small muted">Through the mixnet; used for sends and addresses outside the directory</span></dd>
           <dt>Sending</dt><dd>{config.privateSendUrl ? `${host(config.privateSendUrl)} · ${route(config.privateSendUrl)}` : `Public mempool via ${host(config.readUrl)} · via ${network().short} (no private builder on Sepolia)`}</dd>
         </dl>
       </section>

@@ -154,7 +154,7 @@ never from user requests.
 **Private history, how.** Each PIR record carries the address's last 6 active blocks (it sent a tx, or its ETH, USDC
 or WETH balance changed), as 20-bit offsets, 440 bits per record. After the lookup the phone downloads the union of
 this address's blocks and up to 7 other wallets' blocks taken from the same PIR reply (one record per row), chosen
-with the platform CSPRNG, capped at 48 blocks, in random order, each block on its own mixnet route, and verifies every
+with the platform CSPRNG, capped at 48 blocks, in random order, each block as its own request through the mixnet, and verifies every
 block like any other. It also checks the server's claims: every listed wallet must show activity in each listed
 verified block, or the app flags the relay. If no cover exists, the app asks first.
 
@@ -186,8 +186,8 @@ Exceptions (all counted in the denominator above):
   directly. It's the same public data for every user and names no address.
 - **Local relay:** a relay on `localhost` is fetched directly (exits can't reach it). Dev only; shown in the UI.
 - **Named reads:** a few reads must name an address: your nonce and gas when sending, and balances of addresses
-  not in the PIR directory. Each goes out on its own fresh mixnet route, so it can't be linked to you or to
-  each other. The Spy panel highlights them.
+  not in the PIR directory. Each leaves from a mixnet exit, so the node doesn't learn who asked. We don't claim these reads can't be linked to
+  each other (see "Isolation keys" below). The Spy panel highlights them.
 
 ## Who sees your IP
 
@@ -207,10 +207,14 @@ log) reaches servers from mixnet exits. On the relay, per-IP rate-limit counters
 they hold exit IPs), the Spy log stores salted hashes, and its journal has no client IPs. Not checked: network-level
 flow logs at the cloud provider (no access to the account).
 
-**Isolation keys** (requests sharing a key share a mixnet route, so the exit could link them): the block feed and
-the second-provider check each use one key for the session (address-free, identical for everyone); the mempool feed
-has its own; every PIR directory fetch, PIR query, history block, one-off balance read, quote, token-name read and
-relay-log poll gets a fresh key; a trade's preparation reads share one key and its send uses another.
+**Isolation keys: we checked, and they do nothing today.** Anon-RPC lets an app tag each request with an
+`isolationKey`, and its README says support "varies". So on Nov 7 we downloaded the exact worker code the app runs
+(Nox `@hisoka-io/anon-rpc-worker` 0.4.1 and Nym `@nymproject/anon-rpc-worker` 0.1.0, the bundles named by the
+on-chain specifiers) and searched it, including the two WebAssembly modules inside the Nox bundle. Neither one
+reads `isolationKey`, `anonOptions` or anything like it. So the separate keys our app sends are ignored, and we no
+longer claim they keep requests apart. Blindspot doesn't depend on them: block requests are the same for everyone,
+and the few reads that name an address (your nonce and gas when sending, lookups outside the PIR directory) say so in
+the Spy panel. We still send the keys, so a future worker that honours them gets them for free.
 
 ## When Nox can't start: automatic fallback to Nym
 
