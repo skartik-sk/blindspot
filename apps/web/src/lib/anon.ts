@@ -5,6 +5,7 @@ import { NETWORK_KEY, config, isLocal, type NetworkName } from "./config";
 import { FALLBACK_TO, initialBoot, onFailure, onSuccess, type BootState } from "./fallback";
 import { decide, initialFailover, onProgress, type Failover } from "./failover";
 import { logRequest } from "./reqlog";
+import { SEL_RESOLVERS, withLocalBundle } from "./resolvers";
 
 interface Network {
   label: string;
@@ -84,6 +85,10 @@ function bootstrapProvider(urls: string[]) {
           const j = await r.json();
           if (j.error) throw new Error(typeof j.error === "string" ? j.error : j.error.message);
           start = (start + i) % urls.length; // stick with the one that worked
+          // Our own hash-checked copy of the worker code goes first in the download list (see resolvers.ts).
+          const call = (params?.[0] ?? {}) as { to?: string; data?: string };
+          if (method === "eth_call" && call.to && call.data?.startsWith(SEL_RESOLVERS))
+            return withLocalBundle(call.to, j.result, new URL(import.meta.env.BASE_URL, location.origin).toString());
           return j.result;
         } catch (e) {
           last = e;

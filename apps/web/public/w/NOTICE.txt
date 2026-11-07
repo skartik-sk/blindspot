@@ -1,0 +1,11 @@
+Unmodified copies of the Anon-RPC worker bundles named by the networks' on-chain specifiers, served from this site
+so the browser doesn't fetch them from a third-party CDN. The harness checks each file against the keccak256 hash
+published on-chain (the file name) before running it.
+
+d9fa04b080a33062680a27cad828196bfb04615a0ebc76bcbffedb6dcbe838d4.js
+  @hisoka-io/anon-rpc-worker 0.4.1 (Nox), Apache License 2.0
+
+f13a448a8721b9d0b20da3d5b80ffe00bf4c5bb3aae812a38d3d1e3bc81fceb8.js
+  @nymproject/anon-rpc-worker 0.1.0 (Nym), Apache License 2.0
+
+License text: https://www.apache.org/licenses/LICENSE-2.0

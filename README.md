@@ -176,6 +176,14 @@ deployed site: **97.3%** (109 of 112, Nov 6). The 3 direct requests were Anon-RP
 share rises the longer the app runs: a longer live session measured **99.7%** (876 of 879). A resource
 observer counts any direct request the app didn't log itself.
 
+Since Nov 7 the code download no longer goes to a third party. The worker used to come from
+`raw.githubusercontent.com` (Nox) or jsDelivr (Nym), and those hosts saw every user's IP at startup. Now we serve
+the same bytes from useblindspot.xyz. The on-chain specifier still supplies the hash, and the harness still checks
+the bytes against it. We only put our copy first in its list of download URLs. A stale copy fails the hash check
+and the harness moves on to the original URLs (`apps/web/src/lib/resolvers.ts`, tested). Startup is now 2 direct
+requests instead of 3: in a browser check, Nox ran from our copy with 12 of 14 requests through the mixnet in the
+first 20 s.
+
 **IP check (Nov 6):** with the relay's spy stream open, one deliberate direct call marked our IP's salted tag;
 the app then made 84 relay requests, **0 from our IP**, spread over 3 mixnet exits. A browser network capture
 showed no direct request to the relay, Tenderly or publicnode reads, only the bootstrap above.
@@ -198,7 +206,7 @@ Checked Nov 6. Everything the app fetches goes through `anonFetch` (Anon-RPC), e
 | Mixnet entry node | yes | that you use the mixnet; not destinations or content | inherent to any mixnet |
 | GitHub Pages and Cloudflare (DNS and HTTPS for useblindspot.xyz), when you **load the website** | yes | that you opened the site | the static app is hosted on GitHub Pages (moved off our server on Nov 6); GitHub's own logging applies. Our server no longer serves any page: the old site address doesn't answer. |
 | Our server's error log | only for a request that fails | | Caddy keeps no access log. Its error log records the client IP of a failed proxied request (an aborted stream, or the relay restarting). Since the website moved, the requests our server receives come from mixnet exits (plus the opt-in Spy demo lane), so what it can record are mixnet-exit IPs. That log can only be filtered globally, and the server is shared with another team's service, so we left it as is rather than change their logging. |
-| Anon-RPC bootstrap | yes | that someone is starting Anon-RPC | 2 `eth_call`s to the public network contract (publicnode, with fallbacks) and the client code from `raw.githubusercontent.com`. No address. Counted in the traffic share. |
+| Anon-RPC bootstrap | yes | that someone is starting Anon-RPC | 2 `eth_call`s to the public network contract (publicnode, with fallbacks). No address. Counted in the traffic share. The worker code now comes from our own site (same hash-checked bytes), so GitHub's raw host and jsDelivr no longer see you. |
 | Spy panel "Run the comparison" | yes (opt-in) | 2 public demo contract addresses | the "Normal RPC" column sends directly to our relay's demo lane on purpose. The lane is off by default (`ENABLE_NAIVE`), and when on it answers only about the demo addresses (`NAIVE_ALLOW`). |
 | A relay on `localhost` | n/a | | dev only |
 

@@ -21,8 +21,8 @@ so the traffic share has settled. Whale wallet funded. Second window ready to se
 `share = mixnet / (mixnet + bootstrap + direct)`, counted in `apps/web/src/lib/reqlog.ts` since the page loaded:
 
 - **mixnet:** every request sent through `anonFetch` → Anon-RPC worker (blocks, anchor checks, PIR, quotes, sends, relay log).
-- **bootstrap:** Anon-RPC's own direct startup requests: reads of its specifier contract and the download of its
-  network code bundle (public data, no address). Counted against us. A resource observer catches any direct
+- **bootstrap:** Anon-RPC's own direct startup requests: 2 reads of its specifier contract (public data, no
+  address). Its code bundle now loads from our own site, hash-checked. Counted against us. A resource observer catches any direct
   request the app didn't log itself.
 - **direct:** calls to a relay on localhost (dev only; 0 on the deployed site).
 - **Not counted:** the Spy panel's opt-in "normal wallet" demo lane, which exists to show the leak and is shown separately.

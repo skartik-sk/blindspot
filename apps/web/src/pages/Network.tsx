@@ -102,7 +102,7 @@ export default function Network() {
             <br />
             <span className="small muted">
               {share.mixnet} of {share.total} requests since this page loaded went through {network().short}. Not through it: {share.bootstrap} Anon-RPC bootstrap
-              requests (the public network contract and code, no address){share.direct ? `, ${share.direct} to a relay on this machine` : ""}.
+              requests (reads of the public network contract, no address){share.direct ? `, ${share.direct} to a relay on this machine` : ""}.
               {share.demo ? ` Not counted: ${share.demo} requests from the Spy panel's normal-wallet demo, sent directly on purpose.` : ""}
               {" "}The first requests are that bootstrap, which Anon-RPC needs before it can route anything, so the share starts
               around 91% and climbs to 96–99% as blocks arrive.
