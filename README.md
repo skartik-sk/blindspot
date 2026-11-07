@@ -47,6 +47,30 @@ What this does **not** give you (we never claim "100% private"):
 - App: https://useblindspot.xyz/ (GitHub Pages; landing at `/`, app at `#/portfolio`)
 - Relay: https://bina-relay.13-53-45-89.sslip.io/health
 
+## Tested on the live site (Nov 7)
+
+We ran everything below against https://useblindspot.xyz/ on the morning of Nov 7, in a desktop browser and at phone
+width. The checks were real requests and real Sepolia blocks, nothing mocked.
+
+| What we checked | Result |
+| --- | --- |
+| Site, domain and HTTPS | Loads over HTTPS. `http://`, `www` and the old github.io address all redirect to it. The tab shows the Blindspot icon. |
+| Every screen (landing, Portfolio, Watch, Lookup, Send, Spy, Network) | Loads on desktop and at 390 px wide. No console errors, no sideways scrolling. |
+| Going live | Live on Nox in 10–20 s when the network was healthy. |
+| Watch alerts | 25 verified alerts with "block N ✓". Pending ones are marked unverified and can't be copied. |
+| Background toggle on, tab hidden | Kept following blocks (12080063 → 12080067) and fired 5 notifications for a watched trader. |
+| Background toggle off, tab hidden | "Paused", and 0 requests in 30 s. Back to Live on return. |
+| Watch mode | Turns on, keeps the screen awake, and turns off when you leave the screen. |
+| Private lookup of the demo whale | Correct balance in 8.5 s. History hidden among 8 wallets in 53.5 s (11.2 MB, on Nym). The answer was then checked against those blocks: "Partly proven ✓ (USDC)". |
+| Spy panel | Normal RPC: 2 addresses plus our IP. Anon-RPC alone: 2 addresses. Blindspot: 0. |
+| Traffic share | 98.7% (230 of 233 requests) on the Network page. |
+| Worker code | Nox and Nym both start from our own hash-checked copy. Nothing loads from GitHub, jsDelivr or unpkg. |
+| Mixnet outage | Real, from about 04:25 IST, on and off. The app showed "Switched to Nym because Nox stopped responding", then "Nox and Nym both stopped responding". It never connected directly. |
+
+Not repeated on Nov 7: a copy trade and a send landing on-chain. Both passed on the live site on Nov 6 (whale swap,
+then alert, then a one-tap copy trade that landed in a verified block). On the new domain the device wallet has no
+Sepolia funds yet. Steps to repeat them are in `docs/TESTING.md`.
+
 ## What it does
 
 | Screen | What you get | What the provider learns |
@@ -267,7 +291,7 @@ against the live relay (same app, same blocks):
 Running our own Tor gateway is ~1–2 hours (a WebSocket-to-Tor bridge behind Caddy). That gateway would see users'
 IPs, like any Tor entry, but not destinations or content (the Tor circuit is end to end from the browser).
 
-## Honest trade-offs
+## Trade-offs
 
 - **Copy trades can link you to the whale.** Your trade is public on-chain once it lands; trading the same pair
   right after a watched wallet can reveal that you follow it. Use a separate wallet for copy trading (the app says so

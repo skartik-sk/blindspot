@@ -14,7 +14,7 @@ so the traffic share has settled. Whale wallet funded. Second window ready to se
 | 1:15–1:40 | Lookup → tap a suggested address (or the whale) → balance, then "Recent activity" | "Balance and history of any wallet. PIR: the server computes over its whole table, encrypted, and can't tell which row we asked for. Then we download the blocks, mixed with up to seven other wallets' blocks, so the relay can't tell whose history it was." | depth |
 | 1:40–2:10 | Spy panel, both columns + relay log | "Left: the normal wallet, addresses and IP. Right: everything we sent. Block numbers only, from mixnet exits. Bottom: our relay's own log. Same story from the server's side." | privacy proof |
 | 2:10–2:30 | Network → Traffic share | "97% of requests went through Anon-RPC. The rest are Anon-RPC's own startup: reading the public network contract and downloading its code. Counted, not hidden." | traffic share |
-| 2:30–3:00 | README "How a block is proven" / landing | "Every block is checked three ways: header hash, the EIP-7928 access-list hash, the receipts root, then cross-checked with a second provider. It's an SDK any wallet can drop in. Limits are in the README: PIR covers ~1k addresses, Sepolia has no private builder. We never say 100% private." | could ship, honesty |
+| 2:30–3:00 | README "How a block is proven" / landing | "Every block is checked three ways: header hash, the EIP-7928 access-list hash, the receipts root, then cross-checked with a second provider. It's an SDK any wallet can drop in. Limits are in the README: PIR covers ~1k addresses, Sepolia has no private builder. We never say 100% private." | could ship, limits |
 
 ## How the traffic share is calculated
 
