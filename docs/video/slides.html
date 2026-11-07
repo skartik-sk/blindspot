@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blindspot deck</title>
+<meta name="viewport" content="width=1920">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;650;750&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #fbfafc; --surface: #ffffff; --sunk: #f4f2f8; --ink: #14122a; --ink-2: #4f4a6b; --ink-3: #7d7899;
+    --line: #ebe8f1; --signal: #c2410c; --signal-wash: #ffede2; --up: #15803d; --down: #d93a3a;
+    --grad: linear-gradient(100deg, #e8890c 0%, #e8501f 48%, #d61f69 100%);
+    --display: "Archivo", "Public Sans", system-ui, sans-serif; --sans: "Public Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: #e9e6ef; font-family: var(--sans); color: var(--ink); }
+  .slide { width: 1920px; height: 1080px; background: var(--paper); position: relative; overflow: hidden; padding: 110px 140px;
+    display: flex; flex-direction: column; margin: 0 auto 40px; }
+  .brand { display: flex; align-items: center; gap: 16px; font: 650 30px var(--display); letter-spacing: -0.015em; }
+  .mark { width: 52px; height: 52px; border-radius: 14px; background: radial-gradient(circle at 50% 125%, rgb(255 138 61 / .55), transparent 62%), #141130; position: relative; flex: none; }
+  .mark::after { content: ""; position: absolute; left: 9px; right: 9px; top: 20px; height: 12px; border-radius: 6px; background: var(--grad); box-shadow: 0 0 14px rgb(255 138 61 / .8); }
+  .top { position: absolute; left: 140px; top: 64px; }
+  .foot { position: absolute; left: 140px; right: 140px; bottom: 56px; display: flex; justify-content: space-between; font: 500 22px var(--sans); color: var(--ink-3); }
+  h1 { font: 750 120px/1.0 var(--display); letter-spacing: -0.04em; }
+  h2 { font: 750 76px/1.05 var(--display); letter-spacing: -0.035em; max-width: 1500px; }
+  .lede { font: 400 36px/1.4 var(--sans); color: var(--ink-2); max-width: 1400px; margin-top: 32px; }
+  .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .row { display: flex; gap: 32px; margin-top: 64px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 36px 40px; box-shadow: 0 1px 2px rgb(23 20 46 / .04); flex: 1; }
+  .card h3 { font: 650 34px var(--display); letter-spacing: -0.02em; }
+  .card p { font: 400 26px/1.45 var(--sans); color: var(--ink-2); margin-top: 14px; }
+  .mono { font-family: var(--mono); }
+  code, .req { font: 500 24px var(--mono); }
+  .req { display: block; background: var(--sunk); border-radius: 12px; padding: 16px 20px; margin-top: 14px; color: var(--ink); }
+  mark { background: #fde3e3; color: var(--down); border-radius: 6px; padding: 0 6px; }
+  .ok { background: #e3f4e8; color: var(--up); border-radius: 6px; padding: 0 6px; }
+  .big { font: 750 92px/1 var(--display); letter-spacing: -0.04em; margin-top: 18px; }
+  .bad { color: var(--down); } .good { color: var(--up); }
+  .chip { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px; border-radius: 999px; font: 600 22px var(--sans); background: var(--sunk); color: var(--ink-2); }
+  .chip.v { background: color-mix(in srgb, var(--up) 14%, transparent); color: var(--up); }
+  .center { justify-content: center; }
+  .flow { display: flex; align-items: center; gap: 0; margin-top: 70px; }
+  .node { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 30px 32px; width: 380px; }
+  .node h3 { font: 650 32px var(--display); }
+  .node p { font: 400 23px/1.45 var(--sans); color: var(--ink-2); margin-top: 10px; }
+  .node.dark { background: #17142e; color: #f6f2ff; border-color: #17142e; }
+  .node.dark p { color: #c9c2e6; }
+  .arrow { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-width: 120px; }
+  .arrow i { display: block; height: 6px; width: 100%; border-radius: 3px; background: var(--grad); position: relative; }
+  .arrow i::after { content: ""; position: absolute; right: -4px; top: -9px; border: 12px solid transparent; border-left: 16px solid #d61f69; border-right: 0; }
+  .arrow span { font: 500 20px var(--mono); color: var(--ink-3); text-align: center; }
+  .checks { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px; }
+  .stat { flex: 1; }
+  .stat .big { font-size: 84px; }
+  .stat p { font: 500 24px/1.4 var(--sans); color: var(--ink-2); margin-top: 10px; }
+  ul.clean { list-style: none; padding: 0; margin-top: 20px; display: grid; gap: 16px; }
+  ul.clean li { font: 400 28px/1.4 var(--sans); color: var(--ink-2); padding-left: 34px; position: relative; }
+  ul.clean li::before { content: ""; position: absolute; left: 0; top: 14px; width: 16px; height: 6px; border-radius: 3px; background: var(--grad); }
+  .demo { background: #17142e; color: #f6f2ff; justify-content: center; }
+  .demo .foot { color: #9e96c4; }
+  .demo h1 { font-size: 150px; }
+  .demo .lede { color: #c9c2e6; }
+  .glow { position: absolute; left: 50%; bottom: -520px; width: 1600px; height: 900px; transform: translateX(-50%);
+    background: radial-gradient(closest-side, rgb(255 138 61 / .55), rgb(240 57 126 / .18) 55%, transparent); pointer-events: none; }
+  .soft-glow { position: absolute; right: -300px; top: -300px; width: 900px; height: 900px; background: radial-gradient(closest-side, rgb(232 137 12 / .14), transparent); }
+  /* Show one slide at a time when the URL has #n (for PNG export); print shows all, one per page. */
+  body.one .slide { display: none; margin: 0; }
+  body.one .slide.on { display: flex; }
+  @page { size: 1920px 1080px; margin: 0; }
+  @media print { html, body { background: var(--paper); } .slide { margin: 0; page-break-after: always; break-after: page; } }
+</style>
+</head>
+<body>
+
+<!-- 1 Title -->
+<section class="slide" id="s1">
+  <div class="soft-glow"></div>
+  <div class="brand"><span class="mark"></span>Blindspot</div>
+  <div style="margin-top: auto; margin-bottom: auto;">
+    <h1>Follow the whales.<br><span class="grad-text">Leave no trace.</span></h1>
+    <p class="lede">Copy-trade alerts and balances, without telling any RPC provider who you watch.</p>
+  </div>
+  <div class="foot"><span>useblindspot.xyz</span><span>Built on Anon-RPC · ETHGlobal Mumbai 2026</span></div>
+</section>
+
+<!-- 2 Problem -->
+<section class="slide" id="s2">
+  <div class="top brand"><span class="mark"></span>Blindspot</div>
+  <h2 style="margin-top: 60px;">Your RPC provider sees more than your balance.</h2>
+  <div class="row">
+    <div class="card"><h3>Your wallets</h3><p>Every balance check names your address, every block, from your IP.</p><span class="req">eth_getBalance(<mark>0xa11c…e5b0</mark>)</span></div>
+    <div class="card"><h3>Your watchlist</h3><p>Following a whale means asking about the whale. Ask every 12 seconds and that's a list.</p><span class="req">eth_getLogs(<mark>0xC2D7…73E9</mark>)</span></div>
+    <div class="card"><h3>Your next trade</h3><p>A quote names the pair and the size before you sign. That's enough to trade ahead of you.</p><span class="req">quote(<mark>ETH → USDC, 0.5</mark>)</span></div>
+  </div>
+  <div class="foot"><span>Infura, Alchemy, any public node: same requests, same view.</span><span>2</span></div>
+</section>
+
+<!-- 3 The gap -->
+<section class="slide" id="s3">
+  <div class="top brand"><span class="mark"></span>Blindspot</div>
+  <h2 style="margin-top: 60px;">Anon-RPC hides who you are.<br><span class="grad-text">It doesn't hide what you ask.</span></h2>
+  <div class="flow" style="margin-top: 90px;">
+    <div class="node"><h3>Your wallet</h3><p>Asks about the whale it follows.</p><span class="req">getBalance(<mark>0xC2D7…</mark>)</span></div>
+    <div class="arrow"><i></i><span>through the mixnet<br>IP hidden ✓</span></div>
+    <div class="node dark"><h3>Mixnet exit</h3><p>Forwards the request as is.</p></div>
+    <div class="arrow"><i></i><span>same question</span></div>
+    <div class="node"><h3>RPC node</h3><p>Doesn't know who asked. Still learns <b>which address</b> matters, every block.</p><span class="req"><mark>0xC2D7…</mark> is being watched</span></div>
+  </div>
+  <div class="foot"><span>The request itself is the leak.</span><span>3</span></div>
+</section>
+
+<!-- 4 Solution -->
+<section class="slide" id="s4">
+  <div class="top brand"><span class="mark"></span>Blindspot</div>
+  <h2 style="margin-top: 60px;">Never ask about an address.</h2>
+  <div class="row">
+    <div class="card"><h3>One relay, same blocks</h3><p>The relay fetches each Sepolia block once. Everyone downloads the same bytes, by block number.</p><span class="req">block <span class="ok">12,080,193</span></span></div>
+    <div class="card"><h3>Checked on your phone</h3><p>Header hash, access-list hash, receipts root, and a second provider. A lying relay gets caught.</p></div>
+    <div class="card"><h3>Filtered on your phone</h3><p>Your wallets and the whales you follow never leave the device.</p></div>
+    <div class="card"><h3>PIR for lookups</h3><p>The server computes over every record, encrypted, and can't tell which one you read.</p></div>
+  </div>
+  <div class="foot"><span>Every request goes through Anon-RPC.</span><span>4</span></div>
+</section>
+
+<!-- 5 How it works -->
+<section class="slide" id="s5">
+  <div class="top brand"><span class="mark"></span>Blindspot</div>
+  <h2 style="margin-top: 60px;">How a block reaches your phone</h2>
+  <div class="flow">
+    <div class="node"><h3>Relay</h3><p>Fetches block N once. Serves header, EIP-7928 access list, receipts. Same for everyone.</p><span class="req">GET block N</span></div>
+    <div class="arrow"><i></i><span>Anon-RPC<br>Nox or Nym mixnet</span></div>
+    <div class="node dark"><h3>Your device</h3><p>Checks every block, then looks for your wallets locally.</p>
+      <div class="checks"><span class="chip v">header hash ✓</span><span class="chip v">access list ✓</span><span class="chip v">receipts root ✓</span><span class="chip v">2nd provider ✓</span></div></div>
+    <div class="arrow"><i></i><span>on device</span></div>
+    <div class="node"><h3>You</h3><p>Alerts, balances, one-tap copy trade signed on the phone.</p><p style="margin-top:18px"><b>Lookups:</b> PIR query, encrypted. The server sees ciphertexts, not an address.</p></div>
+  </div>
+  <div class="foot"><span>Relay and PIR server are untrusted. The phone does the checking.</span><span>5</span></div>
+</section>
+
+<!-- 6 Proof -->
+<section class="slide" id="s6">
+  <div class="top brand"><span class="mark"></span>Blindspot</div>
+  <h2 style="margin-top: 60px;">What each one learns, from real requests</h2>
+  <div class="row" style="margin-top: 50px;">
+    <div class="card"><h3>Normal RPC</h3><div class="big bad">2 + IP</div><p>Addresses it learns, plus your IP on every request.</p></div>
+    <div class="card"><h3>Anon-RPC alone</h3><div class="big bad">2</div><p>Addresses it learns. Your IP is hidden.</p></div>
+    <div class="card" style="border-color: #bfe3cb;"><h3>Blindspot</h3><div class="big good">0</div><p>Addresses. Block numbers only, from mixnet exits.</p></div>
+  </div>
+  <div class="row" style="margin-top: 50px;">
+    <div class="stat"><div class="big">98.7%</div><p>of requests through Anon-RPC (230 of 233, Nov 7)</p></div>
+    <div class="stat"><div class="big">~6 s</div><p>pending alert after a whale's swap</p></div>
+    <div class="stat"><div class="big">~20 s</div><p>verified alert, once the block lands</p></div>
+    <div class="stat"><div class="big">3–5 s</div><p>private balance lookup through the mixnet</p></div>
+  </div>
+  <div class="foot"><span>Spy panel, live on useblindspot.xyz. The relay received 84 app requests, 0 from our IP.</span><span>6</span></div>
+</section>
+
+<!-- 7 Demo -->
+<section class="slide demo" id="s7">
+  <div class="glow"></div>
+  <div class="top brand" style="color:#f6f2ff"><span class="mark"></span>Blindspot</div>
+  <div style="position: relative;">
+    <h1>Demo</h1>
+    <p class="lede">Watch a whale · pending alert · verified alert · copy trade · private lookup · Spy panel · Network</p>
+  </div>
+  <div class="foot"><span>Live on Sepolia, through Anon-RPC</span><span>7</span></div>
+</section>
+
+<!-- 8 Limits and next -->
+<section class="slide" id="s8">
+  <div class="top brand"><span class="mark"></span>Blindspot</div>
+  <h2 style="margin-top: 60px;">Limits, and what's next</h2>
+  <div class="row">
+    <div class="card"><h3>Today</h3>
+      <ul class="clean">
+        <li>Sepolia only, until block access lists reach mainnet.</li>
+        <li>Private lookup covers about 1,000 addresses.</li>
+        <li>Alerts need the app open (or Watch mode on a phone).</li>
+        <li>Copy trades are public once they land.</li>
+      </ul></div>
+    <div class="card"><h3>Next</h3>
+      <ul class="clean">
+        <li>A light client. Lodestar already serves the sync-committee data we need.</li>
+        <li>Faster PIR (SimplePIR or YPIR) for every active address.</li>
+        <li>A passkey wallet instead of a browser key.</li>
+      </ul></div>
+  </div>
+  <div class="foot"><span>Everything is in the README, with the numbers.</span><span>8</span></div>
+</section>
+
+<!-- 9 Thank you -->
+<section class="slide" id="s9">
+  <div class="soft-glow"></div>
+  <div class="brand"><span class="mark"></span>Blindspot</div>
+  <div style="margin-top: auto; margin-bottom: auto;">
+    <h1>Thank you.</h1>
+    <p class="lede" style="font-size: 42px;">Built <b>bina pooche</b>: without asking.</p>
+    <div class="row" style="margin-top: 56px; gap: 20px;">
+      <span class="chip" style="font-size: 28px; padding: 14px 26px;">useblindspot.xyz</span>
+      <span class="chip mono" style="font-size: 26px; padding: 14px 26px;">github.com/skartik-sk/blindspot</span>
+    </div>
+  </div>
+  <div class="foot"><span>Anon-RPC hides who you are. Blindspot also hides what you watch.</span><span>9</span></div>
+</section>
+
+<script>
+  // #3 shows only slide 3 (PNG export). No hash: all slides, stacked (review / print).
+  function show() {
+    const n = parseInt(location.hash.slice(1), 10);
+    document.body.classList.toggle("one", !!n);
+    document.querySelectorAll(".slide").forEach((s, i) => s.classList.toggle("on", i + 1 === n));
+  }
+  addEventListener("hashchange", show); show();
+</script>
+</body>
+</html>
