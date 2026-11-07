@@ -37,6 +37,6 @@ import json,sys
 for s in json.load(open(sys.argv[1]))["segments"]:
     if s.get("slide") and (not sys.argv[2] or s["id"]==sys.argv[2]): print(s["id"], s["dur"])
 PY
-  ffmpeg -y -loglevel error -framerate 24 -i "$FR/$id/%05d.jpg" -vf "tpad=stop_mode=clone:stop_duration=$dur,trim=duration=$dur,format=yuv420p" -r 24 -c:v libx264 -crf 18 -preset veryfast "$OUT/$id.mp4"
+  ffmpeg -nostdin -y -loglevel error -framerate 24 -i "$FR/$id/%05d.jpg" -vf "tpad=stop_mode=clone:stop_duration=$dur,trim=duration=$dur,format=yuv420p" -r 24 -c:v libx264 -crf 18 -preset veryfast "$OUT/$id.mp4"
   echo "rendered $id ($dur s)"
 done

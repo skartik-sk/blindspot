@@ -13,3 +13,4 @@ HANDOFF.md
 *.bak
 backup-*.txt
 blindspot-key-*.txt
+.rec/
