@@ -27,6 +27,8 @@ export interface Failover {
   probes: number;
   /** Times of recent automatic switches. */
   recent: number[];
+  /** A switch happened and the new network hasn't delivered a verified block yet. */
+  pending?: boolean;
 }
 
 export const initialFailover = (home: NetworkName): Failover => ({ home, active: home, probes: 0, recent: [] });

@@ -101,6 +101,7 @@ p { margin: 0; }
 .status[data-phase="live"] .dot { background: var(--up); box-shadow: 0 0 0 3px color-mix(in srgb, var(--up) 22%, transparent); }
 .status[data-phase="connecting"] .dot { background: var(--signal); animation: pulse 1.2s ease-in-out infinite; }
 .status[data-phase="error"] .dot { background: var(--down); }
+.status[data-phase="waiting"] .dot { background: var(--signal); }
 @keyframes pulse { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 

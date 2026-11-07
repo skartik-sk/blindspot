@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import { network } from "../lib/anon";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { failoverState, isSwitching, network } from "../lib/anon";
+import { pill } from "../lib/pill";
 import { friendly } from "../lib/errors";
 import FallbackBanner from "./FallbackBanner";
 import InstallButton from "./InstallButton";
@@ -17,11 +18,18 @@ const NAV = [
 
 function Status() {
   const s = useStore((s) => s.status);
-  const text = s.phase === "live" ? <span>Live<span className="status-long"> · block</span> {s.head}</span> : s.phase === "paused" ? "Paused" : s.phase === "connecting" ? "Connecting" : s.phase === "error" ? "Reconnecting" : "Idle";
+  const lastAt = useStore((s) => s.tape[0]?.at);
+  useSyncExternalStore(failoverState.subscribe, failoverState.get);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+  const p = pill({ phase: s.phase, head: s.head, lastAt, now, switching: isSwitching() });
   return (
-    <a className="status" href="#/network" data-phase={s.phase} title={friendly(s.message) ?? network().label}>
+    <a className="status" href="#/network" data-phase={p.phase} title={friendly(s.message) ?? network().label}>
       <span className="dot" aria-hidden />
-      {text}
+      {p.long ? <span>{p.text}<span className="status-long">{p.long.replace(/ \d+$/, "")}</span>{p.long.match(/ \d+$/)?.[0] ?? ""}</span> : p.text}
     </a>
   );
 }

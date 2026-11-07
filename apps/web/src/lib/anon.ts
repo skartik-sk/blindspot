@@ -131,6 +131,8 @@ const saveFo = () => { try { sessionStorage.setItem(FAILOVER_KEY, JSON.stringify
 export type FailoverNotice = { kind: "switched" | "suggest" | "stuck"; text: string; to?: NetworkName; retryAt?: number } | undefined;
 let notice: FailoverNotice = fo.active !== fo.home && fo.reason ? { kind: "switched", text: fo.reason, retryAt: fo.probeAt } : undefined;
 const setNotice = (n: FailoverNotice) => { notice = n; bootSubs.forEach((f) => f()); };
+/** A failover switch is in progress: the new network hasn't delivered a verified block yet. */
+export const isSwitching = () => !!fo.pending;
 /** Observable failover notice, for the banner and the Network page. */
 export const failoverState = {
   get: () => notice,
@@ -148,7 +150,8 @@ export function noteProgress() {
   lastProgress = Date.now();
   const was = fo;
   fo = onProgress(fo);
-  if (fo !== was) { saveFo(); setNotice(undefined); }
+  if (fo.pending) fo = { ...fo, pending: false };
+  if (fo !== was) { saveFo(); if (fo.active === fo.home) setNotice(undefined); else bootSubs.forEach((f) => f()); }
   else if (notice?.kind === "stuck" || notice?.kind === "suggest") setNotice(fo.reason ? { kind: "switched", text: fo.reason, retryAt: fo.probeAt } : undefined);
 }
 /** Called every few seconds while the block loop runs. Switches only between anonymous networks, by reloading. */
@@ -157,7 +160,7 @@ export function checkFailover() {
   if (d.kind === "none") return;
   if (d.kind === "suggest") { if (notice?.kind !== "suggest") setNotice({ kind: "suggest", text: d.reason, to: d.to }); return; }
   if (d.kind === "stuck") { if (notice?.kind !== "stuck") setNotice({ kind: "stuck", text: d.reason }); return; }
-  fo = d.next;
+  fo = { ...d.next, pending: true };
   saveFo();
   try { sessionStorage.removeItem(FALLBACK_KEY); } catch {}
   setNotice({ kind: "switched", text: d.reason, retryAt: fo.probeAt });
