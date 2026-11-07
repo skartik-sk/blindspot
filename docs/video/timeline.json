@@ -1,0 +1,16 @@
+{
+  "note": "Seconds per segment. Change a number and re-run render.sh to stretch or trim a segment; the build animations rescale to fit.",
+  "segments": [
+    { "id": "s01-title", "slide": 1, "dur": 8 },
+    { "id": "s02-problem", "slide": 2, "dur": 13 },
+    { "id": "s03-gap", "slide": 3, "dur": 13 },
+    { "id": "s04-solution", "slide": 4, "dur": 15 },
+    { "id": "s05-how", "slide": 5, "dur": 10 },
+    { "id": "s06-core", "slide": 6, "dur": 11 },
+    { "id": "s07-proof", "slide": 7, "dur": 11 },
+    { "id": "s08-demo", "slide": 8, "dur": 3 },
+    { "id": "w-walkthrough", "walkthrough": true, "dur": 58 },
+    { "id": "s09-limits", "slide": 9, "dur": 17 },
+    { "id": "s10-close", "slide": 10, "dur": 10 }
+  ]
+}

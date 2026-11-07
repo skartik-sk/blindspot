@@ -136,7 +136,7 @@ so a deployed relay needs a public https URL.
 ## Using the SDK
 
 ```ts
-import { RpcClient, follow, scanBlock, SEPOLIA_TOKENS } from "@bina/sdk";
+import { RpcClient, follow, scanBlock, SEPOLIA_TOKENS } from "@blindspot/sdk";
 
 const rpc = new RpcClient("https://ethereum-sepolia-rpc.publicnode.com", anonFetch);   // any fetch, e.g. Anon-RPC's
 const anchor = new RpcClient("https://sepolia.gateway.tenderly.co", anonFetch);        // different operator

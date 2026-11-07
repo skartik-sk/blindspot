@@ -4,209 +4,274 @@
 <meta charset="utf-8">
 <title>Blindspot deck</title>
 <meta name="viewport" content="width=1920">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;650;750&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- The landing page's own built stylesheet and fonts (copied from apps/web/dist): same tokens, classes and mesh. -->
+<link rel="stylesheet" href="site.css">
 <style>
-  :root {
-    --paper: #fbfafc; --surface: #ffffff; --sunk: #f4f2f8; --ink: #14122a; --ink-2: #4f4a6b; --ink-3: #7d7899;
-    --line: #ebe8f1; --signal: #c2410c; --signal-wash: #ffede2; --up: #15803d; --down: #d93a3a;
-    --grad: linear-gradient(100deg, #e8890c 0%, #e8501f 48%, #d61f69 100%);
-    --display: "Archivo", "Public Sans", system-ui, sans-serif; --sans: "Public Sans", system-ui, sans-serif;
-    --mono: "IBM Plex Mono", ui-monospace, monospace;
-  }
-  * { box-sizing: border-box; margin: 0; }
-  html, body { background: #e9e6ef; font-family: var(--sans); color: var(--ink); }
-  .slide { width: 1920px; height: 1080px; background: var(--paper); position: relative; overflow: hidden; padding: 110px 140px;
-    display: flex; flex-direction: column; margin: 0 auto 40px; }
-  .brand { display: flex; align-items: center; gap: 16px; font: 650 30px var(--display); letter-spacing: -0.015em; }
-  .mark { width: 52px; height: 52px; border-radius: 14px; background: radial-gradient(circle at 50% 125%, rgb(255 138 61 / .55), transparent 62%), #141130; position: relative; flex: none; }
-  .mark::after { content: ""; position: absolute; left: 9px; right: 9px; top: 20px; height: 12px; border-radius: 6px; background: var(--grad); box-shadow: 0 0 14px rgb(255 138 61 / .8); }
-  .top { position: absolute; left: 140px; top: 64px; }
-  .foot { position: absolute; left: 140px; right: 140px; bottom: 56px; display: flex; justify-content: space-between; font: 500 22px var(--sans); color: var(--ink-3); }
-  h1 { font: 750 120px/1.0 var(--display); letter-spacing: -0.04em; }
-  h2 { font: 750 76px/1.05 var(--display); letter-spacing: -0.035em; max-width: 1500px; }
-  .lede { font: 400 36px/1.4 var(--sans); color: var(--ink-2); max-width: 1400px; margin-top: 32px; }
-  .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .row { display: flex; gap: 32px; margin-top: 64px; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 36px 40px; box-shadow: 0 1px 2px rgb(23 20 46 / .04); flex: 1; }
-  .card h3 { font: 650 34px var(--display); letter-spacing: -0.02em; }
-  .card p { font: 400 26px/1.45 var(--sans); color: var(--ink-2); margin-top: 14px; }
-  .mono { font-family: var(--mono); }
-  code, .req { font: 500 24px var(--mono); }
-  .req { display: block; background: var(--sunk); border-radius: 12px; padding: 16px 20px; margin-top: 14px; color: var(--ink); }
-  mark { background: #fde3e3; color: var(--down); border-radius: 6px; padding: 0 6px; }
-  .ok { background: #e3f4e8; color: var(--up); border-radius: 6px; padding: 0 6px; }
-  .big { font: 750 92px/1 var(--display); letter-spacing: -0.04em; margin-top: 18px; }
-  .bad { color: var(--down); } .good { color: var(--up); }
-  .chip { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px; border-radius: 999px; font: 600 22px var(--sans); background: var(--sunk); color: var(--ink-2); }
-  .chip.v { background: color-mix(in srgb, var(--up) 14%, transparent); color: var(--up); }
-  .center { justify-content: center; }
-  .flow { display: flex; align-items: center; gap: 0; margin-top: 70px; }
-  .node { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 30px 32px; width: 380px; }
-  .node h3 { font: 650 32px var(--display); }
-  .node p { font: 400 23px/1.45 var(--sans); color: var(--ink-2); margin-top: 10px; }
-  .node.dark { background: #17142e; color: #f6f2ff; border-color: #17142e; }
-  .node.dark p { color: #c9c2e6; }
-  .arrow { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-width: 120px; }
-  .arrow i { display: block; height: 6px; width: 100%; border-radius: 3px; background: var(--grad); position: relative; }
-  .arrow i::after { content: ""; position: absolute; right: -4px; top: -9px; border: 12px solid transparent; border-left: 16px solid #d61f69; border-right: 0; }
-  .arrow span { font: 500 20px var(--mono); color: var(--ink-3); text-align: center; }
-  .checks { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px; }
-  .stat { flex: 1; }
-  .stat .big { font-size: 84px; }
-  .stat p { font: 500 24px/1.4 var(--sans); color: var(--ink-2); margin-top: 10px; }
-  ul.clean { list-style: none; padding: 0; margin-top: 20px; display: grid; gap: 16px; }
-  ul.clean li { font: 400 28px/1.4 var(--sans); color: var(--ink-2); padding-left: 34px; position: relative; }
-  ul.clean li::before { content: ""; position: absolute; left: 0; top: 14px; width: 16px; height: 6px; border-radius: 3px; background: var(--grad); }
-  .demo { background: #17142e; color: #f6f2ff; justify-content: center; }
-  .demo .foot { color: #9e96c4; }
-  .demo h1 { font-size: 150px; }
-  .demo .lede { color: #c9c2e6; }
-  .glow { position: absolute; left: 50%; bottom: -520px; width: 1600px; height: 900px; transform: translateX(-50%);
-    background: radial-gradient(closest-side, rgb(255 138 61 / .55), rgb(240 57 126 / .18) 55%, transparent); pointer-events: none; }
-  .soft-glow { position: absolute; right: -300px; top: -300px; width: 900px; height: 900px; background: radial-gradient(closest-side, rgb(232 137 12 / .14), transparent); }
-  /* Show one slide at a time when the URL has #n (for PNG export); print shows all, one per page. */
+  /* Only slide geometry lives here. Colors, fonts, radii, shadows and the mesh come from site.css (.S tokens). */
+  html, body { margin: 0; background: #e9e6ef; }
+  .slide { width: 1920px; height: 1080px; position: relative; overflow: hidden; margin: 0 auto 40px; isolation: isolate;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 96px 140px; }
+  /* Type, scaled from the site's .S-h1 / .S-h2 / .S-lead (same weight 650, same tracking). */
+  .h1 { margin: 0; font: 650 132px/1.0 var(--display); letter-spacing: -0.04em; color: var(--ink); text-wrap: balance; }
+  .h2 { margin: 0; font: 650 84px/1.05 var(--display); letter-spacing: -0.035em; color: var(--ink); text-wrap: balance; max-width: 1500px; }
+  .lead { margin: 28px auto 0; max-width: 1200px; font: 400 34px/1.5 var(--body); color: var(--ink-2); text-wrap: pretty; }
+  .corner { position: absolute; left: 72px; top: 56px; }
+  .corner.S-brand { font-size: 30px; gap: 16px; }
+  .S-brand .S-mark { width: 50px; height: 50px; border-radius: 15px; }
+  .S-brand .S-mark::after { left: 11px; right: 11px; top: 20.5px; height: 9px; border-radius: 5px; }
+  .pageno { position: absolute; right: 72px; bottom: 52px; font: 500 22px var(--body); color: var(--ink-3); }
+  .note { position: absolute; left: 0; right: 0; bottom: 52px; margin: 0; font: 500 22px var(--body); color: var(--ink-3); }
+  /* Buttons: the site's .S-btn, scaled. */
+  .S-btn.xl { min-height: 76px; padding: 0 36px; font-size: 26px; gap: 14px; }
+  .S-btn.xl svg { width: 24px; height: 24px; }
+  .S-badge.xl { font-size: 22px; padding: 10px 22px 10px 16px; gap: 12px; }
+  .S-badge.xl .S-live { width: 12px; height: 12px; }
+  /* Full hero board (title, demo, thank-you): the site's .S-board + .S-mesh. */
+  .board { position: absolute; inset: 48px; border-radius: 48px; border: 1px solid var(--line); overflow: hidden; isolation: isolate;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; padding: 80px; }
+  /* One soft blob on content slides, taken from the mesh colors. */
+  .blob { position: absolute; z-index: -1; width: 1100px; height: 900px; border-radius: 50%; filter: blur(10px); opacity: .75; }
+  .blob.tr { right: -420px; top: -420px; background: radial-gradient(closest-side, var(--m3), transparent 72%); }
+  .blob.tl { left: -420px; top: -420px; background: radial-gradient(closest-side, var(--m1), transparent 72%); }
+  .blob.br { right: -420px; bottom: -480px; background: radial-gradient(closest-side, var(--m2), transparent 72%); }
+  .blob.bl { left: -420px; bottom: -480px; background: radial-gradient(closest-side, var(--m4), transparent 72%); }
+  /* Cards: the site's .S-float card (white, line border, --shadow), scaled. */
+  .cards { display: flex; gap: 28px; margin-top: 64px; width: 100%; justify-content: center; text-align: left; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 28px; padding: 36px 38px; box-shadow: var(--shadow); flex: 1; max-width: 520px; }
+  .card .label { font: 600 22px var(--body); color: var(--ink-3); }
+  .card h3 { margin: 10px 0 0; font: 650 36px/1.15 var(--display); letter-spacing: -0.02em; color: var(--ink); }
+  .card p { margin: 14px 0 0; font: 400 25px/1.5 var(--body); color: var(--ink-2); }
+  /* Code: the site's .S-log style (sunk, mono 500, red mark for leaks). */
+  .S-log { list-style: none; padding: 0; margin: 18px 0 0; }
+  .S-log li { padding: 14px 18px; }
+  .S-log code { font-size: 22px; }
+  .S-log mark { padding: 0 4px; }
+  .ok { color: var(--good); font-weight: 600; }
+  /* Check badges: the site's .S-checks, scaled. */
+  .S-checks { gap: 10px; margin-top: 18px; }
+  .S-checks span { font-size: 21px; padding: 8px 16px 8px 12px; gap: 8px; }
+  .S-checks svg { width: 20px; height: 20px; }
+  /* Flow diagrams: cards joined by the site's dark pill with a white arrow. */
+  .flow { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 70px; width: 100%; text-align: left; }
+  .flow .card { flex: 0 1 470px; }
+  .link { display: grid; justify-items: center; gap: 12px; flex: none; }
+  .link .S-btn { min-height: 58px; width: 58px; padding: 0; }
+  .link .S-btn svg { width: 24px; height: 24px; }
+  .link span:last-child { font: 600 19px var(--body); color: var(--ink-3); max-width: 160px; text-align: center; line-height: 1.3; }
+  /* Numbers: the site's .S-score / .S-big. */
+  .S-score { text-align: left; justify-items: start; }
+  .S-score strong { font-size: 96px; }
+  .S-score span { font-size: 22px; }
+  .stats { display: flex; gap: 28px; margin-top: 28px; width: 100%; justify-content: center; text-align: left; }
+  .stat { flex: 1; max-width: 400px; background: var(--card); border: 1px solid var(--line); border-radius: 28px; padding: 28px 32px; box-shadow: var(--shadow); }
+  .stat .S-big { font-size: 64px; }
+  .stat .S-note { font-size: 21px; margin-top: 10px; }
+  .tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 56px; width: 100%; max-width: 1640px; text-align: left; }
+  .tools .card { max-width: none; padding: 30px 34px; }
+  .tools .card h3 { font-size: 32px; margin-top: 14px; }
+  .tools .card p { font-size: 23px; margin-top: 10px; }
+  .tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font: 600 19px var(--body); }
+  .tag::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .tag.live { color: var(--good); background: color-mix(in srgb, var(--good) 11%, transparent); }
+  .tag.part { color: var(--accent); background: color-mix(in srgb, var(--accent) 11%, transparent); }
+  ul.list { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 14px; }
+  ul.list li { font: 400 26px/1.45 var(--body); color: var(--ink-2); padding-left: 30px; position: relative; }
+  ul.list li::before { content: ""; position: absolute; left: 0; top: 16px; width: 14px; height: 6px; border-radius: 3px; background: var(--ink); }
   body.one .slide { display: none; margin: 0; }
   body.one .slide.on { display: flex; }
   @page { size: 1920px 1080px; margin: 0; }
-  @media print { html, body { background: var(--paper); } .slide { margin: 0; page-break-after: always; break-after: page; } }
+  @media print { html, body { background: #fbfafc; } .slide { margin: 0; break-after: page; } }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+</svg>
 
 <!-- 1 Title -->
-<section class="slide" id="s1">
-  <div class="soft-glow"></div>
-  <div class="brand"><span class="mark"></span>Blindspot</div>
-  <div style="margin-top: auto; margin-bottom: auto;">
-    <h1>Follow the whales.<br><span class="grad-text">Leave no trace.</span></h1>
-    <p class="lede">Copy-trade alerts and balances, without telling any RPC provider who you watch.</p>
+<section class="slide S" id="s1">
+  <div class="board">
+    <div class="S-mesh"></div>
+    <span class="S-badge xl"><span class="S-live on"></span>Live on Sepolia · every request through <b>Anon-RPC</b></span>
+    <h1 class="h1">Follow the whales.<br>Leave no trace.</h1>
+    <p class="lead" style="margin-top: 0;">A private read layer for trading on Ethereum: watch, copy, look up and trade without telling any RPC provider what you care about.</p>
+    <div class="S-ctas" style="gap: 16px;">
+      <span class="S-btn dark xl">useblindspot.xyz <svg><use href="#arrow"/></svg></span>
+      <span class="S-btn xl">Built on Anon-RPC</span>
+    </div>
   </div>
-  <div class="foot"><span>useblindspot.xyz</span><span>Built on Anon-RPC · ETHGlobal Mumbai 2026</span></div>
+  <a class="S-brand corner" style="left: 112px; top: 100px;"><span class="S-mark"></span>Blindspot</a>
 </section>
 
 <!-- 2 Problem -->
-<section class="slide" id="s2">
-  <div class="top brand"><span class="mark"></span>Blindspot</div>
-  <h2 style="margin-top: 60px;">Your RPC provider sees more than your balance.</h2>
-  <div class="row">
-    <div class="card"><h3>Your wallets</h3><p>Every balance check names your address, every block, from your IP.</p><span class="req">eth_getBalance(<mark>0xa11c…e5b0</mark>)</span></div>
-    <div class="card"><h3>Your watchlist</h3><p>Following a whale means asking about the whale. Ask every 12 seconds and that's a list.</p><span class="req">eth_getLogs(<mark>0xC2D7…73E9</mark>)</span></div>
-    <div class="card"><h3>Your next trade</h3><p>A quote names the pair and the size before you sign. That's enough to trade ahead of you.</p><span class="req">quote(<mark>ETH → USDC, 0.5</mark>)</span></div>
+<section class="slide S" id="s2">
+  <div class="blob tl"></div>
+  <a class="S-brand corner"><span class="S-mark"></span>Blindspot</a>
+  <h2 class="h2">Your RPC provider sees more than your balance.</h2>
+  <p class="lead">Infura, Alchemy, any public node. Same requests, same view.</p>
+  <div class="cards">
+    <div class="card"><span class="label">Your wallets</span><h3>Every balance check names you.</h3><ul class="S-log"><li><code>eth_getBalance(<mark>your address</mark>)</code></li></ul></div>
+    <div class="card"><span class="label">Your watchlist</span><h3>Following a whale means asking about it.</h3><ul class="S-log"><li><code>eth_getLogs(<mark>0xC2D7…73E9</mark>)</code></li></ul></div>
+    <div class="card"><span class="label">Your next trade</span><h3>Copying the whale means quoting first.</h3><ul class="S-log"><li><code>quote(<mark>ETH → USDC, 0.0005</mark>)</code></li></ul></div>
   </div>
-  <div class="foot"><span>Infura, Alchemy, any public node: same requests, same view.</span><span>2</span></div>
+  <span class="pageno">2</span>
 </section>
 
 <!-- 3 The gap -->
-<section class="slide" id="s3">
-  <div class="top brand"><span class="mark"></span>Blindspot</div>
-  <h2 style="margin-top: 60px;">Anon-RPC hides who you are.<br><span class="grad-text">It doesn't hide what you ask.</span></h2>
-  <div class="flow" style="margin-top: 90px;">
-    <div class="node"><h3>Your wallet</h3><p>Asks about the whale it follows.</p><span class="req">getBalance(<mark>0xC2D7…</mark>)</span></div>
-    <div class="arrow"><i></i><span>through the mixnet<br>IP hidden ✓</span></div>
-    <div class="node dark"><h3>Mixnet exit</h3><p>Forwards the request as is.</p></div>
-    <div class="arrow"><i></i><span>same question</span></div>
-    <div class="node"><h3>RPC node</h3><p>Doesn't know who asked. Still learns <b>which address</b> matters, every block.</p><span class="req"><mark>0xC2D7…</mark> is being watched</span></div>
+<section class="slide S" id="s3">
+  <div class="blob tr"></div>
+  <a class="S-brand corner"><span class="S-mark"></span>Blindspot</a>
+  <h2 class="h2">Anon-RPC hides who you are.<br>It doesn't hide what you ask.</h2>
+  <div class="flow">
+    <div class="card"><span class="label">Your wallet</span><h3>Asks about the whale it follows.</h3><ul class="S-log"><li><code>getBalance(<mark>0xC2D7…</mark>)</code></li></ul></div>
+    <div class="link"><span class="S-btn dark"><svg><use href="#arrow"/></svg></span><span>Mixnet<br>IP hidden</span></div>
+    <div class="card" style="flex-basis: 360px;"><span class="label">Mixnet exit</span><h3>Forwards the request as is.</h3></div>
+    <div class="link"><span class="S-btn dark"><svg><use href="#arrow"/></svg></span><span>Same question</span></div>
+    <div class="card"><span class="label">RPC node</span><h3>Doesn't know who asked.</h3><p>Still learns which address matters, every block.</p></div>
   </div>
-  <div class="foot"><span>The request itself is the leak.</span><span>3</span></div>
+  <p class="note">The request itself is the leak.</p>
+  <span class="pageno">3</span>
 </section>
 
 <!-- 4 Solution -->
-<section class="slide" id="s4">
-  <div class="top brand"><span class="mark"></span>Blindspot</div>
-  <h2 style="margin-top: 60px;">Never ask about an address.</h2>
-  <div class="row">
-    <div class="card"><h3>One relay, same blocks</h3><p>The relay fetches each Sepolia block once. Everyone downloads the same bytes, by block number.</p><span class="req">block <span class="ok">12,080,193</span></span></div>
-    <div class="card"><h3>Checked on your phone</h3><p>Header hash, access-list hash, receipts root, and a second provider. A lying relay gets caught.</p></div>
-    <div class="card"><h3>Filtered on your phone</h3><p>Your wallets and the whales you follow never leave the device.</p></div>
-    <div class="card"><h3>PIR for lookups</h3><p>The server computes over every record, encrypted, and can't tell which one you read.</p></div>
+<section class="slide S" id="s4">
+  <div class="blob br"></div>
+  <a class="S-brand corner"><span class="S-mark"></span>Blindspot</a>
+  <h2 class="h2">Never ask about an address.</h2>
+  <p class="lead">Every request goes through Anon-RPC, and none of them names a wallet.</p>
+  <div class="cards">
+    <div class="card"><span class="label">One relay</span><h3>Same blocks for everyone.</h3><p>Fetched once, downloaded by block number.</p><ul class="S-log"><li><code>block <span class="ok">12,080,193</span></code></li></ul></div>
+    <div class="card"><span class="label">On your phone</span><h3>Every block is checked.</h3><p>Header, access list, receipts, and a second provider.</p></div>
+    <div class="card"><span class="label">On your phone</span><h3>Filtered locally.</h3><p>Your wallets and the whales you follow never leave the device.</p></div>
+    <div class="card"><span class="label">Lookups</span><h3>Private by PIR.</h3><p>The server works over every record and can't tell which one you read.</p></div>
   </div>
-  <div class="foot"><span>Every request goes through Anon-RPC.</span><span>4</span></div>
+  <span class="pageno">4</span>
 </section>
 
 <!-- 5 How it works -->
-<section class="slide" id="s5">
-  <div class="top brand"><span class="mark"></span>Blindspot</div>
-  <h2 style="margin-top: 60px;">How a block reaches your phone</h2>
+<section class="slide S" id="s5">
+  <div class="blob bl"></div>
+  <a class="S-brand corner"><span class="S-mark"></span>Blindspot</a>
+  <h2 class="h2">How a block reaches your phone</h2>
   <div class="flow">
-    <div class="node"><h3>Relay</h3><p>Fetches block N once. Serves header, EIP-7928 access list, receipts. Same for everyone.</p><span class="req">GET block N</span></div>
-    <div class="arrow"><i></i><span>Anon-RPC<br>Nox or Nym mixnet</span></div>
-    <div class="node dark"><h3>Your device</h3><p>Checks every block, then looks for your wallets locally.</p>
-      <div class="checks"><span class="chip v">header hash ✓</span><span class="chip v">access list ✓</span><span class="chip v">receipts root ✓</span><span class="chip v">2nd provider ✓</span></div></div>
-    <div class="arrow"><i></i><span>on device</span></div>
-    <div class="node"><h3>You</h3><p>Alerts, balances, one-tap copy trade signed on the phone.</p><p style="margin-top:18px"><b>Lookups:</b> PIR query, encrypted. The server sees ciphertexts, not an address.</p></div>
+    <div class="card"><span class="label">Relay</span><h3>Fetches block N once.</h3><p>Header, EIP-7928 access list, receipts. Same bytes for everyone.</p></div>
+    <div class="link"><span class="S-btn dark"><svg><use href="#arrow"/></svg></span><span>Anon-RPC<br>Nox or Nym</span></div>
+    <div class="card"><span class="label">Your device</span><h3>Checks, then filters.</h3>
+      <div class="S-checks"><span><svg><use href="#check"/></svg>header hash</span><span><svg><use href="#check"/></svg>access list</span><span><svg><use href="#check"/></svg>receipts root</span><span><svg><use href="#check"/></svg>2nd provider</span></div></div>
+    <div class="link"><span class="S-btn dark"><svg><use href="#arrow"/></svg></span><span>On device</span></div>
+    <div class="card"><span class="label">You</span><h3>Alerts, balances, copy trade.</h3><p>Lookups use PIR: the server sees ciphertexts, not an address.</p></div>
   </div>
-  <div class="foot"><span>Relay and PIR server are untrusted. The phone does the checking.</span><span>5</span></div>
+  <p class="note">The relay and the PIR server don't need to be trusted. The phone does the checking.</p>
+  <span class="pageno">5</span>
 </section>
 
-<!-- 6 Proof -->
-<section class="slide" id="s6">
-  <div class="top brand"><span class="mark"></span>Blindspot</div>
-  <h2 style="margin-top: 60px;">What each one learns, from real requests</h2>
-  <div class="row" style="margin-top: 50px;">
-    <div class="card"><h3>Normal RPC</h3><div class="big bad">2 + IP</div><p>Addresses it learns, plus your IP on every request.</p></div>
-    <div class="card"><h3>Anon-RPC alone</h3><div class="big bad">2</div><p>Addresses it learns. Your IP is hidden.</p></div>
-    <div class="card" style="border-color: #bfe3cb;"><h3>Blindspot</h3><div class="big good">0</div><p>Addresses. Block numbers only, from mixnet exits.</p></div>
+<!-- 6 One core -->
+<section class="slide S" id="s6">
+  <div class="blob tl"></div>
+  <a class="S-brand corner"><span class="S-mark"></span>Blindspot</a>
+  <h2 class="h2">One core, many trading tools</h2>
+  <div class="tools">
+    <div class="card"><span class="tag live">Live today</span><h3>Copy trading</h3><p>Follow 0xC2D7…, copy its swap with one tap.</p></div>
+    <div class="card"><span class="tag live">Live today</span><h3>Wallet watching and alerts</h3><p>Pending in seconds, verified within a block.</p></div>
+    <div class="card"><span class="tag live">Live today</span><h3>Private portfolio</h3><p>Balances straight from verified blocks.</p></div>
+    <div class="card"><span class="tag live">Live today</span><h3>Private lookups</h3><p>Any wallet's balance and history through PIR.</p></div>
+    <div class="card"><span class="tag part">Partly private</span><h3>Trade preparation</h3><p>Your IP is hidden. The quote's pair and size are not, yet.</p></div>
+    <div class="card"><span class="tag live">In the repo</span><h3>The same core as an SDK</h3><ul class="S-log"><li><code>follow({ rpc, anchor, onBlock })</code></li></ul><p style="margin-top:10px">packages/sdk, a few lines to verify blocks.</p></div>
   </div>
-  <div class="row" style="margin-top: 50px;">
-    <div class="stat"><div class="big">98.7%</div><p>of requests through Anon-RPC (230 of 233, Nov 7)</p></div>
-    <div class="stat"><div class="big">~6 s</div><p>pending alert after a whale's swap</p></div>
-    <div class="stat"><div class="big">~20 s</div><p>verified alert, once the block lands</p></div>
-    <div class="stat"><div class="big">3–5 s</div><p>private balance lookup through the mixnet</p></div>
-  </div>
-  <div class="foot"><span>Spy panel, live on useblindspot.xyz. The relay received 84 app requests, 0 from our IP.</span><span>6</span></div>
+  <p class="note">The anchor example in this deck is live; the rest is the same core.</p>
+  <span class="pageno">6</span>
 </section>
 
-<!-- 7 Demo -->
-<section class="slide demo" id="s7">
-  <div class="glow"></div>
-  <div class="top brand" style="color:#f6f2ff"><span class="mark"></span>Blindspot</div>
-  <div style="position: relative;">
-    <h1>Demo</h1>
-    <p class="lede">Watch a whale · pending alert · verified alert · copy trade · private lookup · Spy panel · Network</p>
+<!-- 7 Proof -->
+<section class="slide S" id="s7">
+  <div class="blob tr"></div>
+  <a class="S-brand corner"><span class="S-mark"></span>Blindspot</a>
+  <h2 class="h2">What each one learns, from real requests</h2>
+  <div class="cards" style="margin-top: 52px;">
+    <div class="card"><span class="label">Normal RPC</span><div class="S-score bad" style="margin-top: 12px;"><strong>2 + IP</strong><span>addresses, plus your IP on every request</span></div></div>
+    <div class="card"><span class="label">Anon-RPC alone</span><div class="S-score bad" style="margin-top: 12px;"><strong>2</strong><span>addresses. Your IP is hidden.</span></div></div>
+    <div class="card"><span class="label">Blindspot</span><div class="S-score good" style="margin-top: 12px;"><strong>0</strong><span>addresses. Block numbers only.</span></div><p style="margin-top:14px">Same blocks for every user, so the relay can't tell users apart.</p></div>
   </div>
-  <div class="foot"><span>Live on Sepolia, through Anon-RPC</span><span>7</span></div>
+  <div class="stats">
+    <div class="stat"><div class="S-big good">98.7%</div><div class="S-note">of requests through Anon-RPC (230 of 233, Nov 7)</div></div>
+    <div class="stat"><div class="S-big">~6 s</div><div class="S-note">pending alert after a whale's swap</div></div>
+    <div class="stat"><div class="S-big">~20 s</div><div class="S-note">verified alert, once the block lands</div></div>
+    <div class="stat"><div class="S-big">3–5 s</div><div class="S-note">private balance lookup through the mixnet</div></div>
+  </div>
+  <span class="pageno">7</span>
 </section>
 
-<!-- 8 Limits and next -->
-<section class="slide" id="s8">
-  <div class="top brand"><span class="mark"></span>Blindspot</div>
-  <h2 style="margin-top: 60px;">Limits, and what's next</h2>
-  <div class="row">
-    <div class="card"><h3>Today</h3>
-      <ul class="clean">
-        <li>Sepolia only, until block access lists reach mainnet.</li>
-        <li>Private lookup covers about 1,000 addresses.</li>
-        <li>Alerts need the app open (or Watch mode on a phone).</li>
-        <li>Copy trades are public once they land.</li>
-      </ul></div>
-    <div class="card"><h3>Next</h3>
-      <ul class="clean">
-        <li>A light client. Lodestar already serves the sync-committee data we need.</li>
-        <li>Faster PIR (SimplePIR or YPIR) for every active address.</li>
-        <li>A passkey wallet instead of a browser key.</li>
-      </ul></div>
+<!-- 8 Demo (light mesh, like the site) -->
+<section class="slide S" id="s8">
+  <div class="board">
+    <div class="S-mesh"></div>
+    <span class="S-badge xl"><span class="S-live on"></span>Live on Sepolia</span>
+    <h1 class="h1">Demo</h1>
+    <p class="lead" style="margin-top: 0;">Watch a whale, get the alert, copy the trade, look up a wallet privately, and see what each provider learns.</p>
   </div>
-  <div class="foot"><span>Everything is in the README, with the numbers.</span><span>8</span></div>
 </section>
 
-<!-- 9 Thank you -->
-<section class="slide" id="s9">
-  <div class="soft-glow"></div>
-  <div class="brand"><span class="mark"></span>Blindspot</div>
-  <div style="margin-top: auto; margin-bottom: auto;">
-    <h1>Thank you.</h1>
-    <p class="lede" style="font-size: 42px;">Built <b>bina pooche</b>: without asking.</p>
-    <div class="row" style="margin-top: 56px; gap: 20px;">
-      <span class="chip" style="font-size: 28px; padding: 14px 26px;">useblindspot.xyz</span>
-      <span class="chip mono" style="font-size: 26px; padding: 14px 26px;">github.com/skartik-sk/blindspot</span>
+<!-- 9 Limits and next -->
+<section class="slide S" id="s9">
+  <div class="blob tl"></div>
+  <a class="S-brand corner"><span class="S-mark"></span>Blindspot</a>
+  <h2 class="h2">Limits, and what's next</h2>
+  <div class="cards" style="max-width: 1500px;">
+    <div class="card" style="max-width: none;"><span class="label">Today</span>
+      <ul class="list"><li>Sepolia only, until block access lists reach mainnet.</li><li>Private lookup covers about 1,000 addresses.</li><li>Alerts need the app open, or Watch mode on a phone.</li><li>Copy trades are public once they land.</li></ul></div>
+    <div class="card" style="max-width: none;"><span class="label">Next</span>
+      <ul class="list"><li>A light client. Lodestar already serves the sync-committee data we need.</li><li>Faster PIR (SimplePIR or YPIR) for every active address.</li><li>Local quotes from verified pool state, so a quote names nothing.</li><li>A passkey wallet instead of a browser key.</li></ul></div>
+  </div>
+  <p class="note">All of it is in the README, with the numbers.</p>
+  <span class="pageno">9</span>
+</section>
+
+<!-- 10 Thank you -->
+<section class="slide S" id="s10">
+  <div class="board">
+    <div class="S-mesh"></div>
+    <h1 class="h1">Thank you.</h1>
+    <p class="lead" style="margin-top: 0;">Anon-RPC hides who you are. Blindspot also hides what you watch.<br>Built bina pooche: without asking.</p>
+    <div class="S-ctas" style="gap: 16px;">
+      <span class="S-btn dark xl">useblindspot.xyz <svg><use href="#arrow"/></svg></span>
+      <span class="S-btn xl">github.com/skartik-sk/blindspot</span>
     </div>
   </div>
-  <div class="foot"><span>Anon-RPC hides who you are. Blindspot also hides what you watch.</span><span>9</span></div>
+  <a class="S-brand corner" style="left: 112px; top: 100px;"><span class="S-mark"></span>Blindspot</a>
 </section>
 
 <script>
-  // #3 shows only slide 3 (PNG export). No hash: all slides, stacked (review / print).
+  // Video mode (?anim): window.setT(t) poses the visible slide at time t (seconds). Deterministic, so frames can be
+  // captured one by one. Elements build in reading order over the first ~60% of the slide; numbers count up.
+  const BUILD = ".S-badge, .h1, .h2, .lead, .S-ctas > *, .cards > .card, .flow > *, .S-checks > span, .tools > .card, .stats > .stat, ul.list > li, .note, .S-score + p";
+  const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+  window.prep = (dur) => {
+    const s = document.querySelector(".slide.on");
+    const els = [...s.querySelectorAll(BUILD)];
+    const span = Math.max(0.6, dur * 0.6 - 0.4);
+    els.forEach((el, i) => { el.dataset.at = (0.15 + (span * i) / Math.max(1, els.length - 1)).toFixed(3); });
+    s.querySelectorAll(".S-score strong, .S-big").forEach((el) => {
+      const m = el.textContent.match(/^(~?)(\d+(?:\.\d+)?)(.*)$/);
+      if (m && !/–/.test(el.textContent)) { el.dataset.pre = m[1]; el.dataset.num = m[2]; el.dataset.post = m[3]; el.dataset.dec = (m[2].split(".")[1] || "").length; }
+    });
+  };
+  window.setT = (t) => {
+    const s = document.querySelector(".slide.on");
+    s.querySelectorAll("[data-at]").forEach((el) => {
+      const e = ease((t - parseFloat(el.dataset.at)) / 0.55);
+      const side = el.classList.contains("link") || el.parentElement.classList.contains("flow");
+      el.style.opacity = e;
+      el.style.transform = side ? `translateX(${(1 - e) * -28}px)` : `translateY(${(1 - e) * 22}px)`;
+      if (el.parentElement.classList.contains("S-checks")) el.style.transform = `scale(${0.85 + 0.15 * e})`;
+    });
+    s.querySelectorAll("[data-num]").forEach((el) => {
+      const host = el.closest("[data-at]");
+      const at = host ? parseFloat(host.dataset.at) : 0;
+      const v = parseFloat(el.dataset.num) * ease((t - at) / 1.3);
+      el.textContent = el.dataset.pre + v.toFixed(+el.dataset.dec) + el.dataset.post;
+    });
+  };
   function show() {
     const n = parseInt(location.hash.slice(1), 10);
     document.body.classList.toggle("one", !!n);
