@@ -22,6 +22,8 @@ jobs:
       - run: bash scripts/check.sh
         env:
           VITE_RELAY_URL: ${{ vars.RELAY_URL }}
+          # Tor as a third lane: tor-js's public gateway unless TOR_GATEWAYS names your own (docker compose --profile tor).
+          VITE_TOR_GATEWAYS: ${{ vars.TOR_GATEWAYS || '152.236.3.22:12298:uEiCH0VdbhryzJcMtCfB0vLA4sOvHdQ4hq5w7CopcwU59bQ' }}
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: apps/web/dist

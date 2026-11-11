@@ -124,7 +124,7 @@ bun run pin        # refresh the pinned Anon-RPC specifiers, the self-hosted wor
 ```bash
 cp .env.example .env          # set SITE_DOMAIN and RELAY_DOMAIN
 docker compose up -d --build  # relay + website + automatic HTTPS (Caddy)
-docker compose --profile tor up -d --build   # also a Tor gateway (needs UDP 12298 open; set PUBLIC_IP)
+docker compose --profile tor up -d --build   # optional own Tor gateway (UDP 12298 open, PUBLIC_IP set); else the public one
 ```
 
 **GitHub Pages:** `.github/workflows/pages.yml` builds and publishes the site on every push to `main` (set the
