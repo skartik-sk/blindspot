@@ -6,7 +6,7 @@
 //                                     chainId: 11155111, lightClient });
 //   new ethers.BrowserProvider(provider)  /  createPublicClient({ transport: custom(provider) })
 import { formatTransaction, keccak256, recoverTransactionAddress, serializeTransaction, toHex, toRlp, type Hex } from "viem";
-import { verifyHeader } from "./header";
+import { HEADER_FIELDS, verifyHeader } from "./header";
 import type { VerifiedHead } from "./lightclient";
 import { orderedTrieRoot } from "./receipts";
 import { RpcClient, type AnonFetch } from "./rpc";
@@ -17,6 +17,26 @@ const MAX_WALK = 64;
 const lc = (x: unknown) => String(x).toLowerCase();
 const int = (n: bigint): Hex => (n === 0n ? "0x" : toHex(n));
 const EMPTY_UNCLES = "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
+
+/** Keys that are signed, or derived from signed data and the verified header (each checked in verifyBody). */
+const TX_KEYS = ["type", "chainId", "nonce", "gas", "gasPrice", "maxFeePerGas", "maxPriorityFeePerGas", "maxFeePerBlobGas",
+  "to", "value", "accessList", "input", "blobVersionedHashes", "authorizationList", "r", "s", "v", "yParity",
+  "hash", "from", "blockHash", "blockNumber", "transactionIndex", "blockTimestamp"];
+const WITHDRAWAL_KEYS = ["index", "validatorIndex", "address", "amount"];
+const pick = (o: any, keys: readonly string[]) => Object.fromEntries(keys.filter((k) => o?.[k] !== undefined).map((k) => [k, o[k]]));
+
+/**
+ * A copy of an RPC block holding only what can be checked: the hashed header fields, the hash, transactions and
+ * withdrawals (allowlisted keys), no uncles. Anything else the RPC added (size, totalDifficulty, unknown keys) is dropped,
+ * so the caller can never read a field nobody verified.
+ */
+export function onlyVerifiable(b: any): any {
+  if (!Array.isArray(b.transactions) || b.transactions.some((t: unknown) => typeof t !== "object" || t === null)) throw new Error("block body missing");
+  if ((b.uncles?.length ?? 0) > 0) throw new Error("unexpected uncles");
+  const out: any = { ...pick(b, [...HEADER_FIELDS.map(([k]) => k), "hash"]), uncles: [], transactions: b.transactions.map((t: any) => pick(t, TX_KEYS)) };
+  if (b.withdrawals !== undefined) out.withdrawals = Array.isArray(b.withdrawals) ? b.withdrawals.map((w: any) => pick(w, WITHDRAWAL_KEYS)) : b.withdrawals;
+  return out;
+}
 
 /** A transaction re-encoded from its fields; `t.input` is the RPC's name for `data`. Blob sidecars aren't in the block. */
 function encodeTx(t: any): Hex {
@@ -51,10 +71,12 @@ export async function verifyBody(b: any): Promise<void> {
       if (BigInt(t.gasPrice) !== (base + tip < max ? base + tip : max)) bad("effective gas price");
     }
   }));
-  if (b.withdrawals) {
+  // Fail closed: a header with withdrawalsRoot needs the list (empty must match the empty root); none without it.
+  if (b.withdrawalsRoot !== undefined) {
+    if (!Array.isArray(b.withdrawals)) throw new Error("withdrawals missing for a header with withdrawalsRoot");
     const root = orderedTrieRoot(b.withdrawals.map((w: any) => toRlp([int(BigInt(w.index)), int(BigInt(w.validatorIndex)), w.address, int(BigInt(w.amount))])));
     if (root !== b.withdrawalsRoot) throw new Error("withdrawals don't match the header's withdrawalsRoot");
-  }
+  } else if (b.withdrawals !== undefined) throw new Error("withdrawals without a withdrawalsRoot");
   if ((b.uncles?.length ?? 0) > 0 || lc(b.sha3Uncles) !== EMPTY_UNCLES) throw new Error("unexpected uncles");
 }
 
@@ -118,6 +140,7 @@ export function createProvider(o: ProviderOptions) {
       b = await rpc.call<Block>(method, [ref, true]);
     }
     if (!b) return b;
+    try { b = onlyVerifiable(b) as Block; } catch (e) { throw fail((e as Error).message); }
     checked(b);
     // The block returned must be the one asked for.
     if (method === "eth_getBlockByHash" && b.hash.toLowerCase() !== String(ref).toLowerCase()) throw fail("got a different block than the hash asked for");

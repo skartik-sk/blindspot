@@ -85,6 +85,23 @@ describe("provider: transactions and withdrawals", () => {
   }, 30_000);
 });
 
+describe("provider: only verified data reaches the caller", () => {
+  test("a missing or emptied withdrawals list is rejected (fails closed)", async () => {
+    for (const tamper of [(b: any) => { const { withdrawals: _, ...rest } = b; return rest; }, (b: any) => ({ ...b, withdrawals: [] })])
+      await expect(provider(blockRpc([block], tamper)).request({ method: "eth_getBlockByNumber", params: [block.number, false] })).rejects.toThrow(/withdrawals/);
+  }, 30_000);
+
+  test("keys nobody verified are dropped, in the block and in each transaction", async () => {
+    const extra = (b: any) => ({ ...b, size: "0x1", totalDifficulty: "0x99", injected: "x",
+      transactions: b.transactions.map((t: any, i: number) => (i === 0 ? { ...t, data: "0xdeadbeef", gasLimit: "0x1" } : t)) });
+    const got = (await provider(blockRpc([block], extra)).request({ method: "eth_getBlockByNumber", params: [block.number, true] })) as any;
+    for (const k of ["size", "totalDifficulty", "injected"]) expect(got[k]).toBeUndefined();
+    expect(got.transactions[0].data).toBeUndefined();
+    expect(got.transactions[0].gasLimit).toBeUndefined();
+    expect(got.transactions[0].input).toBe(block.transactions[0].input);
+  }, 30_000);
+});
+
 describe("provider: blocks proven by the light client", () => {
   const lightClient = { latest: async () => ({ hash: head.hash.toLowerCase(), number: BigInt(head.number) }) as any };
 
