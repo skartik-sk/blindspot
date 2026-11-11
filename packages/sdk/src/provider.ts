@@ -5,7 +5,7 @@
 //   const provider = createProvider({ url: "https://ethereum-sepolia-rpc.publicnode.com", fetch: anonFetch,
 //                                     chainId: 11155111, lightClient });
 //   new ethers.BrowserProvider(provider)  /  createPublicClient({ transport: custom(provider) })
-import { formatTransaction, keccak256, recoverTransactionAddress, serializeTransaction, toHex, toRlp, type Hex } from "viem";
+import { formatTransaction, keccak256, parseTransaction, recoverTransactionAddress, serializeTransaction, toHex, toRlp, type Hex } from "viem";
 import { HEADER_FIELDS, verifyHeader } from "./header";
 import type { VerifiedHead } from "./lightclient";
 import { orderedTrieRoot } from "./receipts";
@@ -29,6 +29,33 @@ const SIGNED_KEYS: Record<string, string[]> = {
 };
 /** Derived from the signed bytes and the verified header (each checked in verifyBody); gasPrice too for fee-market types. */
 const DERIVED = ["type", "hash", "from", "blockHash", "blockNumber", "transactionIndex", "blockTimestamp"];
+const TYPE_HEX: Record<string, string> = { legacy: "0x0", eip2930: "0x1", eip1559: "0x2", eip4844: "0x3", eip7702: "0x4" };
+const norm = (x: any): any => {
+  // Decoding omits zero and empty values, so null, 0, "0x" and [] all mean "empty".
+  if (x === undefined || x === null || x === "0x" || (Array.isArray(x) && !x.length)) return null;
+  if ((typeof x === "bigint" || typeof x === "number" || /^0x0+$/i.test(String(x))) && BigInt(x) === 0n) return null;
+  if (typeof x === "bigint" || typeof x === "number") return "0x" + BigInt(x).toString(16);
+  if (typeof x === "string") return x.toLowerCase();
+  if (Array.isArray(x)) return x.map(norm);
+  return Object.fromEntries(Object.keys(x).sort().map((k) => [k, norm(x[k])]));
+};
+
+/**
+ * Every signed key the RPC returned equals what decoding the re-encoded bytes gives, so no value can differ from what
+ * was hashed. Known representation differences only: empty/zero values omitted, type names, zero-padded r/s, and v (27/28 in viem, 0/1 in RPC)
+ * for typed transactions, whose v is checked against yParity instead.
+ */
+function signedFieldsMatch(t: any, raw: Hex): string | undefined {
+  const p: any = parseTransaction(raw as any);
+  if (TYPE_HEX[p.type] !== t.type) return "type";
+  for (const k of SIGNED_KEYS[t.type]) {
+    if (k === "v" && t.type !== "0x0") continue;
+    const decoded = p[k === "input" ? "data" : k];
+    const same = k === "r" || k === "s" ? t[k] != null && BigInt(t[k]) === BigInt(decoded) : JSON.stringify(norm(decoded)) === JSON.stringify(norm(t[k]));
+    if (!same) return k;
+  }
+}
+
 const txKeys = (type: unknown) => {
   const signed = SIGNED_KEYS[String(type)];
   if (!signed) throw new Error(`unknown transaction type ${String(type)}`);
@@ -77,10 +104,8 @@ export async function verifyBody(b: any): Promise<void> {
     if (lc(await recoverTransactionAddress({ serializedTransaction: raws[i] as any })) !== lc(t.from)) bad("sender");
     if (lc(t.blockHash) !== lc(b.hash) || BigInt(t.blockNumber) !== BigInt(b.number) || BigInt(t.transactionIndex) !== BigInt(i)) bad("block position");
     if (t.blockTimestamp != null && BigInt(t.blockTimestamp) !== BigInt(b.timestamp)) bad("timestamp");
-    if (t.type === "0x0" && t.chainId != null) {
-      const v = BigInt(t.v); // EIP-155: v = chainId*2 + 35/36; pre-155 (27/28) has no chain id
-      if (v < 35n || (v - 35n) / 2n !== BigInt(t.chainId)) bad("chain id");
-    }
+    const off = signedFieldsMatch(t, raws[i]);
+    if (off) bad(off);
     if (t.type !== "0x0" && t.yParity != null && t.v != null && BigInt(t.v) !== BigInt(t.yParity)) bad("v/yParity");
     if (t.maxFeePerGas != null && t.gasPrice != null && base !== undefined) {
       const tip = BigInt(t.maxPriorityFeePerGas), max = BigInt(t.maxFeePerGas);

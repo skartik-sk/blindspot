@@ -107,6 +107,9 @@ describe("provider: only verified data reaches the caller", () => {
     const got = (await provider(blockRpc([block], fakeFees)).request({ method: "eth_getBlockByNumber", params: [block.number, true] })) as any;
     expect(got.transactions[legacyIdx].maxFeePerGas).toBeUndefined();
     expect(got.transactions[legacyIdx].accessList).toBeUndefined();
+    // A legacy tx's v/chainId must be what its signed bytes say (EIP-155), not just consistent with each other.
+    for (const edit of [{ chainId: "0x0", v: "0x23" }, { chainId: undefined }, { v: "0x1b" }])
+      await expect(provider(blockRpc([block], editTx(legacyIdx, edit))).request({ method: "eth_getBlockByNumber", params: [block.number, true] })).rejects.toThrow();
     await expect(provider(blockRpc([block], editTx(0, { type: "0x7f" }))).request({ method: "eth_getBlockByNumber", params: [block.number, true] })).rejects.toThrow(/unknown transaction type/);
   }, 30_000);
 });
