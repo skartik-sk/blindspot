@@ -123,6 +123,13 @@ describe("provider: blocks proven by the light client", () => {
     expect(((await p.request({ method: "eth_getBlockByNumber", params: [grandparent.number, false] })) as any).hash).toBe(grandparent.hash);
   }, 30_000);
 
+  test("tags the light client can't prove are refused before anything is sent", async () => {
+    calls.length = 0;
+    for (const tag of ["safe", "finalized", "earliest"])
+      await expect(provider(fakeFetch(() => block), { lightClient }).request({ method: "eth_getBlockByNumber", params: [tag, false] })).rejects.toThrow(/can't be proven/);
+    expect(calls).toEqual([]);
+  });
+
   test("a block above the signed head isn't proven yet", async () => {
     const p = provider(blockRpc(chain), { lightClient: { latest: async () => ({ hash: grandparent.hash, number: BigInt(grandparent.number) }) as any } });
     await expect(p.request({ method: "eth_getBlockByNumber", params: [parent.number, false] })).rejects.toThrow(/isn't proven yet/);

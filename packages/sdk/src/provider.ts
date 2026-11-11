@@ -173,6 +173,11 @@ export function createProvider(o: ProviderOptions) {
   async function verifiedBlockRead(method: string, params: unknown[]) {
     const [ref, full] = params as [string, boolean | undefined];
     let b: Block | null;
+    // With a light client, a block is trusted only through the head it signed: "latest"/"pending" are that head, numbers
+    // and hashes must link to it. Other tags ("safe", "finalized", "earliest") would be whatever the RPC says, so refuse.
+    // Without a light client every block is only self-consistent (hash, body, number asked for); the caller chose that.
+    if (method === "eth_getBlockByNumber" && o.lightClient && !/^0x[0-9a-f]+$/i.test(ref) && ref !== "latest" && ref !== "pending")
+      throw fail(`block tag "${ref}" can't be proven by the light client: ask for "latest" or a block number`);
     // Always fetch full transactions: a list of hashes can't be checked against transactionsRoot on its own.
     if (method === "eth_getBlockByNumber" && o.lightClient && (ref === "latest" || ref === "pending")) {
       // "latest" means the latest block the sync committee signed.
