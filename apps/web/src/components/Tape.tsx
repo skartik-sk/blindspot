@@ -13,7 +13,7 @@ export default function Tape({ limit = 14 }: { limit?: number }) {
       <header>
         <h3>Verified blocks</h3>
         <p className="small muted">
-          Each one checked against its header and confirmed by a second provider. Asked for by number only.
+          Each one checked against its header, then ✓ once a head signed by the sync committee links back to it. Asked for by number only.
         </p>
       </header>
       {tape.length === 0 ? (

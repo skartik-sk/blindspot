@@ -51,7 +51,7 @@ function AlertsVisual() {
 function ProofVisual() {
   return (
     <div className="ob-vis ob-proof" aria-hidden>
-      {["Header hash", "Access list hash", "Receipts root", "Second provider"].map((t, i) => (
+      {["Header hash", "Access list hash", "Receipts root", "Signed by the sync committee"].map((t, i) => (
         <motion.div key={t} className="ob-check" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.08, duration: 0.2, ease: [0, 0, 0.2, 1] }}>
           <span className="ob-tick"><Icon name="check" /></span>{t}<span className="ob-match">matches</span>
         </motion.div>
@@ -73,7 +73,7 @@ function Connect({ onNext }: { onNext: () => void }) {
     { t: `Start Anon-RPC (${network().short} mixnet)`, done: status.phase !== "idle" },
     { t: "Open a private route", done: status.phase === "live" || tape.length > 0 },
     { t: "Verify the latest block", done: tape.length > 0 },
-    { t: "Confirm with a second provider", done: tape.some((b) => b.anchored) },
+    { t: "Prove it with the light client", done: tape.some((b) => b.anchored) },
   ];
   const ready = steps.every((s) => s.done);
   const current = steps.findIndex((s) => !s.done);
