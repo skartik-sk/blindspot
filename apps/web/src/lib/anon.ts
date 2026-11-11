@@ -153,22 +153,28 @@ function restartLane(id: NetworkName) {
   startLane(id);
 }
 
-/** After a network first works, check its pin against the live specifier, through that network. */
+/** When a network first works, use it to check every network's pin against the live specifier. A pin is marked
+ *  stale only if both networks independently see the same new hash (see specifier.ts). */
 const pinChecked = new Set<NetworkName>();
-function checkPinLater(id: NetworkName) {
-  if (pinChecked.has(id) || livePin.has(id)) return;
-  pinChecked.add(id);
-  const n = NETWORKS[id];
-  const rpc = config.bootstrap[n.chain][0];
-  const ethCall = async (to: string, data: string) => {
-    const r = await sendOn(id, rpc, { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to, data }, "latest"] }),
-      anonOptions: { isolationKey: `pin-${id}` } });
-    const j = await r.json();
-    if (!j.result) throw new Error("no result");
-    return j.result as string;
-  };
-  setTimeout(() => checkPin(id, n.address, ethCall).catch(() => {}), 20_000);
+function checkPinLater(via: NetworkName) {
+  if (pinChecked.has(via)) return;
+  pinChecked.add(via);
+  setTimeout(() => {
+    for (const id of laneIds) {
+      if (livePin.has(id)) continue;
+      const n = NETWORKS[id];
+      const rpc = config.bootstrap[n.chain][0];
+      const ethCall = async (to: string, data: string) => {
+        const r = await sendOn(via, rpc, { method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to, data }, "latest"] }),
+          anonOptions: { isolationKey: `pin-${id}-${via}` } });
+        const j = await r.json();
+        if (!j.result) throw new Error("no result");
+        return j.result as string;
+      };
+      checkPin(id, n.address, ethCall, via).catch(() => {});
+    }
+  }, 20_000);
 }
 
 // Dev-only failure switches, to exercise the failover on a desktop:

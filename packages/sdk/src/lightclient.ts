@@ -16,6 +16,9 @@ import { sha256 } from "@noble/hashes/sha2";
 import { bytesToHex, concatBytes, hexToBytes } from "@noble/hashes/utils";
 import type { Hex } from "viem";
 
+/** Raised by the light client itself (not by the relay or the block loop), so callers can tell them apart. */
+export class LightClientError extends Error {}
+
 export interface ChainSpec {
   genesisTime: number;
   genesisValidatorsRoot: Hex;
@@ -123,6 +126,12 @@ export function signedByCommittee(spec: ChainSpec, committee: Committee, agg: Sy
   return bls12_381.verify(agg.sync_committee_signature.slice(2), signingRoot, bls12_381.aggregatePublicKeys(signers), { DST });
 }
 
+/** A light-client bootstrap's sync committee is proven by its Merkle branch into the header's state root. */
+export function checkBootstrap(boot: { header: { beacon: BeaconHeader }; current_sync_committee: Committee; current_sync_committee_branch: Hex[] }, spec = SEPOLIA_BEACON) {
+  const [d, i] = layout(spec, boot.header.beacon.slot).current;
+  return branchOk(committeeRoot(boot.current_sync_committee), boot.current_sync_committee_branch, d, i, boot.header.beacon.state_root);
+}
+
 export interface VerifiedHead {
   /** Execution block hash the committee signed. */
   hash: Hex;
@@ -160,14 +169,19 @@ export class LightClient {
     this.ready = this.bootstrap();
   }
 
+  /** The beacon API's failures are the light client's own (unlike relay errors), so they're LightClientError. */
+  private async get(path: string) {
+    try { return await this.o.get(path); } catch (e) { throw new LightClientError(`light client: ${path.split("?")[0]} failed: ${(e as Error)?.message ?? e}`); }
+  }
+
   private async bootstrap() {
-    const r = await this.o.get(`/eth/v1/beacon/light_client/bootstrap/${this.o.checkpoint}`);
+    const r = await this.get(`/eth/v1/beacon/light_client/bootstrap/${this.o.checkpoint}`);
     const boot = r?.data;
-    if (!boot) throw new Error("light client: bootstrap not served for the pinned checkpoint");
-    if (hx(beaconRoot(boot.header.beacon)) !== this.o.checkpoint.toLowerCase()) throw new Error("light client: bootstrap does not match the checkpoint");
+    if (!boot) throw new LightClientError("light client: bootstrap not served for the pinned checkpoint");
+    if (hx(beaconRoot(boot.header.beacon)) !== this.o.checkpoint.toLowerCase()) throw new LightClientError("light client: bootstrap does not match the checkpoint");
     const [d, i] = layout(this.spec, boot.header.beacon.slot).current;
     if (!branchOk(committeeRoot(boot.current_sync_committee), boot.current_sync_committee_branch, d, i, boot.header.beacon.state_root))
-      throw new Error("light client: bad bootstrap committee branch");
+      throw new LightClientError("light client: bad bootstrap committee branch");
     this.committees.set(period(boot.header.beacon.slot), boot.current_sync_committee);
   }
 
@@ -175,15 +189,15 @@ export class LightClient {
   private async committeeFor(p: number): Promise<Committee> {
     while (!this.committees.has(p)) {
       const known = Math.max(...this.committees.keys());
-      if (known > p) throw new Error("light client: period before checkpoint");
-      const res = await this.o.get(`/eth/v1/beacon/light_client/updates?start_period=${known}&count=1`);
+      if (known > p) throw new LightClientError("light client: period before checkpoint");
+      const res = await this.get(`/eth/v1/beacon/light_client/updates?start_period=${known}&count=1`);
       const u = (Array.isArray(res) ? res[0] : res?.data?.[0])?.data;
-      if (!u || period(u.attested_header.beacon.slot) !== known || period(u.signature_slot) !== known) throw new Error(`light client: no update for period ${known}`);
+      if (!u || period(u.attested_header.beacon.slot) !== known || period(u.signature_slot) !== known) throw new LightClientError(`light client: no update for period ${known}`);
       const [d, i] = layout(this.spec, u.attested_header.beacon.slot).next;
       if (!branchOk(committeeRoot(u.next_sync_committee), u.next_sync_committee_branch, d, i, u.attested_header.beacon.state_root))
-        throw new Error("light client: bad next-committee branch");
+        throw new LightClientError("light client: bad next-committee branch");
       if (!signedByCommittee(this.spec, this.committees.get(known)!, u.sync_aggregate, u.attested_header.beacon, u.signature_slot))
-        throw new Error("light client: bad update signature");
+        throw new LightClientError("light client: bad update signature");
       this.committees.set(known + 1, u.next_sync_committee);
     }
     return this.committees.get(p)!;
@@ -195,9 +209,9 @@ export class LightClient {
     const gloas = layout(this.spec, h.beacon.slot) === BRANCH.gloas;
     const leaf = gloas ? b(h.execution_block_hash) : executionRoot(h.execution);
     const [d, i] = layout(this.spec, h.beacon.slot).execution;
-    if (!branchOk(leaf, h.execution_branch, d, i, h.beacon.body_root)) throw new Error("light client: bad execution branch");
+    if (!branchOk(leaf, h.execution_branch, d, i, h.beacon.body_root)) throw new LightClientError("light client: bad execution branch");
     if (!signedByCommittee(this.spec, await this.committeeFor(period(u.signature_slot)), u.sync_aggregate, h.beacon, u.signature_slot))
-      throw new Error("light client: bad head signature");
+      throw new LightClientError("light client: bad head signature");
     return {
       hash: (gloas ? h.execution_block_hash : h.execution.block_hash).toLowerCase(),
       number: gloas ? undefined : BigInt(h.execution.block_number),
@@ -210,9 +224,9 @@ export class LightClient {
   async latest(): Promise<VerifiedHead> {
     await this.ready;
     this.refreshing ??= (async () => {
-      const r = await this.o.get("/eth/v1/beacon/light_client/optimistic_update");
+      const r = await this.get("/eth/v1/beacon/light_client/optimistic_update");
       const next = await this.verifyUpdate(r?.data);
-      if (Date.now() / 1000 - next.time > (this.o.maxHeadAgeS ?? 180)) throw new Error("light client: head is stale");
+      if (Date.now() / 1000 - next.time > (this.o.maxHeadAgeS ?? 180)) throw new LightClientError("light client: head is stale");
       if (!this.head || next.slot > this.head.slot) this.head = next;
       return this.head;
     })().finally(() => { this.refreshing = undefined; });

@@ -1,6 +1,6 @@
 // The live loop: follow the chain through Anon-RPC, verify every block, filter it here on the device.
 // Requests name block numbers only. Which wallets you hold or watch never leaves this tab.
-import { ETH_LOGGER, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scanBlock, type Activity, type PendingTx, type VerifiedBlock } from "@blindspot/sdk";
+import { ETH_LOGGER, LightClientError, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scanBlock, type Activity, type PendingTx, type VerifiedBlock } from "@blindspot/sdk";
 import type { Address } from "viem";
 import { anonFetch, anonRpc, checkFailover, noteProgress, resetHealth } from "./anon";
 import { resumeFrom } from "./resume";
@@ -88,14 +88,17 @@ function run(from?: bigint, skipped = 0) {
   signal.addEventListener("abort", () => clearInterval(watchdog));
   follow({
     rpc, compact: config.feedCompact, signal, pollMs: 3000, from,
-    ...(lc ? { lightClient: lc, onAnchored, onContradiction } : { anchor }),
+    ...(lc ? { lightClient: lc, onAnchored: (n: bigint, h: string) => { lcErrors = 0; onAnchored(n, h); }, onContradiction } : { anchor }),
     onBlock: (b) => { lastBlock = b.number; noteProgress(); return onBlock(b); },
     onError: (e, n) => {
       if (signal.aborted) return;
       const msg = (e as Error).message ?? String(e);
-      if (lc && /^light client:|stale/i.test(msg) && ++lcErrors >= 5) {
+      // Only the light client's own failures count (never relay errors or contradictions), and any anchored block
+      // resets the count. After 5 in a row the loop falls back to a second provider, and says so.
+      if (lc && e instanceof LightClientError && ++lcErrors >= 5) {
         useLightClient = false;
         proofFallback(msg);
+        setState((s) => ({ status: { ...s.status, message: "The light client isn't available, so a second provider now checks each block (see Network)." } }));
         ac?.abort(); ac = undefined;
         run(lastBlock !== undefined ? lastBlock + 1n : undefined);
         return;
