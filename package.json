@@ -1,11 +1,17 @@
 {
   "name": "blindspot",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc -b",
-    "relay": "bun run --cwd apps/relay start"
+    "relay": "bun run --cwd apps/relay start",
+    "check": "bash scripts/check.sh",
+    "pin": "bun run --cwd apps/web scripts/pin.ts",
+    "dev:web": "bun run --cwd apps/web dev"
   },
   "devDependencies": {
     "bun-types": "^1.4.4",

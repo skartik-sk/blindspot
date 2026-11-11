@@ -69,7 +69,7 @@ export async function pirLookup(address: Address, onStep?: (s: string) => void):
 
 export async function mixnetLookup(address: Address): Promise<LookupResult> {
   const t0 = performance.now();
-  const rpc = anonRpc(config.readUrl, newIsolationKey()); // fresh route per lookup
+  const rpc = anonRpc(config.readUrl, newIsolationKey(), { hedge: false }); // names an address: never hedged
   const call = (token: Address) =>
     rpc.call<Hex>("eth_call", [{ to: token, data: encodeFunctionData({ abi: erc20Abi, functionName: "balanceOf", args: [address] }) }, "latest"]);
   const [eth, usdc, weth, head] = await Promise.all([

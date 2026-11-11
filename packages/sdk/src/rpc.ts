@@ -7,7 +7,8 @@ import { compactReceipts, type CompactReceipt, type RpcReceipt } from "./receipt
 /** Matches AnonRpcWorker.fetch: a standard fetch plus optional anonOptions. */
 export type AnonFetch = (
   url: string,
-  init: RequestInit & { anonOptions?: { isolationKey?: string } },
+  /** hedge: the app may also send this address-free read over a second anonymous network if the first is slow. */
+  init: RequestInit & { anonOptions?: { isolationKey?: string; hedge?: boolean } },
 ) => Promise<Response>;
 
 export type Header = FullHeader;

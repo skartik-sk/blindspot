@@ -81,7 +81,7 @@ export async function execute(plan: TxPlan[], route: Route, onStep?: (s: string)
   const key = newIsolationKey(); // one route for this trade's prep reads; unlinkable from anything else
   const reader = createPublicClient({ chain: sepolia, transport: anonTransport(config.readUrl, key) });
   if (route === "private" && !config.privateSendUrl) throw new Error("No private builder is configured for this network.");
-  const sender = anonRpc(route === "private" ? config.privateSendUrl! : config.readUrl, newIsolationKey());
+  const sender = anonRpc(route === "private" ? config.privateSendUrl! : config.readUrl, newIsolationKey(), { hedge: false });
   let nonce = await reader.getTransactionCount({ address: account.address, blockTag: "pending" });
   const fees = await reader.estimateFeesPerGas();
   const hashes: Hex[] = [];

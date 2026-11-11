@@ -545,3 +545,7 @@ html, body { overflow-x: clip; }
 .key-text { display: block; padding: 12px; border-radius: 12px; background: var(--sunk); border: 1px solid var(--line); font-size: 12.5px; overflow-wrap: anywhere; user-select: all; }
 .key-input { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 13px; resize: vertical; }
 .file-pick input { margin-left: 8px; font-size: 13px; }
+
+.lanes { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.lanes li[data-status="up"] strong { color: var(--up); }
+.lanes li[data-status="down"] strong { color: var(--down); }

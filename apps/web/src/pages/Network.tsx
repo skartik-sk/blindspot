@@ -1,7 +1,7 @@
 // Where every request goes, and how the privacy route is doing.
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Tape from "../components/Tape";
-import { bootState, getWorker, network } from "../lib/anon";
+import { NETWORKS, bootState, getWorker, lanesState, network } from "../lib/anon";
 import { NETWORK_KEY, config, isLocal, type NetworkName } from "../lib/config";
 import { fmtBytes } from "../lib/format";
 import { reqlog, trafficShare } from "../lib/reqlog";
@@ -17,12 +17,31 @@ const CHOICES: { id: NetworkName; name: string; note: string; disabled?: string 
   { id: "tor", name: "Tor", note: "Needs a gateway into Tor.", disabled: "Unavailable: the public demo gateway is offline." },
 ];
 
+/** Both anonymous networks side by side: the backup takes over instantly if the usual one stalls. */
+function Lanes() {
+  const lanes = useSyncExternalStore(lanesState.subscribe, lanesState.get);
+  const word = { idle: "Standby, not started", booting: "Starting…", up: "Working", down: "Not responding, retrying" } as const;
+  return (
+    <ul className="lanes">
+      {lanes.map((l) => (
+        <li key={l.id} data-status={l.status}>
+          <strong>{NETWORKS[l.id].short}</strong> <span>{word[l.status]}</span>
+          <span className="small muted">
+            {" "}· {l.ok} ok, {l.fail} failed{l.ewmaMs !== undefined ? ` · ~${(l.ewmaMs / 1000).toFixed(1)} s per request` : ""}
+          </span>
+          {l.status === "down" && l.error && <span className="small muted"> · {l.error.slice(0, 80)}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function NetworkPicker() {
   const boot = useSyncExternalStore(bootState.subscribe, bootState.get);
   const active = boot.network;
   const pick = (id: NetworkName) => {
     if (id === active) return;
-    try { localStorage.setItem(NETWORK_KEY, id); sessionStorage.removeItem("bp.fallback"); } catch {}
+    try { localStorage.setItem(NETWORK_KEY, id); } catch {}
     location.reload(); // one Anon-RPC worker per page: switching networks starts a fresh one
   };
   return (
@@ -95,6 +114,7 @@ export default function Network() {
           <dt>Current block</dt><dd>{status.head ? Number(status.head).toLocaleString("en-US") : "–"}</dd>
           <dt>Since last block</dt><dd>{since !== undefined ? `${since} s` : "–"} <span className="small muted">(Sepolia makes one about every 12 s)</span></dd>
           <dt>Privacy network</dt><dd>{network().label}{!network().anonymous && <strong className="down"> · not anonymous</strong>}</dd>
+          <dt>Networks</dt><dd><Lanes /></dd>
           <dt>Traffic share</dt>
           <dd>
             {/* Startup is mostly Anon-RPC's own bootstrap; wait for a fair sample before showing a percentage. */}
