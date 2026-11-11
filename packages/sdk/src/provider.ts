@@ -5,7 +5,7 @@
 //   const provider = createProvider({ url: "https://ethereum-sepolia-rpc.publicnode.com", fetch: anonFetch,
 //                                     chainId: 11155111, lightClient });
 //   new ethers.BrowserProvider(provider)  /  createPublicClient({ transport: custom(provider) })
-import { formatTransaction, serializeTransaction, type Hex } from "viem";
+import { formatTransaction, keccak256, recoverTransactionAddress, serializeTransaction, toHex, toRlp, type Hex } from "viem";
 import { verifyHeader } from "./header";
 import type { VerifiedHead } from "./lightclient";
 import { orderedTrieRoot } from "./receipts";
@@ -14,14 +14,48 @@ import { RpcClient, type AnonFetch } from "./rpc";
 /** How far below the signed head a block can be proven by walking parent hashes. */
 const MAX_WALK = 64;
 
-/** transactionsRoot from a block's full transaction objects: each re-encoded (and checked against its own hash). */
+const lc = (x: unknown) => String(x).toLowerCase();
+const int = (n: bigint): Hex => (n === 0n ? "0x" : toHex(n));
+const EMPTY_UNCLES = "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
+
+/** A transaction re-encoded from its fields; `t.input` is the RPC's name for `data`. Blob sidecars aren't in the block. */
+function encodeTx(t: any): Hex {
+  const f = formatTransaction(t) as any;
+  const sig = f.type === "legacy" ? { r: t.r, s: t.s, v: BigInt(t.v) } : { r: t.r, s: t.s, yParity: Number(t.yParity ?? t.v) };
+  return serializeTransaction({ ...f, data: t.input, blobs: undefined, sidecars: undefined }, sig as any);
+}
+
+/** transactionsRoot from a block's full transaction objects. */
 export function transactionsRoot(txs: any[]): Hex {
-  return orderedTrieRoot(txs.map((t) => {
-    const f = formatTransaction(t) as any;
-    const sig = f.type === "legacy" ? { r: t.r, s: t.s, v: BigInt(t.v) } : { r: t.r, s: t.s, yParity: Number(t.yParity ?? t.v) };
-    // RPC calls the calldata `input`; the encoder wants `data`. Blob sidecars aren't part of the block.
-    return serializeTransaction({ ...f, data: t.input, blobs: undefined, sidecars: undefined }, sig as any);
+  return orderedTrieRoot(txs.map(encodeTx));
+}
+
+/**
+ * Every field of every transaction is either inside the signed bytes (checked by the root) or derived from them and
+ * the verified header: hash, sender, block position, effective gas price. Withdrawals are checked against their root.
+ * Throws on the first mismatch.
+ */
+export async function verifyBody(b: any): Promise<void> {
+  const raws = b.transactions.map(encodeTx);
+  if (orderedTrieRoot(raws) !== b.transactionsRoot) throw new Error("transactions don't match the header's transactionsRoot");
+  const base = b.baseFeePerGas == null ? undefined : BigInt(b.baseFeePerGas);
+  await Promise.all(b.transactions.map(async (t: any, i: number) => {
+    const bad = (what: string) => { throw new Error(`transaction ${i}: ${what} doesn't match`); };
+    if (lc(keccak256(raws[i])) !== lc(t.hash)) bad("hash");
+    if (lc(await recoverTransactionAddress({ serializedTransaction: raws[i] as any })) !== lc(t.from)) bad("sender");
+    if (lc(t.blockHash) !== lc(b.hash) || BigInt(t.blockNumber) !== BigInt(b.number) || BigInt(t.transactionIndex) !== BigInt(i)) bad("block position");
+    if (t.blockTimestamp != null && BigInt(t.blockTimestamp) !== BigInt(b.timestamp)) bad("timestamp");
+    if (t.type !== "0x0" && t.yParity != null && t.v != null && BigInt(t.v) !== BigInt(t.yParity)) bad("v/yParity");
+    if (t.maxFeePerGas != null && t.gasPrice != null && base !== undefined) {
+      const tip = BigInt(t.maxPriorityFeePerGas), max = BigInt(t.maxFeePerGas);
+      if (BigInt(t.gasPrice) !== (base + tip < max ? base + tip : max)) bad("effective gas price");
+    }
   }));
+  if (b.withdrawals) {
+    const root = orderedTrieRoot(b.withdrawals.map((w: any) => toRlp([int(BigInt(w.index)), int(BigInt(w.validatorIndex)), w.address, int(BigInt(w.amount))])));
+    if (root !== b.withdrawalsRoot) throw new Error("withdrawals don't match the header's withdrawalsRoot");
+  }
+  if ((b.uncles?.length ?? 0) > 0 || lc(b.sha3Uncles) !== EMPTY_UNCLES) throw new Error("unexpected uncles");
 }
 
 export interface ProviderOptions {
@@ -47,7 +81,7 @@ export function createProvider(o: ProviderOptions) {
   const rpc = new RpcClient(o.url, o.fetch);
   const hexChain = ("0x" + o.chainId.toString(16)) as Hex;
   const listeners = new Map<string, Set<(...a: unknown[]) => void>>();
-  type Block = { hash: Hex; number: Hex; parentHash: Hex; transactions: unknown[]; transactionsRoot: Hex };
+  type Block = { hash: Hex; number: Hex; parentHash: Hex; transactions: any[]; transactionsRoot: Hex };
   const fail = (m: string) => new ProviderRpcError(-32603, m);
 
   /** A header that hashes to what it claims, at the number it claims. */
@@ -76,20 +110,22 @@ export function createProvider(o: ProviderOptions) {
   async function verifiedBlockRead(method: string, params: unknown[]) {
     const [ref, full] = params as [string, boolean | undefined];
     let b: Block | null;
+    // Always fetch full transactions: a list of hashes can't be checked against transactionsRoot on its own.
     if (method === "eth_getBlockByNumber" && o.lightClient && (ref === "latest" || ref === "pending")) {
       // "latest" means the latest block the sync committee signed.
-      b = await rpc.call<Block>("eth_getBlockByHash", [(await o.lightClient.latest()).hash, !!full]);
+      b = await rpc.call<Block>("eth_getBlockByHash", [(await o.lightClient.latest()).hash, true]);
     } else {
-      b = await rpc.call<Block>(method, [ref, !!full]);
+      b = await rpc.call<Block>(method, [ref, true]);
     }
     if (!b) return b;
     checked(b);
     // The block returned must be the one asked for.
     if (method === "eth_getBlockByHash" && b.hash.toLowerCase() !== String(ref).toLowerCase()) throw fail("got a different block than the hash asked for");
     if (method === "eth_getBlockByNumber" && /^0x[0-9a-f]+$/i.test(ref) && BigInt(b.number) !== BigInt(ref)) throw fail("got a different block than the number asked for");
-    if (full && transactionsRoot(b.transactions) !== b.transactionsRoot) throw fail("transactions don't match the header's transactionsRoot");
+    try { await verifyBody(b); } catch (e) { throw fail((e as Error).message); }
     if (o.lightClient) await provenByLightClient(b);
-    return b;
+    // Hashes only when asked for: taken from the verified transactions, not from a separate answer.
+    return full ? b : { ...b, transactions: b.transactions.map((t) => t.hash) };
   }
 
   async function request({ method, params = [] }: { method: string; params?: unknown[] }): Promise<unknown> {
