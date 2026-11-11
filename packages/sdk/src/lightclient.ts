@@ -161,12 +161,18 @@ export class LightClient {
   private refreshing?: Promise<VerifiedHead>;
   private spec: ChainSpec;
   private o: LightClientOptions;
-  ready: Promise<void>;
+  private booting?: Promise<void>;
 
   constructor(o: LightClientOptions) {
     this.o = o;
     this.spec = o.spec ?? SEPOLIA_BEACON;
-    this.ready = this.bootstrap();
+    this.ready.catch(() => {}); // start now; a failure is retried on the next use, never left unhandled
+  }
+
+  /** Bootstrapped from the checkpoint. A failed attempt (say, a slow network) is retried by the next caller. */
+  get ready(): Promise<void> {
+    this.booting ??= this.bootstrap().catch((e) => { this.booting = undefined; throw e; });
+    return this.booting;
   }
 
   /** The beacon API's failures are the light client's own (unlike relay errors), so they're LightClientError. */

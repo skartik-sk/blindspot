@@ -72,7 +72,12 @@ const siteBase = () => new URL(import.meta.env.BASE_URL, location.origin).toStri
 const chosen = !!read(NETWORK_KEY);
 const preferred: NetworkName = config.network;
 /** A network the user picked explicitly runs alone: we never route their traffic over a network they didn't pick. */
-const laneIds: NetworkName[] = chosen || !STANDBY[preferred] ? [preferred] : [preferred, STANDBY[preferred]!];
+/** Tor joins as a last-resort third lane when a gateway is configured (VITE_TOR_GATEWAYS, e.g. our own from
+ *  `docker compose --profile tor`). It starts only if both mixnets are down; Tor honours isolation keys. */
+const torGateway = !!import.meta.env.VITE_TOR_GATEWAYS;
+const laneIds: NetworkName[] = chosen || !STANDBY[preferred]
+  ? [preferred]
+  : [preferred, STANDBY[preferred]!, ...(torGateway && preferred !== "tor" ? ["tor" as NetworkName] : [])];
 
 let lanes: Lane[] = laneIds.map(newLane);
 const workers = new Map<NetworkName, AnonRpcWorker>();
@@ -228,8 +233,10 @@ function maintain() {
   // Nothing in the background while the app is hidden (it pauses; background watching sends its own reads).
   if (typeof document !== "undefined" && document.hidden) return;
   const now = Date.now();
-  const [p, s] = [lane(laneIds[0]), laneIds[1] ? lane(laneIds[1]) : undefined];
+  const [p, s, t] = [lane(laneIds[0]), laneIds[1] ? lane(laneIds[1]) : undefined, laneIds[2] ? lane(laneIds[2]) : undefined];
   if (s && wantStandby(p, s, now, warmStandby())) startLane(s.id);
+  // The third lane (Tor) only when both mixnets are down.
+  if (t && t.status === "idle" && p.status === "down" && s?.status === "down") startLane(t.id);
   for (const l of lanes) {
     if (!probeDue(l, now) && !keepWarmDue(l, now)) continue;
     setLane(l.id, (x) => ({ ...x, nextProbeAt: now + x.backoffMs })); // one probe at a time

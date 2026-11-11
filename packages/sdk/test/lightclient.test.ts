@@ -52,3 +52,17 @@ describe("light client", () => {
     expect(branchOk(Buffer.from(h.execution_block_hash.slice(2), "hex"), h.execution_branch, 11, 808, h.beacon.state_root)).toBe(false);
   });
 });
+
+describe("light client recovery", () => {
+  test("a failed bootstrap (slow network) is retried on the next use", async () => {
+    let calls = 0;
+    const flaky = async (path: string) => {
+      if (path.includes("/bootstrap/") && calls++ === 0) throw new Error("no answer in 60s");
+      return served()(path);
+    };
+    const lc = new LightClient({ get: flaky, checkpoint: checkpoint as `0x${string}` });
+    await expect(lc.ready).rejects.toThrow(/failed/);
+    await expect(lc.ready).resolves.toBeUndefined();
+    expect(calls).toBe(2);
+  }, 30_000);
+});

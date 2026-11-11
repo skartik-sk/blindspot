@@ -15,7 +15,8 @@ const host = (u?: string) => (u ? new URL(u).host : "not set");
 const CHOICES: { id: NetworkName; name: string; note: string; disabled?: string }[] = [
   { id: "sphinx", name: "Nox (default)", note: "First block in ~10 s, then ~2.6 s per block. Keeps up with the chain." },
   { id: "nym", name: "Nym", note: "First block in ~50 s (downloads a larger client), then ~16 s per block: slower than Sepolia's 12 s blocks, so alerts lag." },
-  { id: "tor", name: "Tor", note: "Needs a gateway into Tor.", disabled: "Unavailable: the public demo gateway is offline." },
+  { id: "tor", name: "Tor", note: "Real per-request circuits (Tor honours isolation keys). First block in about 30 s.",
+    disabled: import.meta.env.VITE_TOR_GATEWAYS ? undefined : "Needs a Tor gateway: run `docker compose --profile tor` and set VITE_TOR_GATEWAYS." },
 ];
 
 /** Both anonymous networks side by side: the backup takes over instantly if the usual one stalls. */
