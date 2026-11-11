@@ -100,6 +100,15 @@ describe("provider: only verified data reaches the caller", () => {
     expect(got.transactions[0].gasLimit).toBeUndefined();
     expect(got.transactions[0].input).toBe(block.transactions[0].input);
   }, 30_000);
+
+  test("keys a transaction's type doesn't sign are dropped; an unknown type is refused", async () => {
+    const legacyIdx = block.transactions.findIndex((t: any) => t.type === "0x0");
+    const fakeFees = editTx(legacyIdx, { maxFeePerGas: "0x1", accessList: [{ address: "0x" + "00".repeat(20), storageKeys: [] }] });
+    const got = (await provider(blockRpc([block], fakeFees)).request({ method: "eth_getBlockByNumber", params: [block.number, true] })) as any;
+    expect(got.transactions[legacyIdx].maxFeePerGas).toBeUndefined();
+    expect(got.transactions[legacyIdx].accessList).toBeUndefined();
+    await expect(provider(blockRpc([block], editTx(0, { type: "0x7f" }))).request({ method: "eth_getBlockByNumber", params: [block.number, true] })).rejects.toThrow(/unknown transaction type/);
+  }, 30_000);
 });
 
 describe("provider: blocks proven by the light client", () => {

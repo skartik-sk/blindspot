@@ -18,10 +18,22 @@ const lc = (x: unknown) => String(x).toLowerCase();
 const int = (n: bigint): Hex => (n === 0n ? "0x" : toHex(n));
 const EMPTY_UNCLES = "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
 
-/** Keys that are signed, or derived from signed data and the verified header (each checked in verifyBody). */
-const TX_KEYS = ["type", "chainId", "nonce", "gas", "gasPrice", "maxFeePerGas", "maxPriorityFeePerGas", "maxFeePerBlobGas",
-  "to", "value", "accessList", "input", "blobVersionedHashes", "authorizationList", "r", "s", "v", "yParity",
-  "hash", "from", "blockHash", "blockNumber", "transactionIndex", "blockTimestamp"];
+/** Per transaction type: the keys its signed encoding contains. Nothing else of a transaction is returned. */
+const LEGACY = ["nonce", "gasPrice", "gas", "to", "value", "input", "v", "r", "s", "chainId"];
+const T1 = ["chainId", "nonce", "gasPrice", "gas", "to", "value", "input", "accessList", "yParity", "v", "r", "s"];
+const T2 = ["chainId", "nonce", "maxPriorityFeePerGas", "maxFeePerGas", "gas", "to", "value", "input", "accessList", "yParity", "v", "r", "s"];
+const SIGNED_KEYS: Record<string, string[]> = {
+  "0x0": LEGACY, "0x1": T1, "0x2": T2,
+  "0x3": [...T2, "maxFeePerBlobGas", "blobVersionedHashes"],
+  "0x4": [...T2, "authorizationList"],
+};
+/** Derived from the signed bytes and the verified header (each checked in verifyBody); gasPrice too for fee-market types. */
+const DERIVED = ["type", "hash", "from", "blockHash", "blockNumber", "transactionIndex", "blockTimestamp"];
+const txKeys = (type: unknown) => {
+  const signed = SIGNED_KEYS[String(type)];
+  if (!signed) throw new Error(`unknown transaction type ${String(type)}`);
+  return [...signed, ...DERIVED, ...(signed.includes("maxFeePerGas") ? ["gasPrice"] : [])];
+};
 const WITHDRAWAL_KEYS = ["index", "validatorIndex", "address", "amount"];
 const pick = (o: any, keys: readonly string[]) => Object.fromEntries(keys.filter((k) => o?.[k] !== undefined).map((k) => [k, o[k]]));
 
@@ -33,7 +45,7 @@ const pick = (o: any, keys: readonly string[]) => Object.fromEntries(keys.filter
 export function onlyVerifiable(b: any): any {
   if (!Array.isArray(b.transactions) || b.transactions.some((t: unknown) => typeof t !== "object" || t === null)) throw new Error("block body missing");
   if ((b.uncles?.length ?? 0) > 0) throw new Error("unexpected uncles");
-  const out: any = { ...pick(b, [...HEADER_FIELDS.map(([k]) => k), "hash"]), uncles: [], transactions: b.transactions.map((t: any) => pick(t, TX_KEYS)) };
+  const out: any = { ...pick(b, [...HEADER_FIELDS.map(([k]) => k), "hash"]), uncles: [], transactions: b.transactions.map((t: any) => pick(t, txKeys(t.type))) };
   if (b.withdrawals !== undefined) out.withdrawals = Array.isArray(b.withdrawals) ? b.withdrawals.map((w: any) => pick(w, WITHDRAWAL_KEYS)) : b.withdrawals;
   return out;
 }
@@ -65,6 +77,10 @@ export async function verifyBody(b: any): Promise<void> {
     if (lc(await recoverTransactionAddress({ serializedTransaction: raws[i] as any })) !== lc(t.from)) bad("sender");
     if (lc(t.blockHash) !== lc(b.hash) || BigInt(t.blockNumber) !== BigInt(b.number) || BigInt(t.transactionIndex) !== BigInt(i)) bad("block position");
     if (t.blockTimestamp != null && BigInt(t.blockTimestamp) !== BigInt(b.timestamp)) bad("timestamp");
+    if (t.type === "0x0" && t.chainId != null) {
+      const v = BigInt(t.v); // EIP-155: v = chainId*2 + 35/36; pre-155 (27/28) has no chain id
+      if (v < 35n || (v - 35n) / 2n !== BigInt(t.chainId)) bad("chain id");
+    }
     if (t.type !== "0x0" && t.yParity != null && t.v != null && BigInt(t.v) !== BigInt(t.yParity)) bad("v/yParity");
     if (t.maxFeePerGas != null && t.gasPrice != null && base !== undefined) {
       const tip = BigInt(t.maxPriorityFeePerGas), max = BigInt(t.maxFeePerGas);
