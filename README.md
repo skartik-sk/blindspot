@@ -162,7 +162,9 @@ await follow({ rpc, anchor, onBlock: (b) => {
 ```
 
 **For any wallet or dapp: an EIP-1193 provider.** Every read goes through the anonymous fetch you give it, block
-headers are checked against their hashes (and, with a light client, against heads the sync committee signed),
+reads are checked: the header hashes to itself and is the block asked for, a full-transaction block re-encodes to its
+`transactionsRoot`, and with a light client `latest` is the head the sync committee signed and any other block must
+link to it by parent hashes (up to 64 back; older or newer blocks are refused rather than passed through).
 `eth_chainId` is answered locally, and anything that would sign or send for an account is refused (error 4200):
 
 ```ts
