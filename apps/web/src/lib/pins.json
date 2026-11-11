@@ -34,7 +34,7 @@
       "kps:152.236.3.22:12298:uEiCH0VdbhryzJcMtCfB0vLA4sOvHdQ4hq5w7CopcwU59bQ/keccak/5b/62f358ce7a2b94ee9bc3a0e6a08757db68fa08fc348276f31eda788aec818b"
     ],
     "checkedAt": "2026-11-11",
-    "selfHosted": false
+    "selfHosted": true
   },
   "beacon": {
     "checkpoint": "0xf83998ad1aac2c1ec21a7162e4941ef3cbbf81eeebc8624034f2aaea2f9df7b4",

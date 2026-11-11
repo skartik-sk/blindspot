@@ -186,10 +186,13 @@ function checkPinLater(via: NetworkName) {
 }
 
 // Dev-only failure switches, to exercise the failover on a desktop:
-// ?simulate-nox-fail (Nox never starts, like iPhone Safari) and ?simulate-nox-stall (Nox stops after 20 s).
+// ?simulate-nox-fail (Nox never starts, like iPhone Safari), ?simulate-nox-stall (Nox stops after 20 s) and
+// ?simulate-mixnets-fail (Nox and Nym both down: the Tor lane takes over, if a gateway is configured).
 const t0 = Date.now();
 function simulated(id: NetworkName): Error | undefined {
-  if (!import.meta.env.DEV || id !== "sphinx") return;
+  if (!import.meta.env.DEV) return;
+  if (location.search.includes("simulate-mixnets-fail") && id !== "tor") return new Error("NoTunnelExitError: No exit offers TLS tunnels (simulated)");
+  if (id !== "sphinx") return;
   if (location.search.includes("simulate-nox-fail")) return new Error("NoxWorkerError: kps.exchange.failed /topology: TOPOLOGY_FETCH_FAILED (simulated)");
   if (location.search.includes("simulate-nox-stall") && Date.now() - t0 > 20_000) return new Error("NoTunnelExitError: No exit offers TLS tunnels (simulated)");
 }
@@ -314,7 +317,12 @@ function computeNotice(): FailoverNotice {
   const a = active();
   if (a) everUp = true;
   const p = lane(preferred);
-  if (a && a !== preferred) return { kind: "switched", text: `${NETWORKS[preferred].short} isn't responding` };
+  if (a && a !== preferred) {
+    // Tor only takes over when every mixnet is down; name them all.
+    const down = lanes.filter((l) => l.id !== a && l.status === "down").map((l) => NETWORKS[l.id].short);
+    const who = a === "tor" && down.length > 1 ? down.join(" and ") + " aren't" : `${NETWORKS[preferred].short} isn't`;
+    return { kind: "switched", text: `${who} responding`, to: a };
+  }
   if (!a && chosen && p.status === "down" && STANDBY[preferred]) return { kind: "suggest", text: `${NETWORKS[preferred].short} isn't responding`, to: STANDBY[preferred] };
   if (!a && everUp && lanes.every((l) => l.status === "down" || l.status === "idle"))
     return { kind: "stuck", text: lanes.filter((l) => l.status === "down").map((l) => NETWORKS[l.id].short).join(" and ") + " aren't responding" };

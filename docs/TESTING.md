@@ -25,7 +25,8 @@ If any step fails, write down the step number, the time, and what the status pil
 - **Time:** about 10 s to Live on Nox. On Nym (you'll see a banner saying so), about 50 s.
 - **If it fails:**
   - Stuck on "Connecting" for over 60 s: reload once.
-  - A "Using the backup network" banner: Nox stalled and Nym took over without a reload. Not a failure; note it.
+  - A "Using Nym because Nox isn't responding" banner: Nox stalled and Nym took over without a reload. Not a failure;
+    note it. ("Using Tor because Nox and Nym aren't responding" appears only on a build with a Tor gateway.)
 
 ## 3. Back up the key
 - **Do:** **Send** → scroll to **This wallet's key** → **Back up key**. Tick **I understand**, then **Show**, then

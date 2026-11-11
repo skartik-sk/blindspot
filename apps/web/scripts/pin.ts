@@ -25,8 +25,8 @@ for (const n of NETS) {
   const resolvers = [...((await c.readContract({ address: n.address, abi, functionName: "workerResolvers" })) as string[])];
   const file = join(ROOT, "public/w", `${workerHash.slice(2)}.js`);
   let selfHosted = existsSync(file) && keccak256(readFileSync(file)) === workerHash;
-  // Tor's bundle is only fetched on demand (Tor isn't offered by default), so it's pinned but not copied.
-  if (!selfHosted && n.id !== "tor") {
+  // Every bundle, Tor's too, is served from our own site: fetching it from a CDN would tell the CDN this IP uses it.
+  if (!selfHosted) {
     for (const url of resolvers) {
       try {
         const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
