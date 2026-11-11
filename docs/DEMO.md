@@ -13,7 +13,7 @@ so the traffic share has settled. Whale wallet funded. Second window ready to se
 | 0:40–1:15 | Second window: whale swaps ETH→USDC. Phone: alert appears (sold / bought) → tap Copy → Trade screen prefilled → Send | "The whale just swapped. We saw it in the next block, from the verified receipts, not from a server telling us. One tap to copy. Signed on the phone, sent out through the mixnet." Wait for "Landed in block N". | works end to end |
 | 1:15–1:40 | Lookup → tap a suggested address (or the whale) → balance, then "Recent activity" | "Balance and history of any wallet. PIR: the server computes over its whole table, encrypted, and can't tell which row we asked for. Then we download the blocks, mixed with up to seven other wallets' blocks, so the relay can't tell whose history it was." | depth |
 | 1:40–2:10 | Spy panel, both columns + relay log | "Left: the normal wallet, addresses and IP. Right: everything we sent. Block numbers only, from mixnet exits. Bottom: our relay's own log. Same story from the server's side." | privacy proof |
-| 2:10–2:30 | Network → Traffic share | "97% of requests went through Anon-RPC. The rest are Anon-RPC's own startup: reading the public network contract and downloading its code. Counted, not hidden." | traffic share |
+| 2:10–2:30 | Network → Traffic share | "100% of requests went through Anon-RPC, from the very first one: the app answers Anon-RPC's startup reads from pins and serves the worker code itself." | traffic share |
 | 2:30–3:00 | README "How a block is proven" / landing | "Every block is checked three ways: header hash, the EIP-7928 access-list hash, the receipts root, then cross-checked with a second provider. It's an SDK any wallet can drop in. Limits are in the README: PIR covers ~1k addresses, Sepolia has no private builder. We never say 100% private." | could ship, limits |
 
 ## How the traffic share is calculated
@@ -21,14 +21,14 @@ so the traffic share has settled. Whale wallet funded. Second window ready to se
 `share = mixnet / (mixnet + bootstrap + direct)`, counted in `apps/web/src/lib/reqlog.ts` since the page loaded:
 
 - **mixnet:** every request sent through `anonFetch` → Anon-RPC worker (blocks, anchor checks, PIR, quotes, sends, relay log).
-- **bootstrap:** Anon-RPC's own direct startup requests: 2 reads of its specifier contract (public data, no
-  address). Its code bundle now loads from our own site, hash-checked. Counted against us. A resource observer catches any direct
-  request the app didn't log itself.
+- **bootstrap:** Anon-RPC's own direct startup requests. Since Nov 11 there are none: the app answers the two
+  specifier reads from pins and serves the worker code from its own site. They only reappear for a network whose pin
+  went stale (then 2 reads, no address), and they're counted against us.
 - **direct:** calls to a relay on localhost (dev only; 0 on the deployed site).
 - **Not counted:** the Spy panel's opt-in "normal wallet" demo lane, which exists to show the leak and is shown separately.
 
-Measured on Nov 6 on the deployed site: 109 / 112 = 97.3%; it rises over time because bootstrap happens only
-at startup.
+Measured on Nov 11 on a production build: 100.0% from the first request. (Nov 6, before pinning: 109 / 112 = 97.3%; it rose over time because bootstrap happened only
+at startup.)
 
 ## If the network is down
 

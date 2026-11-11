@@ -25,7 +25,7 @@ If any step fails, write down the step number, the time, and what the status pil
 - **Time:** about 10 s to Live on Nox. On Nym (you'll see a banner saying so), about 50 s.
 - **If it fails:**
   - Stuck on "Connecting" for over 60 s: reload once.
-  - A "using Nym" banner: that's the automatic fallback, not a failure. Note it and continue.
+  - A "Using the backup network" banner: Nox stalled and Nym took over without a reload. Not a failure; note it.
 
 ## 3. Back up the key
 - **Do:** **Send** → scroll to **This wallet's key** → **Back up key**. Tick **I understand**, then **Show**, then
@@ -120,8 +120,8 @@ If any step fails, write down the step number, the time, and what the status pil
 - **Do:** open **Network**.
 - **Expect:**
   - Relay "Answering", the current block, and "Since last block" counting up and resetting about every 12 s.
-  - Traffic share shows "Measuring…" for the first ~20 requests, then a % that starts around 91% and climbs to
-    96–99%.
+  - Traffic share shows "Measuring…" for the first ~20 requests, then 100%.
+  - "Networks" lists Nox and Nym; "Block proof" says "Light client · head signed by the sync committee at slot N".
   - "Per block" and "Data use" (~250–330 KB per block).
 - **Time:** instant; the share needs a few minutes to climb.
 - **If it fails:** "Relay: Waiting for the next block" for over a minute means the relay is slow. Reload once.

@@ -16,9 +16,11 @@ Every block is checked on the phone:
 - `keccak(rlp(header))` must equal the block hash;
 - `keccak(rlp(accessList))` must equal the header's `blockAccessListHash` (EIP-7928);
 - the receipts trie is rebuilt and must match `receiptsRoot`;
-- a second operator (Tenderly) must confirm the same block hash.
+- a beacon light client: the block must link by parent hash to an execution block hash the Ethereum sync committee
+  (512 validators) signed, checked with their BLS signatures on the phone.
 
-To fake a block, our relay and Tenderly would both have to lie the same way. Two things are *not* proven: pending
+So the relay can't make up a block: it would need two thirds of the sync committee to sign it. (Since Nov 11; before
+that a second operator, Tenderly, confirmed each hash, and that's still the fallback if the light client can't run.) Two things are *not* proven: pending
 (mempool) alerts, which are labelled as such, and PIR answers (see 4).
 
 ### 3. What does the relay learn about me?
@@ -92,12 +94,14 @@ pass the public mempool: Flashbots has no Sepolia endpoint, and the builders pub
 Flashbots Protect and MEV Blocker both accepted transactions through Anon-RPC in our test, but they aren't built in,
 because the app is Sepolia-only.
 
-### 10. So you trust the relay plus Tenderly. What's the plan to remove that?
+### 10. Do you trust the relay?
 
-A light client. We checked: Lodestar's Sepolia node serves light-client optimistic updates (478 of 512 sync-committee
-signatures), and its header includes `execution_block_hash` with an 11-node branch. That is everything needed to
-prove the execution block hash from the sync committee instead of asking a second provider. Its consensus reads would
-also go through Anon-RPC. It's 4–8 hours of high-risk work, so it wasn't rushed in.
+Not for the blocks. Since Nov 11 the phone runs a light client: it starts from a finalized checkpoint (pinned, and
+cross-checked with a second beacon API at build time), follows the sync committee period by period, and checks every
+signed head (BLS aggregate signature from at least 2/3 of 512 validators, plus the Merkle branch to the execution
+block hash). The beacon data comes through Anon-RPC. A block shows at once and gets its ✓ when a signed head links
+back to it; copy trade waits for that ✓. The relay is still trusted to be available, and for the private lookup's
+answer, which is labelled until a verified block shows it.
 
 ### 11. Why Sepolia? Does it work on mainnet?
 
@@ -109,10 +113,10 @@ mainnet private-send route is already tested.
 
 - **Mixnet entry node:** sees that you use the mixnet, not where your traffic goes or what it says.
 - **GitHub Pages:** sees it when you load the site.
-- **Anon-RPC's startup:** two reads of its public network contract and a code download. They carry no address and
-  are counted against our traffic share, which starts around 91% and climbs to 96–99%.
+- **Anon-RPC's startup:** nothing, since Nov 11. The app answers the worker's two startup reads from pins and serves
+  the worker code from its own site, so 100% of requests go through Anon-RPC from the first one.
 - **The Spy panel's "Normal RPC" column:** sends directly, on purpose, and only about public demo contracts.
 
-Everything else reaches servers from mixnet exits. We used to say that separate isolation keys keep an exit from
-linking one kind of request to another. Then we checked the worker code Anon-RPC actually runs (Nox 0.4.1, Nym 0.1.0):
-neither reads the key. So we don't claim it. Blindspot doesn't need it, because block requests carry no address.
+Everything else reaches servers from mixnet exits. Isolation keys: we checked the worker code Anon-RPC actually runs,
+and the Nox and Nym workers ignore them, so we don't claim they separate requests there; Tor's worker does honour
+them (different keys, different circuits). Blindspot doesn't depend on them, because block requests carry no address.

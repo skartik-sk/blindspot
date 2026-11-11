@@ -14,3 +14,9 @@ HANDOFF.md
 backup-*.txt
 blindspot-key-*.txt
 .rec/
+
+# Rendered video and its working files (kept locally, shared by link)
+docs/video/*.mp4
+docs/video/backup/
+docs/video/demo.html
+docs/video/*.srt

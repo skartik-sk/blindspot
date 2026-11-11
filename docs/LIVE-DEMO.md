@@ -32,7 +32,7 @@ You need two devices:
 | 4 | Wait | The pending row turns into "Whale swapped … · block N ✓" | "Now the block landed. My phone checked the header hash, the access list, the receipts, and a second provider. Nobody was asked about this wallet." (about 20–40 s after the send) |
 | 5 | Tap **Copy trade**, type `0.0005`, tap **Trade ETH for USDC** | Price comes in through the mixnet, then "Landed · Verified · block N" | "Signed on the phone and sent through the mixnet. The quote names the pair and size, not who asked." |
 | 6 | **Lookup** → paste `0xC2D7d07c52F556b1837E5FD51989850Fa4f173E9` → **Look up privately** | Balance in 3–10 s with "Private, not yet proven", then history "Hidden among 8", then sometimes "Partly proven ✓" | "PIR: the server computes over its whole table and can't tell which row I read. Then the phone checks the answer against blocks it verified." |
-| 7 | **Network** (after about 5 min of the app running) | Relay status, current block, traffic share (starts around 90%, climbs to 97–99%) | "Every request and its route. The only direct ones are Anon-RPC's own startup reads, 2 or 3 when the page opens, and we count them against ourselves. That's why it starts near 90% and climbs." |
+| 7 | **Network** (after about 5 min of the app running) | Relay status, current block, traffic share (100% from the first request) | "Every request and its route. The only direct ones are Anon-RPC's own startup reads, 2 or 3 when the page opens, and we count them against ourselves. That's why it starts near 90% and climbs." |
 
 ## If something goes wrong
 
@@ -46,5 +46,5 @@ You need two devices:
 
 ## Don't say
 
-"100% private", "works on mainnet", "the relay can't lie" (say "faking a block needs our relay and a second provider
+"100% private", "works on mainnet", "the relay can't lie" (say "a fake block would need the sync committee's signatures; the phone checks them"
 to collude"), "full history".
