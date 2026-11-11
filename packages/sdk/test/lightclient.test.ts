@@ -66,3 +66,19 @@ describe("light client recovery", () => {
     expect(calls).toBe(2);
   }, 30_000);
 });
+
+describe("pinned bootstrap", () => {
+  test("starts from bootstrap data shipped with the app, without asking the beacon API for it", async () => {
+    const get = async (path: string) => { if (path.includes("/bootstrap/")) throw new Error("not served any more"); return served()(path); };
+    const lc = new LightClient({ get, checkpoint: checkpoint as `0x${string}`, bootstrap: bootstrap.data });
+    await lc.ready;
+    expect((await lc.verifyUpdate(optimistic.data)).hash).toBe(optimistic.data.attested_header.execution_block_hash.toLowerCase());
+  }, 30_000);
+
+  test("shipped bootstrap data is still checked against the pinned root", async () => {
+    const forged = structuredClone(bootstrap.data);
+    forged.header.beacon.slot = String(Number(forged.header.beacon.slot) + 1);
+    const lc = new LightClient({ get: served(), checkpoint: checkpoint as `0x${string}`, bootstrap: forged });
+    await expect(lc.ready).rejects.toThrow(/does not match the checkpoint/);
+  });
+});

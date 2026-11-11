@@ -150,6 +150,9 @@ export interface LightClientOptions {
   get: BeaconGet;
   /** A finalized beacon block root to start from (pinned at build time). */
   checkpoint: Hex;
+  /** The bootstrap for that checkpoint, saved at build time. Beacon APIs only serve bootstraps for recent
+   *  checkpoints (Lodestar: about an hour), so an app pins the data too. It's verified here like a fetched one. */
+  bootstrap?: unknown;
   spec?: ChainSpec;
   /** Reject heads older than this (seconds). */
   maxHeadAgeS?: number;
@@ -181,8 +184,7 @@ export class LightClient {
   }
 
   private async bootstrap() {
-    const r = await this.get(`/eth/v1/beacon/light_client/bootstrap/${this.o.checkpoint}`);
-    const boot = r?.data;
+    const boot = (this.o.bootstrap as any) ?? (await this.get(`/eth/v1/beacon/light_client/bootstrap/${this.o.checkpoint}`))?.data;
     if (!boot) throw new LightClientError("light client: bootstrap not served for the pinned checkpoint");
     if (hx(beaconRoot(boot.header.beacon)) !== this.o.checkpoint.toLowerCase()) throw new LightClientError("light client: bootstrap does not match the checkpoint");
     const [d, i] = layout(this.spec, boot.header.beacon.slot).current;

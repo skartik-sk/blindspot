@@ -82,6 +82,7 @@ function run(from?: bigint, skipped = 0) {
   // each block hash, as before. If the light client keeps failing later, the loop restarts on the second provider.
   const lc = useLightClient ? lightClient() : undefined;
   let lcErrors = 0;
+  const lcStarted = Date.now();
   // Mid-session failover: if the mixnet stops delivering verified blocks, switch to the other anonymous network.
   resetHealth();
   const watchdog = setInterval(checkFailover, 5000);
@@ -94,9 +95,11 @@ function run(from?: bigint, skipped = 0) {
       if (signal.aborted) return;
       const msg = (e as Error).message ?? String(e);
       // Only the light client's own failures count (never relay errors or contradictions), and any anchored block
-      // resets the count. After 5 in a row the loop falls back to a second provider, and says so.
-      if (lc && e instanceof LightClientError && ++lcErrors >= 5) {
+      // resets them. If it has kept failing for 2 minutes the loop falls back to a second provider, says so, and
+      // tries the light client again 10 minutes later.
+      if (lc && e instanceof LightClientError && ++lcErrors >= 5 && Date.now() - lcStarted > 120_000) {
         useLightClient = false;
+        setTimeout(() => { if (!useLightClient) { useLightClient = true; if (ac && !document.hidden) { ac.abort(); ac = undefined; run(lastBlock !== undefined ? lastBlock + 1n : undefined); } } }, 10 * 60_000);
         proofFallback(msg);
         setState((s) => ({ status: { ...s.status, message: "The light client isn't available, so a second provider now checks each block (see Network)." } }));
         ac?.abort(); ac = undefined;

@@ -4,6 +4,7 @@ import { LightClient, newIsolationKey, type VerifiedHead } from "@blindspot/sdk"
 import { anonFetch } from "./anon";
 import { config } from "./config";
 import pins from "./pins.json";
+import bootstrap from "./lc-bootstrap.json";
 
 let lc: LightClient | undefined;
 const subs = new Set<() => void>();
@@ -30,7 +31,7 @@ export function lightClient(): LightClient | undefined {
   const checkpoint = (pins as { beacon?: { checkpoint: `0x${string}` } }).beacon?.checkpoint;
   if (!checkpoint || !config.beaconUrls.length) return undefined;
   if (!lc) {
-    lc = new LightClient({ get: beaconGet, checkpoint });
+    lc = new LightClient({ get: beaconGet, checkpoint, bootstrap });
     const latest = lc.latest.bind(lc);
     lc.latest = async () => { const h = await latest(); set({ mode: "light-client", head: h, error: undefined }); return h; };
   }

@@ -59,5 +59,7 @@ const other = (await (await fetch(`${CROSS}/eth/v1/beacon/headers/${fin.header.m
 if (other?.root?.toLowerCase() !== fin.root.toLowerCase()) throw new Error(`${CROSS} disagrees on the block root at slot ${fin.header.message.slot}: ${other?.root}`);
 const beacon = { checkpoint: fin.root as Hex, slot: Number(fin.header.message.slot), checkedAt: new Date().toISOString().slice(0, 10), crossCheckedWith: new URL(CROSS).host };
 console.log(`beacon checkpoint: ${beacon.checkpoint} (slot ${beacon.slot}), cross-checked with ${beacon.crossCheckedWith}`);
+// Beacon APIs stop serving a bootstrap within hours, so the verified bootstrap ships with the app.
+writeFileSync(join(ROOT, "src/lib/lc-bootstrap.json"), JSON.stringify(boot) + "\n");
 writeFileSync(join(ROOT, "src/lib/pins.json"), JSON.stringify({ ...pins, beacon }, null, 2) + "\n");
 console.log("wrote src/lib/pins.json");

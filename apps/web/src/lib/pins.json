@@ -37,8 +37,8 @@
     "selfHosted": false
   },
   "beacon": {
-    "checkpoint": "0x6bd1ab6f7c4189bb63f6b301826ea919dac2b24b8b3f103471b3428b4c44753f",
-    "slot": 11554272,
+    "checkpoint": "0xf83998ad1aac2c1ec21a7162e4941ef3cbbf81eeebc8624034f2aaea2f9df7b4",
+    "slot": 11554336,
     "checkedAt": "2026-11-11",
     "crossCheckedWith": "ethereum-sepolia-beacon-api.publicnode.com"
   }
