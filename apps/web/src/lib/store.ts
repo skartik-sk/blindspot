@@ -27,6 +27,11 @@ export interface Alert {
   title: string;
   detail: string;
   anchored: boolean;
+  /** Hash of the block this alert came from: anchoring matches number AND hash, so a reorged or fake block never
+   *  inherits a checkmark. */
+  blockHash?: string;
+  /** The signed chain contradicts this alert's block: the relay served a fake or forked block. */
+  contradicted?: boolean;
   /** Tx position in the block, for copy-trade context. */
   tx?: number;
   /** Swap legs, when the watched wallet's own transfers show them. */
@@ -49,6 +54,8 @@ export interface TapeBlock {
   hits: number;
   /** When this device verified the block (ms since epoch). */
   at?: number;
+  /** Block hash, matched when anchoring. */
+  hash?: string;
 }
 
 export interface Trader {

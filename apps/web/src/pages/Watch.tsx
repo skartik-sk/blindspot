@@ -25,14 +25,16 @@ const tradable = new Set<string>([TOKEN.USDC, TOKEN.WETH, ETH_LOGGER]);
 
 function AlertRow({ a, fresh, own }: { a: Alert; fresh: boolean; own: boolean }) {
   const legs = a.sold && a.bought;
-  // Only verified swaps can be copied: a pending one is unproven and could be fake.
-  const canCopy = !own && !a.pending && a.kind === "swap" && !!legs && tradable.has(a.sold!.token) && tradable.has(a.bought!.token);
+  // Only proven swaps can be copied: a pending one, or one whose block isn't anchored yet, could be fake.
+  const supported = a.kind === "swap" && !!legs && tradable.has(a.sold!.token) && tradable.has(a.bought!.token);
+  const canCopy = !own && !a.pending && a.anchored && !a.contradicted && supported;
   return (
     <li className="alert-row" data-new={fresh}>
       <span className="alert-icon" data-kind={a.kind}><Icon name={a.kind} /></span>
       <div style={{ minWidth: 0, display: "grid", gap: 2 }}>
         <span className="row-title"><span>{a.title}</span></span>
         {a.pending && <span className="small muted">Unverified, could be wrong until the block confirms it.</span>}
+        {a.contradicted && <span className="small down">The block proof failed: the relay served a block the sync committee didn't sign. This alert may be fake.</span>}
         <span className="row-sub">{legs ? <><Leg leg={a.sold} /><span aria-label="for">→</span><Leg leg={a.bought} noAmount={a.pending} /></> : <span>{a.detail.replace(short(ETH_LOGGER), "ETH")}</span>}</span>
       </div>
       <div className="row-end small">
@@ -42,9 +44,11 @@ function AlertRow({ a, fresh, own }: { a: Alert; fresh: boolean; own: boolean })
           : <span className={a.anchored ? "up" : "faint"}>block {a.block}{a.anchored ? " ✓" : ""}</span>}
         {canCopy
           ? <a className="btn small" href={`#/send?copy=${encodeURIComponent(a.id)}`}>Copy trade</a>
-          : !own && a.kind === "swap" && legs && (a.pending
+          : !own && a.kind === "swap" && legs && !a.contradicted && (a.pending
             ? <span className="faint">Copy after the block confirms it</span>
-            : <span className="faint" title="Copy trade works only for ETH, WETH and USDC on Sepolia.">Can't copy: unsupported token</span>)}
+            : !supported
+              ? <span className="faint" title="Copy trade works only for ETH, WETH and USDC on Sepolia.">Can't copy: unsupported token</span>
+              : <span className="faint">Copy once the block is proven ✓</span>)}
       </div>
     </li>
   );

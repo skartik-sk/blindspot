@@ -6,6 +6,7 @@ import { NETWORK_KEY, config, isLocal, type NetworkName } from "../lib/config";
 import { fmtBytes } from "../lib/format";
 import { reqlog, trafficShare } from "../lib/reqlog";
 import { useStore } from "../lib/store";
+import { proofState } from "../lib/proof.light";
 import { friendly } from "../lib/errors";
 
 const host = (u?: string) => (u ? new URL(u).host : "not set");
@@ -34,6 +35,16 @@ function Lanes() {
       ))}
     </ul>
   );
+}
+
+/** How blocks are proven: the light client (sync committee signatures) or, as a fallback, a second provider. */
+function Proof() {
+  const p = useSyncExternalStore(proofState.subscribe, proofState.get);
+  if (p.mode === "light-client")
+    return <>Light client{p.head ? ` · head signed by the sync committee at slot ${p.head.slot.toLocaleString("en-US")}` : ""} · {host(config.beaconUrls[0])} via the mixnet<br /><span className="small muted">Each block counts as proven once a header signed by 512 validators links back to it.</span></>;
+  if (p.mode === "second-provider")
+    return <>{host(config.anchorUrl)} confirms every block hash<br /><span className="small muted">The light client isn't available right now ({p.error?.slice(0, 80)}), so a second provider checks each block instead.</span></>;
+  return <span className="muted">Starting the light client…</span>;
 }
 
 function NetworkPicker() {
@@ -143,7 +154,7 @@ export default function Network() {
         <header><h2>Endpoints</h2></header>
         <dl className="kv">
           <dt>Blocks and events</dt><dd>{host(config.feedUrl)} · {route(config.feedUrl)}<br /><span className="small muted">Asked by block number only</span></dd>
-          <dt>Second opinion</dt><dd>{host(config.anchorUrl)} · {route(config.anchorUrl)}<br /><span className="small muted">Confirms every block hash</span></dd>
+          <dt>Block proof</dt><dd><Proof /></dd>
           <dt>Private lookup</dt><dd>{config.relayUrl ? `${host(config.relayUrl)} · ${route(config.relayUrl)}` : "No relay set (VITE_RELAY_URL)"}</dd>
           <dt>One-off reads</dt><dd>{host(config.readUrl)} · {route(config.readUrl)}<br /><span className="small muted">Through the mixnet; used for sends and addresses outside the directory</span></dd>
           <dt>Sending</dt><dd>{config.privateSendUrl ? `${host(config.privateSendUrl)} · ${route(config.privateSendUrl)}` : `Public mempool via ${host(config.readUrl)} · via ${network().short} (no private builder on Sepolia)`}</dd>

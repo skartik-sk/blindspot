@@ -42,5 +42,13 @@ for (const n of NETS) {
   pins[n.id] = { address: n.address, workerHash, resolvers, checkedAt: new Date().toISOString().slice(0, 10), selfHosted };
   console.log(`${n.id}: ${workerHash} · ${resolvers.length} resolvers · self-hosted ${selfHosted}`);
 }
-writeFileSync(join(ROOT, "src/lib/pins.json"), JSON.stringify(pins, null, 2) + "\n");
+// The light client starts from a recent finalized beacon block root. Pick one the beacon API will bootstrap from,
+// and check that the bootstrap it serves really hashes to that root (the app checks it again at startup).
+const BEACON = process.env.VITE_BEACON_URLS?.split(",")[0] ?? "https://lodestar-sepolia.chainsafe.io";
+const fin = (await (await fetch(`${BEACON}/eth/v1/beacon/headers/finalized`)).json()).data;
+const boot = await (await fetch(`${BEACON}/eth/v1/beacon/light_client/bootstrap/${fin.root}`)).json();
+if (!boot?.data?.header?.beacon || boot.data.header.beacon.slot !== fin.header.message.slot) throw new Error("beacon API didn't bootstrap the finalized root");
+const beacon = { checkpoint: fin.root as Hex, slot: Number(fin.header.message.slot), checkedAt: new Date().toISOString().slice(0, 10) };
+console.log(`beacon checkpoint: ${beacon.checkpoint} (slot ${beacon.slot})`);
+writeFileSync(join(ROOT, "src/lib/pins.json"), JSON.stringify({ ...pins, beacon }, null, 2) + "\n");
 console.log("wrote src/lib/pins.json");

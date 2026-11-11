@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 const mem = new Map<string, string>();
 (globalThis as any).localStorage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) };
 
-const { currentPin, forgetPin, pinnedProvider, refreshPin } = await import("../src/lib/specifier");
+const { checkPin, currentPin, pinnedProvider } = await import("../src/lib/specifier");
 const { SEL_HASH, SEL_RESOLVERS, decodeStrings, encodeStrings } = await import("../src/lib/resolvers");
 const pins = (await import("../src/lib/pins.json")).default as Record<string, { address: string; workerHash: string; resolvers: string[] }>;
 
@@ -27,19 +27,16 @@ describe("pinned specifier", () => {
     await expect(p.request({ method: "eth_call", params: [{ to: "0x0000000000000000000000000000000000000001", data: SEL_HASH }] })).rejects.toThrow(/refusing/);
   });
 
-  test("a newer pin learned through the mixnet is used next time; our old copy isn't offered for it", async () => {
-    const newHash = "0x" + "ab".repeat(32);
-    const newList = ["https://example.org/new.js"];
-    const ethCall = async (_to: string, data: string) => (data === SEL_HASH ? newHash : encodeStrings(newList));
-    expect(await refreshPin("sphinx", NOX, ethCall)).toBe("updated");
-    expect(currentPin("sphinx")).toMatchObject({ workerHash: newHash, resolvers: newList, own: undefined });
-    forgetPin("sphinx");
-    expect(currentPin("sphinx")?.workerHash).toBe(pins.sphinx.workerHash);
+  test("a different live hash only marks the pin stale; nothing from the network is ever saved as a pin", async () => {
+    const ethCall = async (_to: string, data: string) => (data === SEL_HASH ? "0x" + "ab".repeat(32) : encodeStrings(["https://evil.example/worker.js"]));
+    expect(await checkPin("sphinx", NOX, ethCall)).toBe("stale");
+    expect(currentPin("sphinx")).toBeUndefined(); // next start reads the specifier live (stock trust model)
+    expect([...mem.values()].join()).not.toContain("evil");
+    await expect(pinnedProvider("sphinx", NOX, "https://useblindspot.xyz/").request({ method: "eth_call", params: [{ to: NOX, data: SEL_HASH }] })).rejects.toThrow(/refusing/);
   });
 
   test("an unchanged specifier leaves the pin alone", async () => {
-    const ethCall = async () => pins.sphinx.workerHash;
-    expect(await refreshPin("sphinx", NOX, ethCall)).toBe("same");
-    expect(mem.size).toBe(0);
+    expect(await checkPin("sphinx", NOX, async () => pins.sphinx.workerHash)).toBe("same");
+    expect(currentPin("sphinx")?.workerHash).toBe(pins.sphinx.workerHash);
   });
 });

@@ -30,6 +30,11 @@ export const config = {
   feedCompact: !!relay,
   /** Independent provider (different operator from feedUrl): every followed block's hash is checked here. */
   anchorUrl: env.VITE_ANCHOR_URL ?? "https://sepolia.gateway.tenderly.co",
+  /**
+   * Beacon APIs serving light-client data (bootstrap, updates, optimistic updates), tried in order. Everything they
+   * return is checked on the device against the sync committee, starting from the checkpoint pinned in pins.json.
+   */
+  beaconUrls: list(env.VITE_BEACON_URLS, ["https://lodestar-sepolia.chainsafe.io"]),
   /** Reads that name an address (your own balances when PIR can't help, nonce, gas). Fresh route each time. */
   readUrl: env.VITE_READ_URL ?? "https://ethereum-sepolia-rpc.publicnode.com",
   /**

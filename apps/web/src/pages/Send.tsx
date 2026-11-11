@@ -20,7 +20,8 @@ export default function Send({ query }: { query: URLSearchParams }) {
   const alerts = useStore((s) => s.alerts);
   const pending = useStore((s) => s.pendingTx);
   // Verified alerts only: a pending (mempool) alert is unproven and could be fake.
-  const copy = useMemo(() => alerts.find((a) => a.id === query.get("copy")), [alerts, query]);
+  // Proven alerts only: a pending one, or one whose block isn't anchored, could be fake.
+  const copy = useMemo(() => alerts.find((a) => a.id === query.get("copy") && a.anchored && !a.contradicted), [alerts, query]);
 
   const [mode, setMode] = useState<"Swap" | "Send">(copy ? "Swap" : "Send");
   const [asset, setAsset] = useState<Asset>("ETH");

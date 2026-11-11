@@ -6,7 +6,7 @@ import { RpcClient, type AnonFetch } from "@blindspot/sdk";
 import { NETWORK_KEY, config, isLocal, type NetworkName } from "./config";
 import { activeLane, hedgeAfter, keepWarmDue, newLane, onResult, order, probeDue, started, wantStandby, type Lane } from "./lanes";
 import { logRequest } from "./reqlog";
-import { forgetPin, hasPin, pinnedProvider, refreshPin } from "./specifier";
+import { checkPin, hasPin, markStale, pinnedProvider } from "./specifier";
 
 interface Network {
   label: string;
@@ -139,7 +139,7 @@ function startLane(id: NetworkName) {
   w.ready.catch((e: unknown) => {
     const msg = String((e as Error)?.message ?? e);
     if (pinned && /hash|bundle|resolver|specifier/i.test(msg)) {
-      forgetPin(id);
+      markStale(id);
       livePin.add(id);
       restartLane(id);
     } else setLane(id, (l) => onResult(l, false, 0, Date.now(), msg));
@@ -168,7 +168,7 @@ function checkPinLater(id: NetworkName) {
     if (!j.result) throw new Error("no result");
     return j.result as string;
   };
-  setTimeout(() => refreshPin(id, n.address, ethCall).catch(() => {}), 20_000);
+  setTimeout(() => checkPin(id, n.address, ethCall).catch(() => {}), 20_000);
 }
 
 // Dev-only failure switches, to exercise the failover on a desktop:
@@ -181,6 +181,8 @@ function simulated(id: NetworkName): Error | undefined {
 }
 
 type Init = Parameters<AnonFetch>[1] & { anonOptions?: { isolationKey?: string; hedge?: boolean } };
+/** Errors that mean the request never reached the destination (the network couldn't start or route it). */
+const NEVER_LEFT = /TOPOLOGY|kps\.exchange|NoTunnelExit|No exit offers|tunnel setup|not ready|refusing a direct|simulated/i;
 
 /** One attempt on one network, bounded by that network's time limit. Updates the lane's health. */
 async function sendOn(id: NetworkName, url: string, init: Init): Promise<Response> {
@@ -246,7 +248,8 @@ export const anonFetch: AnonFetch = (url, init: Init) => {
     return fetch(url, rest);
   }
   const ids = order(lanes, preferred);
-  const hedge = !!init.anonOptions?.hedge && ids.length > 1;
+  const hedgeable = !!init.anonOptions?.hedge;
+  const hedge = hedgeable && ids.length > 1;
   return new Promise<Response>((resolve, reject) => {
     let settled = false, pending = 0, next = 0, lastErr: unknown;
     const launch = () => {
@@ -256,7 +259,14 @@ export const anonFetch: AnonFetch = (url, init: Init) => {
       logRequest(url, init, "mixnet");
       sendOn(id, url, init).then(
         (r) => { if (!settled) { settled = true; resolve(r); } },
-        (e) => { lastErr = e; pending--; if (!settled && !launch() && pending === 0) { settled = true; reject(lastErr); } },
+        (e) => {
+          lastErr = e; pending--;
+          // A read that names an address moves to the other network only if it never left this one (start-up or
+          // route errors). After a timeout it may have reached the server, and asking again over a second network
+          // would let the server link the two.
+          const retry = hedgeable || NEVER_LEFT.test(String((e as Error)?.message ?? e));
+          if (!settled && !(retry && launch()) && pending === 0) { settled = true; reject(lastErr); }
+        },
       );
       return true;
     };

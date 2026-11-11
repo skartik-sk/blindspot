@@ -4,6 +4,7 @@ import { ETH_LOGGER, SEPOLIA_TOKENS, SEPOLIA_WETH, follow, newIsolationKey, scan
 import type { Address } from "viem";
 import { anonFetch, anonRpc, checkFailover, noteProgress, resetHealth } from "./anon";
 import { resumeFrom } from "./resume";
+import { lightClient, proofFallback } from "./proof.light";
 import { seenFrom, type Seen } from "./proof";
 import { keepWatching, onVisibility } from "./background";
 import { config } from "./config";
@@ -48,6 +49,27 @@ let listening = false;
 let hiddenAt = 0;
 let lastBlock: bigint | undefined;
 
+let useLightClient = true;
+
+/** A signed head reached this block: mark its alerts and tape row anchored, matching number AND hash. */
+function onAnchored(n: bigint, hash: string) {
+  const block = n.toString(), h = hash.toLowerCase();
+  const hit = (b: string, bh?: string) => b === block && bh === h;
+  setState((st) => ({
+    alerts: st.alerts.some((a) => hit(a.block, a.blockHash) && !a.anchored) ? st.alerts.map((a) => (hit(a.block, a.blockHash) ? { ...a, anchored: true } : a)) : st.alerts,
+    tape: st.tape.some((t) => hit(t.number, t.hash) && !t.anchored) ? st.tape.map((t) => (hit(t.number, t.hash) ? { ...t, anchored: true } : t)) : st.tape,
+  }));
+}
+
+/** The signed chain contradicts a block the relay served: flag every alert from it, loudly. */
+function onContradiction(n: bigint, hash: string) {
+  const h = hash.toLowerCase();
+  setState((st) => ({
+    alerts: st.alerts.map((a) => (a.blockHash === h ? { ...a, contradicted: true, anchored: false } : a)),
+    status: { ...st.status, message: `Block ${n} from the relay doesn't match what the sync committee signed. Its alerts are flagged; treat this relay as untrusted.` },
+  }));
+}
+
 function run(from?: bigint, skipped = 0) {
   const g = globalThis as { __bpEngine?: AbortController };
   ac = g.__bpEngine = new AbortController();
@@ -56,16 +78,28 @@ function run(from?: bigint, skipped = 0) {
   const rpc = anonRpc(config.feedUrl, newIsolationKey());
   const anchor = anonRpc(config.anchorUrl, newIsolationKey());
   const signal = ac.signal;
+  // Block proof: the light client (sync committee signatures) when it starts; otherwise a second provider confirms
+  // each block hash, as before. If the light client keeps failing later, the loop restarts on the second provider.
+  const lc = useLightClient ? lightClient() : undefined;
+  let lcErrors = 0;
   // Mid-session failover: if the mixnet stops delivering verified blocks, switch to the other anonymous network.
   resetHealth();
   const watchdog = setInterval(checkFailover, 5000);
   signal.addEventListener("abort", () => clearInterval(watchdog));
   follow({
-    rpc, anchor, compact: config.feedCompact, signal, pollMs: 3000, from,
+    rpc, compact: config.feedCompact, signal, pollMs: 3000, from,
+    ...(lc ? { lightClient: lc, onAnchored, onContradiction } : { anchor }),
     onBlock: (b) => { lastBlock = b.number; noteProgress(); return onBlock(b); },
     onError: (e, n) => {
       if (signal.aborted) return;
       const msg = (e as Error).message ?? String(e);
+      if (lc && /^light client:|stale/i.test(msg) && ++lcErrors >= 5) {
+        useLightClient = false;
+        proofFallback(msg);
+        ac?.abort(); ac = undefined;
+        run(lastBlock !== undefined ? lastBlock + 1n : undefined);
+        return;
+      }
       // A not-yet-produced block is normal; anything else is worth showing.
       setState((s) => ({ status: { ...s.status, phase: s.status.phase === "live" ? "live" : "error", message: `Block ${n}: ${msg}` } }));
     },
@@ -132,7 +166,7 @@ function senders(b: VerifiedBlock) {
 
 export function describe(a: Activity, b: VerifiedBlock): Alert[] {
   const block = b.number.toString();
-  const base = { block, t: Number(b.header.timestamp) * 1000, address: a.address, anchored: b.anchored };
+  const base = { block, blockHash: b.hash.toLowerCase(), t: Number(b.header.timestamp) * 1000, address: a.address, anchored: b.anchored };
   const who = labelOf(a.address) ?? short(a.address);
   const out: Alert[] = [];
   for (const tx of a.sent) {
@@ -234,7 +268,7 @@ async function onBlock(b: VerifiedBlock) {
     pendingAlerts: st.pendingAlerts.filter((p) => !settled.has(p.address.toLowerCase())),
     alerts: [...alerts.filter((a) => !st.alerts.some((x) => x.id === a.id)), ...st.alerts].slice(0, 200),
     tape: [{ number: block, txs: b.receipts.length, accounts: b.bal.length, swaps: b.feed.filter((f) => f.kind === "swap").length,
-      bytes: b.bytes, ms: Math.round(b.ms), anchored: b.anchored, hits: acts.length, at: Date.now() }, ...st.tape].slice(0, 60),
+      bytes: b.bytes, ms: Math.round(b.ms), anchored: b.anchored, hits: acts.length, at: Date.now(), hash: b.hash.toLowerCase() }, ...st.tape].slice(0, 60),
     traders: [...traders, ...st.traders.filter((t) => !traders.some((n) => n.address === t.address))].slice(0, 40),
     ...(landed ? { pendingTx: { ...pending!, landed: block } } : {}),
   }));

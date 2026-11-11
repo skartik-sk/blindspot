@@ -35,5 +35,10 @@
     ],
     "checkedAt": "2026-11-11",
     "selfHosted": false
+  },
+  "beacon": {
+    "checkpoint": "0x94e920e90ee3d9f0ddadb687e884d364d8d887dc324f4fb5c8d38a78bbebd03d",
+    "slot": 11554176,
+    "checkedAt": "2026-11-11"
   }
 }

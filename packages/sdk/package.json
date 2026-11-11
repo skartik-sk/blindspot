@@ -4,6 +4,8 @@
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
+    "@noble/curves": "1.9.1",
+    "@noble/hashes": "1.8.0",
     "paillier-bigint": "^3.4.3",
     "viem": "^2.57.16"
   }
