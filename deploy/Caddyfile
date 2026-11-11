@@ -1,0 +1,17 @@
+# Two sites, automatic HTTPS (Let's Encrypt) for both. Set SITE_DOMAIN and RELAY_DOMAIN in .env.
+# No access log: Caddy keeps none unless configured, and we don't configure one.
+{$SITE_DOMAIN} {
+	root * /srv
+	encode zstd gzip
+	# The worker bundles are content-addressed (file name = keccak256), so they can be cached forever.
+	header /w/* Cache-Control "public, max-age=31536000, immutable"
+	try_files {path} /index.html
+	file_server
+}
+
+{$RELAY_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy relay:8787 {
+		flush_interval -1
+	}
+}

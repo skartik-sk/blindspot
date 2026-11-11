@@ -12,5 +12,7 @@ ENV PORT=8080
 # Behind Railway/fly.io set TRUST_PROXY=1 in the platform config (their proxy appends x-forwarded-for).
 # Off by default: without a trusted proxy, clients could spoof it to dodge rate limits.
 EXPOSE 8080
+# A writable home for the private-lookup state (docker-compose mounts a volume here; an empty volume inherits this owner).
+RUN mkdir -p /data && chown bun:bun /data
 USER bun
 CMD ["bun", "apps/relay/src/server.ts"]

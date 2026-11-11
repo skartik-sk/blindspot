@@ -27,12 +27,12 @@ describe("pinned specifier", () => {
     await expect(p.request({ method: "eth_call", params: [{ to: "0x0000000000000000000000000000000000000001", data: SEL_HASH }] })).rejects.toThrow(/refusing/);
   });
 
-  test("one network's answer changes nothing; both networks agreeing marks the pin stale; nothing is ever saved as a pin", async () => {
+  test("one operator's answer changes nothing; two operators agreeing marks the pin stale; nothing is ever saved as a pin", async () => {
     const ethCall = async (_to: string, data: string) => (data === SEL_HASH ? "0x" + "ab".repeat(32) : encodeStrings(["https://evil.example/worker.js"]));
-    expect(await checkPin("sphinx", NOX, ethCall, "sphinx")).toBe("pending");
-    expect(await checkPin("sphinx", NOX, ethCall, "sphinx")).toBe("pending"); // the same network twice doesn't count
+    expect(await checkPin("sphinx", NOX, ethCall, "publicnode")).toBe("pending");
+    expect(await checkPin("sphinx", NOX, ethCall, "publicnode")).toBe("pending"); // the same operator twice doesn't count
     expect(currentPin("sphinx")?.workerHash).toBe(pins.sphinx.workerHash);
-    expect(await checkPin("sphinx", NOX, ethCall, "nym")).toBe("stale");
+    expect(await checkPin("sphinx", NOX, ethCall, "tenderly")).toBe("stale");
     expect(currentPin("sphinx")).toBeUndefined(); // next start reads the specifier live (stock trust model)
     expect([...mem.values()].join()).not.toContain("evil");
     await expect(pinnedProvider("sphinx", NOX, "https://useblindspot.xyz/").request({ method: "eth_call", params: [{ to: NOX, data: SEL_HASH }] })).rejects.toThrow(/refusing/);

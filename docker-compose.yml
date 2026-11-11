@@ -1,0 +1,57 @@
+# One command to run your own Blindspot: relay + website + automatic HTTPS (and optionally a Tor gateway).
+#   cp .env.example .env   # set SITE_DOMAIN, RELAY_DOMAIN (DNS A records pointing at this machine)
+#   docker compose up -d --build
+#   docker compose --profile tor up -d --build   # also run a Tor gateway (needs UDP 12298 open)
+services:
+  relay:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: "8787"
+      UPSTREAM_RPC: ${UPSTREAM_RPC:-https://ethereum-sepolia-rpc.publicnode.com}
+      PENDING_RPC: ${PENDING_RPC:-}
+      PIR_SEED: ${PIR_SEED:-}
+      PIR_STATE: /data/pir-state.json
+      ENABLE_NAIVE: ${ENABLE_NAIVE:-0}
+      TRUST_PROXY: "1" # Caddy is the only thing in front of it
+    volumes:
+      - relay-data:/data
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/web.Dockerfile
+      args:
+        VITE_RELAY_URL: https://${RELAY_DOMAIN}
+    restart: unless-stopped
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      RELAY_DOMAIN: ${RELAY_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+    depends_on: [relay]
+
+  # Optional: a gateway into Tor for browsers (EF's tor-js-gateway). It relays encrypted bytes to Tor relays only;
+  # it sees users' IPs (like any Tor entry) but never destinations or content. Publish the address it prints.
+  tor-gateway:
+    profiles: [tor]
+    build:
+      context: deploy
+      dockerfile: tor-gateway.Dockerfile
+    restart: unless-stopped
+    environment:
+      PUBLIC_IP: ${PUBLIC_IP:-} # the address clients dial; inside Docker the auto-detected one is private
+    ports:
+      - "12298:12298/udp"
+    volumes:
+      - tor-gateway:/root/.local/share/tor-js-gateway
+      - tor-gateway-config:/root/.config/tor-js-gateway
+
+volumes:
+  relay-data:
+  caddy-data:
+  tor-gateway:
+  tor-gateway-config:

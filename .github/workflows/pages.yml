@@ -1,0 +1,38 @@
+name: Deploy site
+# Builds the web app and publishes it to GitHub Pages. Set the repository variable RELAY_URL to your relay.
+# Repo Settings -> Pages -> Source: GitHub Actions. A custom domain comes from apps/web/public/CNAME.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+      - run: bun install --frozen-lockfile
+      - run: bash scripts/check.sh
+        env:
+          VITE_RELAY_URL: ${{ vars.RELAY_URL }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

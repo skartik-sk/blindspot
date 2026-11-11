@@ -163,7 +163,10 @@ function checkPinLater(via: NetworkName) {
     for (const id of laneIds) {
       if (livePin.has(id)) continue;
       const n = NETWORKS[id];
-      const rpc = config.bootstrap[n.chain][0];
+      // Each network asks a different RPC operator, and agreement is counted per operator: one lying operator
+      // can't make a pin look stale, even through both networks.
+      const list = config.bootstrap[n.chain];
+      const rpc = list[laneIds.indexOf(via) % list.length];
       const ethCall = async (to: string, data: string) => {
         const r = await sendOn(via, rpc, { method: "POST", headers: { "content-type": "application/json" },
           body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to, data }, "latest"] }),
@@ -172,7 +175,7 @@ function checkPinLater(via: NetworkName) {
         if (!j.result) throw new Error("no result");
         return j.result as string;
       };
-      checkPin(id, n.address, ethCall, via).catch(() => {});
+      checkPin(id, n.address, ethCall, new URL(rpc).host).catch(() => {});
     }
   }, 20_000);
 }

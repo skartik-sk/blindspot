@@ -11,7 +11,9 @@
     "relay": "bun run --cwd apps/relay start",
     "check": "bash scripts/check.sh",
     "pin": "bun run --cwd apps/web scripts/pin.ts",
-    "dev:web": "bun run --cwd apps/web dev"
+    "dev:web": "bun run --cwd apps/web dev",
+    "dev": "bun scripts/dev.ts",
+    "build": "bun run --cwd apps/web build -- --base /"
   },
   "devDependencies": {
     "bun-types": "^1.4.4",

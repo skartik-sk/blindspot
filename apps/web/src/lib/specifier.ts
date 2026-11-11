@@ -51,17 +51,17 @@ export const hasPin = (n: NetworkName) => !!currentPin(n);
 /**
  * Compare the pin's hash with the live specifier, read through one anonymous network. One answer alone never changes
  * anything (a lying RPC must not be able to force a direct startup read): the pin is marked stale only when the
- * other network has independently reported the same new hash.
+ * same new hash has come from two different RPC operators (each read through a different anonymous network).
  */
 const seen = new Map<NetworkName, Map<string, Set<string>>>();
-export async function checkPin(n: NetworkName, address: string, ethCall: (to: string, data: string) => Promise<string>, via: string): Promise<"same" | "pending" | "stale"> {
+export async function checkPin(n: NetworkName, address: string, ethCall: (to: string, data: string) => Promise<string>, operator: string): Promise<"same" | "pending" | "stale"> {
   const p = FILE[n];
   const hash = (await ethCall(address, SEL_HASH)).toLowerCase();
   if (p && hash === p.workerHash.toLowerCase()) return "same";
   const byHash = seen.get(n) ?? new Map<string, Set<string>>();
   seen.set(n, byHash);
   const vias = byHash.get(hash) ?? new Set<string>();
-  byHash.set(hash, vias.add(via));
+  byHash.set(hash, vias.add(operator));
   if (vias.size < 2) return "pending";
   markStale(n);
   return "stale";

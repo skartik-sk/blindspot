@@ -37,9 +37,10 @@ What this does **not** give you (we never claim "100% private"):
   mixnet route: the node learns the address, but not who asked.
 - **PIR hides, it doesn't prove.** Our PIR is single-server (Paillier): privacy rests on encryption, not on servers
   not colluding. But the server could return a wrong row; the next verified block touching that address corrects it.
-- **Who we trust in the demo.** Blocks come from our relay, and every block hash is cross-checked with Tenderly.
-  Faking a block needs both to collude. The relay and the PIR server are the same machine, run by us. A light client
-  would remove the second-provider trust.
+- **Who we trust.** Blocks come from our relay, but the phone checks every one against the Ethereum sync committee
+  with a light client (see "How a block is proven"): a relay can't make up a block. What it can still do is stop
+  serving, or lie about the private lookup's answer (labelled "not yet proven" until a verified block shows it). The
+  relay and the PIR server are the same machine, run by us.
 - **Sends are public once they land,** and on Sepolia they pass the public mempool (no private builder there).
 
 ## Live
@@ -109,16 +110,28 @@ Demo: `docs/DEMO.md` (script) and `docs/DEMO-CHECKLIST.md` (exact steps, timings
 | `apps/relay` | Fetches each block once, verifies it, serves the same bytes to everyone; PIR balance table; spy log; public `GET /log` (block numbers only) |
 | `apps/web` | The app (React + Vite) |
 
-## Run
+## Quickstart
 
 ```bash
 bun install
-bun test                      # 110 tests, real Sepolia block fixtures
-bun run relay                 # relay on :8787
-cd apps/web && VITE_RELAY_URL=http://localhost:8787 bunx vite    # app on :5173
+bun run dev        # local relay (:8787) + the app (:5173), both with live reload
+bun run check      # tests, typecheck (web, relay, sdk), production build, lint: one line, exit code 0 = good
+bun run pin        # refresh the pinned Anon-RPC specifiers, the self-hosted worker code and the light-client checkpoint
 ```
 
-Without `VITE_RELAY_URL` the app reads blocks straight from publicnode through the mixnet (no relay needed;
+**Run your own, in one command** (a Linux machine with Docker, and two DNS names pointing at it):
+
+```bash
+cp .env.example .env          # set SITE_DOMAIN and RELAY_DOMAIN
+docker compose up -d --build  # relay + website + automatic HTTPS (Caddy)
+docker compose --profile tor up -d --build   # also a Tor gateway (needs UDP 12298 open; set PUBLIC_IP)
+```
+
+**GitHub Pages:** `.github/workflows/pages.yml` builds and publishes the site on every push to `main` (set the
+repository variable `RELAY_URL`; Settings → Pages → Source: GitHub Actions). `.github/workflows/ci.yml` runs
+`bun run check` on every push.
+
+Relay settings. Without `VITE_RELAY_URL` the app reads blocks straight from publicnode through the mixnet (no relay needed;
 PIR lookup falls back to a one-off mixnet read). Relay env: `UPSTREAM_RPC`, `PORT`, `POLL_MS`, `SPY_TOKEN`,
 `ENABLE_NAIVE=1`, `RATE_LIMIT`, `TRUST_PROXY=1`, `PIR_SEED` (comma-separated addresses, never evicted), `PIR_MAX`,
 `PIR_NEW_PER_BLOCK` (default 8: how fast new wallets enter the directory; lower keeps quiet wallets listed longer),
@@ -155,7 +168,22 @@ For every block the app uses:
 1. `keccak(rlp(header)) == header.hash`, and the number is the one asked for
 2. `keccak(rlp(accessList)) == header.blockAccessListHash` ([EIP-7928](https://eips.ethereum.org/EIPS/eip-7928))
 3. The receipts trie root `== header.receiptsRoot`, so no event can be invented, edited or hidden
-4. An independent provider agrees on the block hash (every block, so the anchor can't tell which blocks matter)
+4. **A beacon light client**: the block links by parent hash to an execution block hash that the Ethereum sync
+   committee (512 validators) signed. The app shows the block at once and adds its ✓ when a signed head links back
+   to it, usually 10–20 s later.
+
+The light client (`packages/sdk/src/lightclient.ts`) starts from a finalized checkpoint pinned at build time
+(`bun run pin` checks it three ways: the bootstrap header hashes to it, its sync committee's Merkle branch verifies,
+and a beacon API from another operator agrees on the root). From there it follows each sync-committee period
+(each new committee signed by the old one) and verifies every head: BLS aggregate signature from at least 2/3 of the
+committee, and the Merkle branch from the execution block hash into the signed beacon block (Gloas layout on
+Sepolia, Electra on mainnet). The beacon data comes through Anon-RPC like everything else. If the relay ever serves a
+block the signed chain contradicts, its alerts are flagged in red and can't be copied. Copy trade is only offered once
+a block is proven.
+
+If the light client can't start or fails 5 times in a row, the app falls back to the old check (a second provider,
+Tenderly, confirms each block hash) and says so on the Network page. Tested against real Sepolia data, including
+forged heads and tampered signatures (`packages/sdk/test/lightclient.test.ts`).
 
 Balances come from storage slots inside the verified access list (USDC slot 9, WETH slot 3), never `balanceOf`.
 "Who traded" comes from nonce changes in the access list (index = tx position + 1), not from the relay.
@@ -194,8 +222,9 @@ quotes, token names and sends. The Spy panel lists every request as the server r
 relay's own server-side log (`GET /log`) next to it.
 
 **Traffic share** (Network screen) = requests sent through Anon-RPC ÷ every request the app made since load,
-counting the worker's bootstrap reads and any direct relay calls in the denominator. Measured against the
-deployed site: **97.3%** (109 of 112, Nov 6). The 3 direct requests were Anon-RPC's own bootstrap at startup
+counting any startup reads and direct relay calls in the denominator. **Since Nov 11 it is 100% from the first
+request**: the app answers Anon-RPC's startup reads itself from pins and serves the worker code from its own site
+(see "Pinned startup"). Before that, measured against the deployed site: **97.3%** (109 of 112, Nov 6). The 3 direct requests were Anon-RPC's own bootstrap at startup
 (2 reads of the public network contract, 1 download of the network's code bundle, addressed by hash), so the
 share rises the longer the app runs: a longer live session measured **99.7%** (876 of 879). A resource
 observer counts any direct request the app didn't log itself.
@@ -214,8 +243,9 @@ showed no direct request to the relay, Tenderly or publicnode reads, only the bo
 
 Exceptions (all counted in the denominator above):
 
-- **Bootstrap:** the Anon-RPC worker reads its specifier contract from a public node (publicnode, with fallbacks),
-  directly. It's the same public data for every user and names no address.
+- **Startup, only if a pin is stale:** a network whose pinned specifier is out of date (or can't boot) reads its
+  specifier contract from a public node directly on its next start: 2 reads, the same public data for every user, no
+  address. Counted in the share. With current pins this doesn't happen.
 - **Local relay:** a relay on `localhost` is fetched directly (exits can't reach it). Dev only; shown in the UI.
 - **Named reads:** a few reads must name an address: your nonce and gas when sending, and balances of addresses
   not in the PIR directory. Each leaves from a mixnet exit, so the node doesn't learn who asked. We don't claim these reads can't be linked to
@@ -230,7 +260,7 @@ Checked Nov 6. Everything the app fetches goes through `anonFetch` (Anon-RPC), e
 | Mixnet entry node | yes | that you use the mixnet; not destinations or content | inherent to any mixnet |
 | GitHub Pages and Cloudflare (DNS and HTTPS for useblindspot.xyz), when you **load the website** | yes | that you opened the site | the static app is hosted on GitHub Pages (moved off our server on Nov 6); GitHub's own logging applies. Our server no longer serves any page: the old site address doesn't answer. |
 | Our server's error log | only for a request that fails | | Caddy keeps no access log. Its error log records the client IP of a failed proxied request (an aborted stream, or the relay restarting). Since the website moved, the requests our server receives come from mixnet exits (plus the opt-in Spy demo lane), so what it can record are mixnet-exit IPs. That log can only be filtered globally, and the server is shared with another team's service, so we left it as is rather than change their logging. |
-| Anon-RPC bootstrap | yes | that someone is starting Anon-RPC | 2 `eth_call`s to the public network contract (publicnode, with fallbacks). No address. Counted in the traffic share. The worker code now comes from our own site (same hash-checked bytes), so GitHub's raw host and jsDelivr no longer see you. |
+| Anon-RPC startup, only with a stale pin | yes | that someone is starting Anon-RPC | 2 `eth_call`s to the public network contract (publicnode, with fallbacks). No address. Normally 0: the app answers these from pins. |
 | Spy panel "Run the comparison" | yes (opt-in) | 2 public demo contract addresses | the "Normal RPC" column sends directly to our relay's demo lane on purpose. The lane is off by default (`ENABLE_NAIVE`), and when on it answers only about the demo addresses (`NAIVE_ALLOW`). |
 | A relay on `localhost` | n/a | | dev only |
 
@@ -239,43 +269,53 @@ log) reaches servers from mixnet exits. On the relay, per-IP rate-limit counters
 they hold exit IPs), the Spy log stores salted hashes, and its journal has no client IPs. Not checked: network-level
 flow logs at the cloud provider (no access to the account).
 
-**Isolation keys: we checked, and they do nothing today.** Anon-RPC lets an app tag each request with an
-`isolationKey`, and its README says support "varies". So on Nov 7 we downloaded the exact worker code the app runs
-(Nox `@hisoka-io/anon-rpc-worker` 0.4.1 and Nym `@nymproject/anon-rpc-worker` 0.1.0, the bundles named by the
-on-chain specifiers) and searched it, including the two WebAssembly modules inside the Nox bundle. Neither one
-reads `isolationKey`, `anonOptions` or anything like it. So the separate keys our app sends are ignored, and we no
-longer claim they keep requests apart. Blindspot doesn't depend on them: block requests are the same for everyone,
-and the few reads that name an address (your nonce and gas when sending, lookups outside the PIR directory) say so in
-the Spy panel. We still send the keys, so a future worker that honours them gets them for free.
+**Isolation keys: they work on Tor, not on Nox or Nym.** Anon-RPC lets an app tag each request with an
+`isolationKey`, and its README says support "varies". On Nov 7 we downloaded the exact worker code the app runs
+(Nox `@hisoka-io/anon-rpc-worker` and Nym `@nymproject/anon-rpc-worker` 0.1.0) and searched it, including the two
+WebAssembly modules inside the Nox bundle: neither reads `isolationKey` or `anonOptions`. EF's tor-js does: different
+keys never share a Tor circuit. So on Nox and Nym we don't claim our keys keep requests apart. Blindspot doesn't
+depend on them: block requests are the same for everyone, and the few reads that name an address (your nonce and
+gas when sending, lookups outside the PIR directory) say so in the Spy panel. We send the keys anyway, so Tor (and
+any future worker that honours them) gets them for free.
 
-## When Nox can't start: automatic fallback to Nym
+## Two anonymous networks, side by side
 
-EF (Andrew Morris, Anon-RPC track, Nov 6): Nox fails on iPhone Safari with harness 0.4.0. The KPS dial succeeds,
-then `kps.exchange.failed` on `/topology` -> `TOPOLOGY_FETCH_FAILED` on all anchors, and it likely can't be fixed
-during the hackathon; Nym works there (boot ~11 s, reads ~10–35 s).
+The app runs **Nox and Nym at the same time** (two Anon-RPC workers in one page), so one network stalling never
+stalls the app. On Nov 7, during judging, Nox exits stopped offering TLS tunnels for about 35 minutes and the app
+sat on "Reconnecting"; this is the fix. Logic: `apps/web/src/lib/lanes.ts` (pure, tested) and `anon.ts`.
 
-So if Nox can't boot, the app switches to Nym by itself. It decides from the failure, never the browser name: the
-topology boot error, or 3 failures in a row before Nox has ever answered. It only switches before Nox has worked in
-this tab, never overrides a network you picked, and only to another anonymous network, never to a direct
-connection. The switch restarts the tab once on Nym (one Anon-RPC worker per page) and is remembered for that tab; a
-banner says "Nox isn't available in this browser, using Nym (slower alerts)". Request time limits follow the network
-(25 s on Nox, 60 s on Nym and Tor), because Nym reads can take over 30 s. Logic: `apps/web/src/lib/fallback.ts`, with
-tests in `apps/web/test/fallback.test.ts`. Tested on desktop by simulating the exact error (`?simulate-nox-fail`,
-development builds only): live on Nym in 41 s; not yet tested on a real iPhone.
+- **Warm standby:** Nym starts in the background about 10 s after Nox works (not when the browser asks to save
+  data), and idle networks get a cheap request every minute so their routes stay open. Measured: once both are warm,
+  a request takes about 0.55 s on either.
+- **Probe before trust:** a network counts as working only after a real request through it succeeds. A network still
+  starting gets 90 s of grace for ordinary timeouts (Nym's first answer takes 17–60 s); errors that mean it can't work
+  (`TOPOLOGY_FETCH_FAILED`, "No exit offers TLS tunnels") mark it down at once.
+- **Instant failover, no reload:** requests go to the best working network. A down network is probed again after
+  15 s, doubling to 5 minutes, and takes traffic back as soon as it answers.
+- **Hedging, for address-free reads only:** if the first network is slow (3× its usual time, 3–15 s), the same block
+  read is also sent on the other one; the first answer wins. A read that names an address is never hedged, and moves
+  to the other network only if it never left the first (start-up or route errors), so a server can't link two copies.
+- **Never direct.** If no network works, requests fail and the app says "Nox and Nym aren't responding".
+- **Your choice wins:** a network you pick on the Network page runs alone; if it stalls, a banner offers the switch.
 
-**Mid-session failover (Nov 7).** On Nov 7 between 04:25 and 05:00 IST, Nox stopped delivering ("No exit offers TLS
-tunnels"), and for a while so did Nym. Our relay received nothing while still verifying every block. So the app now
-also switches mid-session:
-- **When:** 3 failed reads in a row, or no verified block for 60 s on Nox (120 s on Nym, which starts slower).
-- **What it shows:** "Switched to Nym because Nox stopped responding", with the time it will retry Nox.
-- **Retries:** it goes back to Nox after 10 min, then 20, then 40, and stays once Nox delivers again.
-- **Both down:** after 4 switches in 15 minutes it stops switching and says both networks stopped responding.
-- **Your choice wins:** if you picked a network yourself, it only suggests the switch.
-- **Never direct:** it never falls back to a direct connection.
+Tested in the browser with a simulated Nox stall (`?simulate-nox-stall`, development builds only): Nym took over
+without a reload, and the traffic share stayed 100%. iPhone Safari, where Nox can't start (EF, Nov 6), is the same
+path: Nox fails with a start-up error, Nym carries the traffic.
 
-Logic: `apps/web/src/lib/failover.ts`, tests in `apps/web/test/failover.test.ts`. Tested in the browser with a
-simulated Nox stall: it switched to Nym within 30 s. Nym was really down then, so after 120 s it returned to Nox,
-which went live.
+### Pinned startup: 0 direct requests
+
+The stock Anon-RPC harness starts by reading each network's specifier contract (`workerHash()`,
+`workerResolvers()`) directly from a public node, and downloads the worker code from GitHub or a CDN, so those hosts
+see every user's IP. Blindspot answers the two reads itself from pins generated by `bun run pin`
+(`apps/web/src/lib/pins.json`) and serves a hash-checked copy of the worker code from its own site, listed first.
+Measured: **100.0% of requests through Anon-RPC from the first request**, 0 startup requests.
+
+Pins go stale when a network ships a new worker (Nox moved from 0.4.1 to 0.4.2 between Nov 7 and Nov 11). The app
+checks the live specifier through the mixnet; a pin is marked stale only when two different RPC operators, each read
+through a different network, report the same new hash, and then that network's next start does the normal live read.
+A runtime answer is never saved as a trusted pin, so a lying RPC can't choose which worker code runs. A pin that
+can't boot also falls back to the live read, so availability never depends on it.
+
 
 ## Choice of network
 
@@ -286,10 +326,10 @@ against the live relay (same app, same blocks):
 | --- | --- | --- |
 | Nox | 10 s | 2.6 s, ~280 KB |
 | Nym | 50 s (larger client download) | 15.7 s, ~270 KB: slower than Sepolia's 12 s blocks, so alerts lag |
-| Tor | not offered | EF demo gateway `152.236.3.22:12298`: no TCP answer at 19:15 IST (a TCP probe only; browsers reach gateways another way). Temporary EF gateway `159.89.167.167:12298`, tested in the browser at 22:37 IST: Tor booted and reached our relay over TLS (HTTP 200), but the second provider (Tenderly's public gateway) answers Tor exits with HTTP 403, so no block could be confirmed in 7 minutes. Enabling Tor needs a second provider that accepts Tor exits (a verification-config change), so it's not offered. |
+| Tor | not offered yet | Both blockers from Nov 7 are now solved or ready: the light client replaced Tenderly (which refused Tor exits), and `docker compose --profile tor` runs EF's tor-js gateway. What's left is opening UDP 12298 on our server's firewall (AWS security group) and publishing the gateway address. The EF demo gateways were down when tested (Nov 6, Nov 7, Nov 11). |
 
-Running our own Tor gateway is ~1–2 hours (a WebSocket-to-Tor bridge behind Caddy). That gateway would see users'
-IPs, like any Tor entry, but not destinations or content (the Tor circuit is end to end from the browser).
+A Tor gateway sees users' IPs, like any Tor entry, but never destinations or content: the Tor circuit is built end to
+end in the browser, and the gateway only forwards encrypted bytes to Tor relays it finds in the public consensus.
 
 ## Trade-offs
 
@@ -302,8 +342,9 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
   The relay serves receipts without blooms (about 3x smaller).
 - **Data use.** About 250–330 KB per block while the app is open (roughly 75–100 MB an hour on Sepolia's 12 s
   blocks); nothing while it's hidden or closed, unless you turn on background watching. The Network page shows the live per-block average.
-- **No light client yet.** Each block hash is checked against a second provider. Faking data needs the relay
-  and the anchor to collude. A light client (e.g. Helios) would remove this.
+- **The light client is optimistic, not finalized.** It follows the latest head the sync committee signed (like
+  Atmos and most light clients), so a deep reorg could change a block it already marked. Finality checks would add
+  ~13 minutes of delay. If it fails 5 times in a row the app falls back to a second provider and says so.
 - **History anonymity is up to 8, not 1,000.** The history download hides the address among up to 8, not the whole directory,
   and the relay can see the downloads arrive together. The window covers the last 6 active blocks per address since
   the relay started indexing; older history isn't available.
@@ -378,11 +419,8 @@ IPs, like any Tor entry, but not destinations or content (the Tor circuit is end
 In order of what removes the most trust or leakage. Assessed Nov 6–7; each was too large or risky to finish
 properly before the deadline.
 
-- **A light client instead of relay + second provider.** We checked what's available: Lodestar's Sepolia node
-  (`lodestar-sepolia.chainsafe.io`) serves light-client optimistic updates (478 of 512 sync-committee signatures in
-  our sample), and its header carries `execution_block_hash` with an 11-node Merkle branch. That's enough to prove
-  each execution block hash from the sync committee and drop the Tenderly check. Its consensus reads would go through
-  Anon-RPC too. (publicnode's beacon API doesn't serve light-client data.) 4–8 hours, high risk.
+- **Done Nov 11: light client, two networks side by side, pinned startup, one-command deploy.** See the sections
+  above. What follows is still open.
 - **Hint-based PIR (SimplePIR / YPIR).** Paillier PIR cost grows with the table, so we index ~1,000 addresses. A
   hint-based scheme updated from the block stream would cover every active address, and could serve history rows
   directly instead of k-anonymity cover downloads.
@@ -394,8 +432,8 @@ properly before the deadline.
   block, pause in background, copy trade) were run by hand in a browser and should run on every push.
 - **Shielded sends (Railgun on Sepolia).** Large proving artifacts and a separate broadcaster network that would also
   have to work through Anon-RPC: 6–10 hours, high risk.
-- **Tor.** Our own Tor gateway (~1–2 hours; it would see users' IPs, as any Tor entry does, not destinations or
-  content) and a second provider that accepts Tor exits (Tenderly's public gateway returns HTTP 403 to them).
+- **Tor as a third network.** The gateway image is in `deploy/tor-gateway.Dockerfile`; it needs UDP 12298 opened on
+  the server and its address added to the app. Then Tor joins Nox and Nym as a lane, with real per-request circuits.
 - Proof-checked PIR rows (`eth_getProof` against a verified header); a mainnet mode after Glamsterdam, with the
   Flashbots Protect / MEV Blocker send route already tested; merchant payments on the same core (an earlier
   prototype is tagged `payments-v1`).
