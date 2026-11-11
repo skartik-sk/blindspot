@@ -161,6 +161,20 @@ await follow({ rpc, anchor, onBlock: (b) => {
 }});
 ```
 
+**For any wallet or dapp: an EIP-1193 provider.** Every read goes through the anonymous fetch you give it, block
+headers are checked against their hashes (and, with a light client, against heads the sync committee signed),
+`eth_chainId` is answered locally, and anything that would sign or send for an account is refused (error 4200):
+
+```ts
+import { createProvider, LightClient } from "@blindspot/sdk";
+
+const provider = createProvider({ url: "https://ethereum-sepolia-rpc.publicnode.com", fetch: anonFetch, chainId: 11155111 });
+const client = createPublicClient({ chain: sepolia, transport: custom(provider) }); // viem, or new ethers.BrowserProvider(provider)
+```
+
+**The light client on its own:** `new LightClient({ get, checkpoint, bootstrap })`, where `get(path)` fetches a beacon
+API path (through Anon-RPC), then `await lc.latest()` returns the execution block hash the sync committee signed.
+
 ## How a block is proven
 
 For every block the app uses:

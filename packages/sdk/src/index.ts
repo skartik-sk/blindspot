@@ -8,3 +8,4 @@ export * from "./follow";
 export * from "./pir";
 export * from "./pending";
 export * from "./lightclient";
+export * from "./provider";
